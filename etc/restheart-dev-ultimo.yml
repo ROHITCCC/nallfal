@@ -102,11 +102,15 @@ application-logic-mounts:
       args:
           url: /_logic/roles
     - what: com.ultimo.AggregateService
-      where: /aggregate
+      where: /ES/ErrorSpotActual/aggregate
       secured: false
       args:
-          url: /_logic/aggregate
-
+          url: /_logic/ES/ErrorSpotActual/aggregate
+    - what: com.ultimo.XMLConversionServiceOneField
+      where: /XMLConvert
+      secured: false
+      args:
+          url: /_logic/XMLConvert
 ### metadata named singletons
 
 # metadata implementation can rely on singletons, this section configures the
