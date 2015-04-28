@@ -68,11 +68,6 @@ mongo-mounts:
 
 
 static-resources-mounts:
-    - what: ultimo
-      where: /ultimo
-      welcome-file: ultimo.html
-      secured: false
-      embedded: true
     - what: browser
       where: /browser
       welcome-file: browser.html
