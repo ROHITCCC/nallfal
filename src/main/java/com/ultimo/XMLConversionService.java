@@ -3,7 +3,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.UnknownHostException;
+
 import org.json.*;
+import org.restheart.db.MongoDBClientSingleton;
+
 import com.mongodb.*;
 import com.mongodb.util.JSON;
 
@@ -46,7 +49,7 @@ public class XMLConversionService
 	public static String MongoDBDocumentRead( String host, int port, String dbName,String collectionName)
 	{
 		try{
-			Mongo mongo = new Mongo(host, port);
+			MongoClient mongo = MongoDBClientSingleton.getInstance().getClient();
 			DB db = mongo.getDB(dbName);
 			DBCollection collection = db.getCollection(collectionName);
 			DBCursor cursorDoc = collection.find();
