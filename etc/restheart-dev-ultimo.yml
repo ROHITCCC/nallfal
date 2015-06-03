@@ -45,7 +45,7 @@ use-embedded-keystore: true
 # Secify the ip and port of mongodb with mongo-servers. For mongodb replica set, specify all your servers.
 
 mongo-servers:
-    - host: 172.16.120.70
+    - host: 172.16.120.170
       port: 27017
       
 # Provide mongodb users credentials with mongo-credentials.
@@ -102,10 +102,20 @@ application-logic-mounts:
       args:
           url: /_logic/ES/ErrorSpotActual/aggregate
     - what: com.ultimo.XMLConversionServiceOneField
-      where: /XMLConvert
+      where: /ES/ErrorSpotSample
       secured: false
       args:
-          url: /_logic/XMLConvert
+          url: /_logic/ES/ErrorSpotSample
+    - what: com.ultimo.XMLConversionService
+      where: /ES/ErrorSpotSample/XMLConvertMultipleFields
+      secured: false
+      args:
+          url: /_logic/ES/ErrorSpotSample/XMLConvertMultipleFields
+    - what: com.ultimo.XMLService
+      where: /ES/ErrorSpotSample/XMLService
+      secured: false
+      args:
+          url: /_logic/ES/ErrorSpotSample/XMLService
 ### metadata named singletons
 
 # metadata implementation can rely on singletons, this section configures the

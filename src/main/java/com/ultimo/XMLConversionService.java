@@ -1,109 +1,176 @@
 package com.ultimo;
+
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
+
 import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.UnknownHostException;
+import java.util.Map;
 
+import org.bson.types.ObjectId;
 import org.json.*;
+import org.restheart.db.DocumentDAO;
 import org.restheart.db.MongoDBClientSingleton;
+import org.restheart.hal.Representation;
+import org.restheart.handlers.IllegalQueryParamenterException;
+import org.restheart.handlers.PipedHttpHandler;
+import org.restheart.handlers.RequestContext;
+import org.restheart.handlers.RequestContext.METHOD;
+import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
+import org.restheart.handlers.document.DocumentRepresentationFactory;
+import org.restheart.handlers.document.PutDocumentHandler;
+import org.restheart.utils.HttpStatus;
+import org.restheart.utils.ResponseHelper;
 
-import com.mongodb.*;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.WriteResult;
 import com.mongodb.util.JSON;
 
 
-public class XMLConversionService 
+
+ // Not Finished. We have issues with the XML Quotes Configuration. 
+public class XMLConversionService extends ApplicationLogicHandler 
 
 {
-	public static String readXML(String file) throws IOException 
+	public XMLConversionService(PipedHttpHandler next, Map<String, Object> args) 
 	{
-		FileReader inputXMLFile = new FileReader(file);
-		BufferedReader br = new BufferedReader(inputXMLFile);
-		String line;
-		StringBuilder sb = new StringBuilder();
-		while((line=br.readLine())!= null){
-		    sb.append(line.trim());
-		}
-		br.close();
-		return sb.toString();
-		
-	}
+		super(next, args);
+	}	
 	
-	public static void XMLConversion(String inputXML) throws UnknownHostException
+	public static String XMLConversion(HttpServerExchange exchange,RequestContext context, String inputXML, MongoClient mongo, String dbName, String collectionName) throws Exception
 	{
          JSONObject jsonObj = XML.toJSONObject(inputXML); 
          String intermediateJSON = jsonObj.toString();
          intermediateJSON = "{\"payload\" : "+ intermediateJSON + "}";
-	     JSONObject jsonObj2 = new JSONObject(intermediateJSON); 
-         MongoDBDocumentWrite(jsonObj2.toString());
+	     JSONObject jsonObj2 = new JSONObject(intermediateJSON);
+        return MongoDBDocumentWrite(exchange, context, jsonObj2.toString(),mongo, dbName, collectionName);
 	}
 	
-	public static void MongoDBDocumentWrite(String inputJSON) throws UnknownHostException
+	public static String MongoDBDocumentWrite(HttpServerExchange exchange,RequestContext context,  String inputJSON, MongoClient mongo, String dbName, String collectionName) throws Exception
  
 	{		
-		Mongo mongo = new Mongo("172.16.120.70", 27017);
-		DB db = mongo.getDB("test");
-		DBCollection collection = db.getCollection("payloadTest");
+		DB db = mongo.getDB(dbName);
+		DBCollection collection = db.getCollection(collectionName);
 		DBObject dbObject = (DBObject) JSON.parse(inputJSON);
-		collection.insert(dbObject);
-	}			
-	public static String MongoDBDocumentRead( String host, int port, String dbName,String collectionName)
+		context.setContent(dbObject);
+		PutDocumentHandler documentHandler = new PutDocumentHandler();
+		//PutDocumentHandler documentHandler = new PutDocumentHandler(new DocumentDAO());
+		documentHandler.handleRequest(exchange, context);
+		//documentHandler.
+		//WriteResult result = collection.insert(dbObject);
+		//JSONObject inter = new JSONObject(result.toString());
+		//System.out.println(dbObject.toString());
+		String resultOutput = "Inserted Document. Number of Documents Inserted: "; //+ inter.get("ok");
+		return resultOutput;
+
+		
+	}	
+	
+	public static String MongoDBDocumentRead( String dbName,String collectionName,HttpServerExchange exchange,RequestContext context) throws IllegalQueryParamenterException
 	{
-		try{
+		try
+		{
 			MongoClient mongo = MongoDBClientSingleton.getInstance().getClient();
 			DB db = mongo.getDB(dbName);
 			DBCollection collection = db.getCollection(collectionName);
-			DBCursor cursorDoc = collection.find();
-			String json = null;
-			json = cursorDoc.next().get("payload").toString();
-			System.out.println(json);
-			JSONObject output = new JSONObject(json);
 
-			/*	Code to Get and Print a JSON Array. 
-			  JSONArray jsonArray = new JSONArray();
-				while (cursorDoc.hasNext())
+			String objectID = exchange.getQueryString();
+			if (objectID.equals(""))
 			{
-				if (i!=0) 
-				{
-					json = json + "," + cursorDoc.next().get("payload").toString();
-
-				}
-				else
-				{ 
-					json = cursorDoc.next().toString();
-					JSONObject jsonobj = new JSONObject(json);
-					jsonobj.toJSONArray(jsonArray);
-				}
-				i++;
+	            return "No Query Parameter Given";
 			}
-			json = "[" + json + "]";
-			System.out.println(json);
-			json = json.replace("$oid" , "oid");
-			System.out.println(json);
-			JSONArray array2 = new JSONArray(json);
-
-			System.out.println(array2.toString(1));
-			*/
+			String id = "_id";
+			DBObject searchID = new BasicDBObject(id, new ObjectId(objectID));
+			DBObject HOOLA = collection.findOne(searchID);
+			JSONObject output = new JSONObject(HOOLA.toString());
+			String xmlInput = XML.toString(output);
+			DBObject outputObject = (DBObject) JSON.parse("{\"payload\": \"" + xmlInput.replace("$oid", "oid") + "\"}");
+			System.out.println();
 			
-			return XML.toString(output);
-			
-			}
-			catch(Exception e) 
+			if (HOOLA != null)
 			{
-				e.printStackTrace();
-				return "Error Happened";
+		        int code = HttpStatus.SC_ACCEPTED;
+	            exchange.setResponseCode(code);
+	            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, Representation.HAL_JSON_MEDIA_TYPE);
+	           // exchange.getResponseSender().send(rep.toString());
+	            return "Finished";
 			}
+			else 
+			{
+	            return "Document Was Not Found";
+			}
+			
+		}
+		catch(Exception e) 
+		{
+			e.printStackTrace();
+			return "Unspecified Errors";
+		}
 	}
-	
-	public static void main(String[] args) throws IOException
+
+	@Override
+	public void handleRequest(HttpServerExchange exchange,RequestContext context) throws Exception 
 	{
-		//String fileOutput = readXML("C:\\Users\\Vinay\\Desktop\\JavaInput.xml");
-		//XMLConversion(fileOutput);
-		String outputFromDB = MongoDBDocumentRead("172.16.120.70", 27017, "test", "payloadTest");
-		System.out.println("output from DB:");
-		System.out.println(outputFromDB);
 		
+		if (context.getMethod() == METHOD.GET)
+		{
 		
+			String readResult = MongoDBDocumentRead( context.getDBName(), context.getCollectionName(), exchange, context);
+			switch(readResult)
+			{
+				case "No Query Parameter Given" : ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, readResult);
+				break;
+				case "Finished" : exchange.endExchange();
+				break;
+				case "Unspecified Errors" : ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_FAILURE, readResult);
+				break;
+				case "Document Was Not Found" : ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, readResult);
+				break; 
+			}
+		}
+		
+		else if (context.getMethod() == METHOD.POST)
+		{
+			InputStream input = exchange.getInputStream();
+			BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
+			String mongoInput = "";
+			MongoClient dbClient = getMongoConnection(exchange, context);
+			readLoop : while(true)
+					{
+						String inputTemp = inputReader.readLine();
+						if (inputTemp != null) 
+						{
+							mongoInput = mongoInput + inputTemp;
+						}
+						else 
+						{
+							break readLoop;
+						}
+					}
+			System.out.println(context.getDocumentId());
+			System.out.println(context.getContent().get("_id"));
+			ObjectId id = new ObjectId();
+			String results = XMLConversion(exchange,context, mongoInput,dbClient,context.getDBName(), context.getCollectionName());	
+			//ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_ACCEPTED, results);
+		}
+		else 
+		{
+			 exchange.setResponseCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
+	         exchange.endExchange();
+		}
+
 	}
 
+	public static MongoClient getMongoConnection (HttpServerExchange exchange,RequestContext context) 
+	{		
+		MongoClient db = MongoDBClientSingleton.getInstance().getClient();   
+		return db;
+	}
 
 }
