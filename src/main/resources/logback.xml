@@ -29,4 +29,6 @@
     </root>
     
     <logger name="org.restheart" level="INFO"/>
+    
+    <logger name="com.ultimo" level="INFO"/>
 </configuration>

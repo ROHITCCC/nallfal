@@ -116,6 +116,11 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/ES/ErrorSpotSample/XMLService
+    - what: com.ultimo.ReplayService
+      where: /ES/ErrorSpotActual/replay
+      secured: false
+      args:
+          url: /_logic/ES/ErrorSpotActual/replay
 ### metadata named singletons
 
 # metadata implementation can rely on singletons, this section configures the

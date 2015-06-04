@@ -167,6 +167,32 @@
 		    <artifactId>json</artifactId>
 		    <version>20140107</version>
 		</dependency>
+		
+		<dependency>
+            <groupId>org.reficio</groupId>
+            <artifactId>soap-builder</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.reficio</groupId>
+            <artifactId>soap-client</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.reficio</groupId>
+            <artifactId>soap-server</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.2.3</version>
+		</dependency>
+       <dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-client</artifactId>
+			<version>9.2.11.M0</version>
+		</dependency>
     </dependencies>
     <build>
         <finalName>${project.artifactId}-${project.version}-nodeps</finalName>
@@ -392,4 +418,10 @@
             </plugin>
         </plugins>
     </reporting>
+     <repositories>
+        <repository>
+            <id>reficio</id>
+            <url>http://repo.reficio.org/maven/</url>
+        </repository>
+    </repositories>
 </project>
