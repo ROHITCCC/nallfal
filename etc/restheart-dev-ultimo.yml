@@ -101,26 +101,22 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/ES/ErrorSpotActual/aggregate
-    - what: com.ultimo.XMLConversionServiceOneField
-      where: /ES/ErrorSpotSample
+    - what: com.ultimo.AuditService
+      where: /ES/ErrorSpotActual/AuditService
       secured: false
       args:
-          url: /_logic/ES/ErrorSpotSample
-    - what: com.ultimo.XMLConversionService
-      where: /ES/ErrorSpotSample/XMLConvertMultipleFields
-      secured: false
-      args:
-          url: /_logic/ES/ErrorSpotSample/XMLConvertMultipleFields
-    - what: com.ultimo.XMLService
-      where: /ES/ErrorSpotSample/XMLService
-      secured: false
-      args:
-          url: /_logic/ES/ErrorSpotSample/XMLService
+          url: /_logic/ES/ErrorSpotActual/AuditService
     - what: com.ultimo.ReplayService
       where: /ES/ErrorSpotActual/replay
       secured: false
       args:
           url: /_logic/ES/ErrorSpotActual/replay
+    - what: com.ultimo.InsertService
+      where: /ES/ErrorSpotActual/InsertService
+      secured: false
+      args:
+          url: /_logic/ES/ErrorSpotActual/InsertService
+  
 ### metadata named singletons
 
 # metadata implementation can rely on singletons, this section configures the
