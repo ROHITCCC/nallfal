@@ -116,6 +116,11 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/ES/payloadCollection/PayloadService
+    - what: com.ultimo.LoginService
+      where: /LoginService
+      secured: false
+      args:
+          url: /_logic/LoginService
   
 ### metadata named singletons
 
