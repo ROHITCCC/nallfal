@@ -101,21 +101,21 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/ES/ErrorSpotActual/aggregate
-    - what: com.ultimo.AuditService
-      where: /ES/ErrorSpotActual/AuditService
-      secured: false
-      args:
-          url: /_logic/ES/ErrorSpotActual/AuditService
-    - what: com.ultimo.ReplayService
-      where: /ES/ErrorSpotActual/replay
-      secured: false
-      args:
-          url: /_logic/ES/ErrorSpotActual/replay
     - what: com.ultimo.InsertService
       where: /ES/ErrorSpotActual/InsertService
       secured: false
       args:
           url: /_logic/ES/ErrorSpotActual/InsertService
+    - what: com.ultimo.ReplayService
+      where: /ES/ErrorSpotActual/replay
+      secured: false
+      args:
+          url: /_logic/ES/ErrorSpotActual/replay
+    - what: com.ultimo.PayloadService
+      where: /ES/payloadCollection/PayloadService
+      secured: false
+      args:
+          url: /_logic/ES/payloadCollection/PayloadService
   
 ### metadata named singletons
 
