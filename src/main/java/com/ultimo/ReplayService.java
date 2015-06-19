@@ -123,6 +123,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
             String[] inputString = new String[5];
             //separates payload into variables split on ~,
             inputString = payload.split("~,");
+            
             for(int x = 0; x < inputString.length;x++){
             	inputString[x] = inputString[x].substring(inputString[x].indexOf("=") + 1);
             }
