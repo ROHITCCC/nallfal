@@ -25,13 +25,19 @@ import io.undertow.util.HttpString;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -42,10 +48,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
-
-
-
+import org.apache.commons.net.ftp.FTPClient;
 import org.reficio.ws.builder.SoapBuilder;
 import org.reficio.ws.builder.SoapOperation;
 import org.reficio.ws.builder.core.Wsdl;
@@ -133,6 +136,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	    		case "REST":handleREST(exchange, context, inputString);break;
 	    		case "FILE":handleFILE(exchange, context, inputString);break;
 	    		case "WS":handleWS(exchange, context, inputString);break;
+	    		case "FTP":handleFTP(exchange,context,inputString);break;
 	    		
 	    		default:break;
 	    		
@@ -482,7 +486,167 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			
 		}
 		
-		
+		public void handleFTP(HttpServerExchange exchange,RequestContext context, String[] inputString) throws Exception{
+			LOGGER.info("Strating FTP service");
+			LOGGER.trace(""+inputString.length);
+			FTPClient ftp= new FTPClient();
+			
+			// break input string to its contents
+			String hostname= inputString[1];
+			String username= inputString[2];
+			String password= inputString[3];
+			String location= inputString[4];
+			String file="";
+			String fileType="";
+			String ftpPayload="";
+			
+			//filename parameter passed
+			if(inputString.length==9){
+				LOGGER.info("file passed");
+				file= inputString[5];
+				fileType=inputString[6];
+				ftpPayload=inputString[7];
+			}
+			//filename parameter not passed in
+			else{
+				LOGGER.info("no file parameter passed");
+				fileType=inputString[5];
+				ftpPayload=inputString[6];
+			}
+			
+			//if file is not passed in or is blank
+			if(file.equals("")){
+				LOGGER.info("no file detected, so creating default with timestamp");
+				Calendar calender = Calendar.getInstance();
+				Date date=calender.getTime();
+				Timestamp ts= new Timestamp(date.getTime());
+				String st= ts.toString();
+				st=st.replaceAll(":", "_");
+				st=st.replaceAll("-", "_");
+				st=st.replace('.', '_');
+				st=st.replaceAll(" ", "_");
+				file=st;
+			}
+			
+			//file validation
+			boolean valid=true;
+			for(int i=0;i<file.length();i++){
+				char ch=file.charAt(i);
+				if(!Character.isLetterOrDigit(ch) && ch!='_'){
+					valid=false;
+				}
+			}
+			if(valid){
+				LOGGER.info("filename has valid characters");
+			}
+			else{
+				LOGGER.error("incorrect file name");
+				ResponseHelper.endExchangeWithMessage(exchange, 500,"file name contain incorrect character: only aphanumaeric and underscore allowed");
+				return;
+			}
+			
+			String filename=location+file+fileType;
+			
+			//logging trace messages
+			LOGGER.trace("host: "+hostname);
+			LOGGER.trace("username: "+username);
+			LOGGER.trace("password: "+password);
+			LOGGER.trace("filename: "+filename);
+			LOGGER.trace("payload: "+ftpPayload);
+			
+			//step checks
+			boolean connected=false;
+			boolean loggedIn=false;
+			
+			//connect to server
+			try {
+				LOGGER.info("connecting to server: "+hostname);
+				ftp.connect(hostname, 21);
+				LOGGER.info("successfully connected to server: "+hostname);
+				connected=true;
+			} catch (IOException e) {
+				LOGGER.error("incorrect host: "+hostname);
+				ResponseHelper.endExchangeWithMessage(exchange, 500, "Host is invalid");
+			}
+			
+			//login to server with given credentials
+			if(connected){
+				try {
+					LOGGER.info("logging in");
+					LOGGER.trace("logging in with username: "+username+" and password: "+password);
+					ftp.login(username, password);
+					loggedIn=true;
+					LOGGER.info("login successful");
+				} catch (IOException e) {
+					LOGGER.error("login failed");
+					ResponseHelper.endExchangeWithMessage(exchange, 500,"username or password is incorrect");
+				}
+			}
+			
+			//add payload to file on the server
+			if(loggedIn){
+				boolean payloadCheck= payloadChecker(ftpPayload);
+				if(payloadCheck){
+					LOGGER.info("Payload format correct");
+					//convert payload string to inputStream
+					InputStream ftpPayloadInput = new ByteArrayInputStream(ftpPayload.getBytes(Charset.forName("UTF-8")));
+					try{
+						LOGGER.info("storing payload into file");
+						LOGGER.warn("if file already exists in directory, new information will overwrite the exisiting");
+						boolean stored = ftp.storeFile(filename,ftpPayloadInput);
+						if(stored){
+							LOGGER.info("successfully stored payload into file");
+							exchange.getResponseSender().send("Payload successfully stored on file on server");
+						}
+						else{
+							//if you are trying to input to a nonexsisting direcotry
+							LOGGER.info("creating new directories");
+							String [] directories = filename.split("/");
+							for(int i=0;i<(directories.length-1);i++){
+								boolean dirExists = ftp.changeWorkingDirectory(directories[i]);
+								if(!dirExists){
+									LOGGER.trace("creating new directory: "+directories[i]);
+									ftp.makeDirectory(directories[i]);
+									ftp.changeWorkingDirectory(directories[i]);
+								}
+							}
+							boolean storedNewDir=ftp.storeFile(directories[directories.length-1],ftpPayloadInput);
+							if(storedNewDir){
+								LOGGER.trace("payload stored in direcotry: "+directories[directories.length-2]);
+								LOGGER.info("successfully stored payload into file");
+								exchange.getResponseSender().send("Payload successfully stored on file on server");
+							}
+							else{
+								LOGGER.error("storing file failed: incorrect filepath");
+								ResponseHelper.endExchangeWithMessage(exchange, 500,"incorrect file path");
+							}
+						}
+					}
+					catch (IOException e){
+						LOGGER.error("login failed: incorrect filepath");
+						ResponseHelper.endExchangeWithMessage(exchange, 500,"incorrect file path");
+					}
+				}
+				else{
+					LOGGER.error("Payload not formatted correctly");
+					ResponseHelper.endExchangeWithMessage(exchange, 500, "Payload not formatted correctly");
+				}
+			}
+			
+			//logout of server
+			if(loggedIn){
+				LOGGER.trace("attempting to log out of server: "+hostname);
+				ftp.logout();
+				LOGGER.info("logout successful");
+			}
+			
+			//disconnect from server
+			if(connected){
+				LOGGER.trace("attempting to disconnect form server: "+hostname);
+				ftp.disconnect();
+				LOGGER.info("disconnected successfully");
+			}
+		}
 		
 		public static boolean isValidIP(String ipAddr){
 	        
