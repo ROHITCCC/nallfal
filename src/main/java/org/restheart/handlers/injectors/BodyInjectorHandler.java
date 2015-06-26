@@ -39,12 +39,15 @@ import java.util.HashSet;
 import org.apache.tika.Tika;
 import org.restheart.utils.URLUtils;
 import org.restheart.hal.UnsupportedDocumentIdException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author Andrea Di Cesare <andrea@softinstigate.com>
  */
 public class BodyInjectorHandler extends PipedHttpHandler {
+    static final Logger LOGGER = LoggerFactory.getLogger(BodyInjectorHandler.class);
 
     private static final String ERROR_INVALID_CONTENTTYPE = "Content-Type must be either: "
             + Representation.HAL_JSON_MEDIA_TYPE
@@ -100,7 +103,7 @@ public class BodyInjectorHandler extends PipedHttpHandler {
         DBObject content;
 
         if (isNotFormData(contentTypes)) { // json or hal+json
-            final String contentString = ChannelReader.read(exchange.getRequestChannel());
+            final String contentString = workaroundAngularJSIssue1463(ChannelReader.read(exchange.getRequestChannel()));
 
             try {
                 content = (DBObject) JSON.parse(contentString);
@@ -142,11 +145,11 @@ public class BodyInjectorHandler extends PipedHttpHandler {
                 ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, errMsg);
                 return;
             }
-            
+
             File file = data.getFirst(fileFieldName).getFile();
 
             context.setFile(file);
-            
+
             injectContentTypeFromFile(content, file);
         }
 
@@ -169,6 +172,28 @@ public class BodyInjectorHandler extends PipedHttpHandler {
         }
 
         getNext().handleRequest(exchange, context);
+    }
+
+    /**
+     * need this to workaroung angularjs issue
+     * https://github.com/angular/angular.js/issues/1463
+     * 
+     * TODO: allow enabling the workaround via configuration option
+     *
+     * @param content
+     * @return
+     */
+    private static String workaroundAngularJSIssue1463(String contentString) {
+        if (contentString == null)
+            return null;
+        
+        String ret = contentString.replaceAll("\"€oid\" *:", "\"\\$oid\" :");
+        
+        if (!ret.equals(contentString)) {
+            LOGGER.debug("Replaced €oid alias with $oid in message body. This is to workaround angularjs issue 1463 (https://github.com/angular/angular.js/issues/1463)");
+        }
+        
+        return ret;
     }
 
     /**
@@ -215,22 +240,24 @@ public class BodyInjectorHandler extends PipedHttpHandler {
             context.addWarning("the reserved field " + keyToRemove + " was filtered out from the request");
         });
     }
-    
+
     private void injectContentTypeFromFile(DBObject content, File file) throws IOException {
-        if (content.get("contentType") != null)
+        if (content.get("contentType") != null) {
             return;
-        
+        }
+
         String contentType;
-        
-        if (file == null)
+
+        if (file == null) {
             return;
-        else
+        } else {
             contentType = detectMediaType(file);
-        
+        }
+
         if (content == null && contentType != null) {
             content = new BasicDBObject();
-        } 
-        
+        }
+
         content.put("contentType", contentType);
     }
 

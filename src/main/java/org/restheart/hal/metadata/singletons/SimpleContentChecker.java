@@ -21,7 +21,10 @@ import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import io.undertow.server.HttpServerExchange;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.restheart.handlers.RequestContext;
@@ -104,11 +107,59 @@ public class SimpleContentChecker implements Checker {
                         type = (String) _type;
                     }
 
-                    int count = -1;
+                    Set<Integer> counts = new HashSet<>();
                     Object _count = condition.get("count");
 
-                    if (_count != null && _count instanceof Integer) {
-                        count = (Integer) _count;
+                    if (_count != null) {
+                        if (_count instanceof Integer) {
+                            counts.add((Integer) _count);
+                        } else if (_count instanceof BasicDBList) {
+                            BasicDBList countsArray = (BasicDBList) _count;
+
+                            countsArray.forEach(countElement -> {
+                                if (countElement instanceof Integer) {
+                                    counts.add((Integer) countElement);
+                                }
+                            });
+                        }
+                    }
+
+                    Set<String> mandatoryFields;
+                    Object _mandatoryFields = condition.get("mandatoryFields");
+
+                    if (_mandatoryFields != null) {
+                        mandatoryFields = new HashSet<>();
+
+                        if (_mandatoryFields instanceof BasicDBList) {
+                            BasicDBList mandatoryFieldsArray = (BasicDBList) _mandatoryFields;
+
+                            mandatoryFieldsArray.forEach(element -> {
+                                if (element instanceof String) {
+                                    mandatoryFields.add((String) element);
+                                }
+                            });
+                        }
+                    } else {
+                        mandatoryFields = null;
+                    }
+
+                    Set<String> optionalFields;
+                    Object _optionalFields = condition.get("optionalFields");
+
+                    if (_optionalFields != null) {
+                        optionalFields = new HashSet<>();
+
+                        if (_optionalFields instanceof BasicDBList) {
+                            BasicDBList optionalFieldsArray = (BasicDBList) _optionalFields;
+
+                            optionalFieldsArray.forEach(element -> {
+                                if (element instanceof String) {
+                                    optionalFields.add((String) element);
+                                }
+                            });
+                        }
+                    } else {
+                        optionalFields = null;
                     }
 
                     String regex = null;
@@ -118,6 +169,13 @@ public class SimpleContentChecker implements Checker {
                         regex = (String) _regex;
                     }
 
+                    Boolean optional = false;
+                    Object _optional = condition.get("optional");
+
+                    if (_optional != null && _optional instanceof Boolean) {
+                        optional = (Boolean) _optional;
+                    }
+
                     Boolean nullable = false;
                     Object _nullable = condition.get("nullable");
 
@@ -125,7 +183,7 @@ public class SimpleContentChecker implements Checker {
                         nullable = (Boolean) _nullable;
                     }
 
-                    if (count < 0 && type == null && regex == null) {
+                    if (counts.isEmpty() && type == null && regex == null) {
                         context.addWarning("condition does not have any of 'count', 'type' and 'regex' properties, specify at least one: " + _condition);
                         return true;
                     }
@@ -135,20 +193,20 @@ public class SimpleContentChecker implements Checker {
                         return true;
                     }
 
-                    if (type != null && count >= 0 && regex != null) {
-                        return checkCount(context.getContent(), path, count) && checkType(context.getContent(), path, type, nullable) && checkRegex(context.getContent(), path, regex, nullable);
-                    } else if (type != null && count >= 0) {
-                        return checkCount(context.getContent(), path, count) && checkType(context.getContent(), path, type, nullable);
+                    if (type != null && !counts.isEmpty() && regex != null) {
+                        return checkCount(context.getContent(), path, counts, context) && checkType(context.getContent(), path, type, mandatoryFields, optionalFields, optional, nullable, context) && checkRegex(context.getContent(), path, regex, optional, nullable, context);
+                    } else if (type != null && !counts.isEmpty()) {
+                        return checkCount(context.getContent(), path, counts, context) && checkType(context.getContent(), path, type, mandatoryFields, optionalFields, optional, nullable, context);
                     } else if (type != null && regex != null) {
-                        return checkType(context.getContent(), path, type, nullable) && checkRegex(context.getContent(), path, regex, nullable);
-                    } else if (count >= 0 && regex != null) {
-                        return checkCount(context.getContent(), path, count) && checkRegex(context.getContent(), path, regex, nullable);
+                        return checkType(context.getContent(), path, type, mandatoryFields, optionalFields, optional, nullable, context) && checkRegex(context.getContent(), path, regex, optional, nullable, context);
+                    } else if (!counts.isEmpty() && regex != null) {
+                        return checkCount(context.getContent(), path, counts, context) && checkRegex(context.getContent(), path, regex, optional, nullable, context);
                     } else if (type != null) {
-                        return checkType(context.getContent(), path, type, nullable);
-                    } else if (count >= 0) {
-                        return checkCount(context.getContent(), path, count);
+                        return checkType(context.getContent(), path, type, mandatoryFields, optionalFields, optional, nullable, context);
+                    } else if (!counts.isEmpty()) {
+                        return checkCount(context.getContent(), path, counts, context);
                     } else if (regex != null) {
-                        return checkRegex(context.getContent(), path, regex, nullable);
+                        return checkRegex(context.getContent(), path, regex, optional, nullable, context);
                     }
 
                     return true;
@@ -163,9 +221,74 @@ public class SimpleContentChecker implements Checker {
         }
     }
 
+    private BasicDBList filterNullableAndOptionalNullConditions(BasicDBList conditions, DBObject content) {
+        // nullPaths contains all paths that result to null and condition is nullable or optional
+        Set<String> nullPaths = new HashSet<>();
+
+        BasicDBList ret = new BasicDBList();
+
+        conditions.stream().forEach(condition -> {
+            if (condition instanceof BasicDBObject) {
+                Boolean nullable = false;
+                Object _nullable = ((BasicDBObject) condition).get("nullable");
+
+                if (_nullable != null && _nullable instanceof Boolean) {
+                    nullable = (Boolean) _nullable;
+                }
+
+                Boolean optional = false;
+                Object _optional = ((BasicDBObject) condition).get("optional");
+
+                if (_optional != null && _optional instanceof Boolean) {
+                    optional = (Boolean) _optional;
+                }
+
+                if (nullable || optional) {
+                    Object _path = ((BasicDBObject) condition).get("path");
+
+                    if (_path != null && _path instanceof String) {
+                        String path = (String) _path;
+
+                        List<Optional<Object>> props;
+                        try {
+                            props = JsonUtils.getPropsFromPath(content, path);
+
+                            if (props == null) {
+                                nullPaths.add(path);
+                            }
+                        } catch (IllegalArgumentException ex) {
+                            nullPaths.add(path);
+                        }
+                    }
+                }
+            }
+        });
+
+        conditions.stream().forEach(condition -> {
+            if (condition instanceof BasicDBObject) {
+                Object _path = ((BasicDBObject) condition).get("path");
+
+                if (_path != null && _path instanceof String) {
+                    String path = (String) _path;
+
+                    boolean hasNullParent = nullPaths.stream().anyMatch(nullPath -> {
+                        LOGGER.debug("does {} implies {}? {}", nullPath, path, path.startsWith(nullPath));
+                        return path.startsWith(nullPath);
+                    });
+
+                    if (!hasNullParent) {
+                        ret.add(condition);
+                    }
+                }
+            }
+        });
+
+        return ret;
+    }
+
     private BasicDBList getApplicableConditions(BasicDBList conditions, RequestContext.METHOD method, DBObject content) {
         if (method == RequestContext.METHOD.POST || method == RequestContext.METHOD.PUT) {
-            return conditions;
+            return filterNullableAndOptionalNullConditions(conditions, content);
         } else if (method == RequestContext.METHOD.PATCH) {
             List filtered = conditions.stream().filter(condition -> {
                 if (!(condition instanceof BasicDBObject)) {
@@ -187,31 +310,34 @@ public class SimpleContentChecker implements Checker {
 
                 Object _count = _condition.get("count");
 
-                LOGGER.debug("count ? {}", _count != null);
-                LOGGER.debug("path {}", path);
-                LOGGER.debug("condition {}", _condition);
-                LOGGER.debug(JsonUtils.getPropsFromPath(content, path.concat(".*")).toString());
-
                 if (_count != null) {
                     if (path.equals("$") || path.equals("$.*")) {
                         return false;
                     } else {
-                        List<Object> matches = JsonUtils.getPropsFromPath(content, path);
+                        try {
+                            List<Optional<Object>> matches = JsonUtils.getPropsFromPath(content, path);
 
-                        if (matches.isEmpty()) {
+                            if (matches == null || matches.isEmpty()) {
+                                return false;
+                            }
+
+                            return !(matches.size() == 1 && matches.get(0) == null);
+                        } catch (IllegalArgumentException ex) {
+                            return false;
+                        }
+                    }
+                } else {
+                    try {
+                        List<Optional<Object>> matches = JsonUtils.getPropsFromPath(content, path);
+
+                        if (matches == null || matches.isEmpty()) {
                             return false;
                         }
 
                         return !(matches.size() == 1 && matches.get(0) == null);
-                    }
-                } else {
-                    List<Object> matches = JsonUtils.getPropsFromPath(content, path);
-
-                    if (matches.isEmpty()) {
+                    } catch (IllegalArgumentException ex) {
                         return false;
                     }
-
-                    return !(matches.size() == 1 && matches.get(0) == null);
                 }
             }).collect(Collectors.toList());
 
@@ -221,62 +347,154 @@ public class SimpleContentChecker implements Checker {
                 ret.add(fc);
             });
 
-            return ret;
+            return filterNullableAndOptionalNullConditions(ret, content);
 
         } else {
             return new BasicDBList();
         }
     }
 
-    private boolean checkType(DBObject json, String path, String type, boolean nullable) {
-        BasicDBObject _json = (BasicDBObject) json;
-
-        List<Object> props = JsonUtils.getPropsFromPath(_json, path);
-
-        boolean ret;
-
-        if (nullable) {
-            ret = props.stream().allMatch(prop -> {
-                return JsonUtils.checkType(prop, type) || JsonUtils.checkType(prop, "null");
-            });
-        } else {
-            ret = props.stream().map((prop) -> JsonUtils.checkType(prop, type)).allMatch((thisCheck) -> (thisCheck));
+    private boolean checkCount(DBObject json, String path, Set<Integer> expectedCounts, RequestContext context) {
+        Integer count;
+        try {
+            count = JsonUtils.countPropsFromPath(json, path);
+        } catch (IllegalArgumentException ex) {
+            return false;
         }
 
-        LOGGER.debug("checkType({}, {}, {}) -> {} -> {}", json, path, type, props, ret);
+        // props is null when path does not exist. count is false
+        if (count == null) {
+            return false;
+        }
+
+        boolean ret = expectedCounts.contains(count);
+
+        LOGGER.debug("checkCount({}, {}) -> {}", path, expectedCounts, ret);
+
+        if (ret == false) {
+            context.addWarning("checkCount condition failed: path: " + path + ", expected: " + expectedCounts + ", got: " + count);
+        }
 
         return ret;
     }
 
-    private boolean checkCount(DBObject json, String path, int expectedCount) {
-        boolean ret = expectedCount == JsonUtils.countPropsFromPath(json, path);
+    private boolean checkType(DBObject json, String path, String type, Set<String> mandatoryFields, Set<String> optionalFields,
+            boolean optional, boolean nullable, RequestContext context) {
+        BasicDBObject _json = (BasicDBObject) json;
 
-        LOGGER.debug("checkCount({}, {}, {}) -> {}", json, path, expectedCount, ret);
+        List<Optional<Object>> props;
+
+        try {
+            props = JsonUtils.getPropsFromPath(_json, path);
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+
+        // props is null when path does not exist.
+        if (props == null) {
+            return optional;
+        }
+
+        boolean ret;
+
+        ret = props.stream().allMatch((Optional<Object> prop) -> {
+            if (prop == null) {
+                return optional;
+            }
+
+            if (prop.isPresent()) {
+                return JsonUtils.checkType(prop, type);
+            } else {
+                return nullable;
+            }
+        });
+
+        boolean failedFieldsCheck = false;
+
+        // check object fields
+        if (ret && "object".equals(type) && (mandatoryFields != null || optionalFields != null)) {
+            Set<String> allFields = new HashSet<>();
+
+            if (mandatoryFields != null) {
+                allFields.addAll(mandatoryFields);
+            }
+
+            if (optionalFields != null) {
+                allFields.addAll(optionalFields);
+            }
+
+            ret = props.stream().allMatch((Optional<Object> prop) -> {
+                if (prop == null) {
+                    return optional;
+                }
+
+                if (prop.isPresent()) {
+                    BasicDBObject obj = (BasicDBObject) prop.get();
+
+                    if (mandatoryFields != null) {
+                        return obj.keySet().containsAll(mandatoryFields) && allFields.containsAll(obj.keySet());
+                    } else {
+                        return allFields.containsAll(obj.keySet());
+                    }
+                } else {
+                    return nullable;
+                }
+            });
+
+            if (ret == false) {
+                failedFieldsCheck = true;
+            }
+        }
+
+        LOGGER.debug("checkType({}, {}, {}, {}) -> {} -> {}", path, type, mandatoryFields, optionalFields, props, ret);
+
+        if (ret == false) {
+            if (!failedFieldsCheck) {
+                context.addWarning("checkType condition failed: path: " + path + ", expected type: " + type + ", got: " + props);
+            } else {
+                context.addWarning("checkType condition failed: path: " + path + ", mandatory fields: " + mandatoryFields + ", optional fields: " + optionalFields + ", got: " + props);
+            }
+        }
 
         return ret;
     }
 
-    private boolean checkRegex(DBObject json, String path, String regex, boolean nullable) {
+    private boolean checkRegex(DBObject json, String path, String regex, boolean optional, boolean nullable, RequestContext context) {
         BasicDBObject _json = (BasicDBObject) json;
 
-        List<Object> props = JsonUtils.getPropsFromPath(_json, path);
+        List<Optional<Object>> props;
+        try {
+            props = JsonUtils.getPropsFromPath(_json, path);
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+
+        // props is null when path does not exist.
+        if (props == null) {
+            return optional;
+        }
 
         boolean ret;
 
-        if (nullable) {
-            Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 
-            ret = props.stream().allMatch(prop -> {
-                return p.matcher(JsonUtils.serialize(prop)).find() || JsonUtils.checkType(prop, "null");
-            });
-        } else {
-            Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-            ret = props.stream().allMatch(prop -> {
-                return p.matcher(JsonUtils.serialize(prop)).find();
-            });
+        ret = props.stream().allMatch((Optional<Object> prop) -> {
+            if (prop == null) {
+                return optional;
+            }
+
+            if (prop.isPresent()) {
+                return p.matcher(JsonUtils.serialize(prop.get())).find();
+            } else {
+                return nullable;
+            }
+        });
+
+        LOGGER.debug("checkRegex({}, {}) -> {} -> {}", path, regex, props, ret);
+
+        if (ret == false) {
+            context.addWarning("checkRegex condition failed: path: " + path + ", regex: " + regex + ", got: " + props);
         }
-
-        LOGGER.debug("checkRegex({}, {}, {}) -> {} -> {}", json, path, regex, props, ret);
 
         return ret;
     }
