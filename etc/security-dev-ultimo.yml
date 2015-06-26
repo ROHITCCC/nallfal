@@ -5,7 +5,7 @@
 users:
     - userid: admin
       password: admin
-      roles: [admins operators]
+      roles: [admins]
     
     - userid: anteneh
       password: kito
