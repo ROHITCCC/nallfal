@@ -127,10 +127,10 @@ application-logic-mounts:
       args:
           url: /_logic/ES/ErrorSpotActual/AuditService
     - what: com.ultimo.SettingService
-      where: /ES/EC/SettingService
+      where: /ES/ErrorSpotSetting/SettingService
       secured: false
       args:
-          url: /_logic/ES/EC/SettingService
+          url: /_logic/ES/ErrorSpotSetting/SettingService
   
 ### metadata named singletons
 
