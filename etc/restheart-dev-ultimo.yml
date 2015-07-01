@@ -126,6 +126,11 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/ES/ErrorSpotActual/AuditService
+    - what: com.ultimo.SettingService
+      where: /ES/EC/SettingService
+      secured: false
+      args:
+          url: /_logic/ES/EC/SettingService
   
 ### metadata named singletons
 
