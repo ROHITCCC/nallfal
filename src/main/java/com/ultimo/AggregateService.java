@@ -71,7 +71,6 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 				db = MongoDBClientSingleton.getInstance().getClient();
 		        DB database = db.getDB(dbname);
 		        DBCollection collection = database.getCollection(collectionName);
-		        
 		    //============================================================================================================    
 		    //  Get Payload  
 		        try{ 
@@ -229,7 +228,7 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 		        }
 		       
        
-	}
+        }
         else 
     	{
         	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
