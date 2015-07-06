@@ -21,5 +21,7 @@ public class NotificationService extends ApplicationLogicHandler {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	
 
 }

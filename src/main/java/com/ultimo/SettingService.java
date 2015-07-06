@@ -190,7 +190,15 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				}
 				collection.insert(document);
 				
-				LOGGER.info("successfully inserted into the database");
+				
+				
+				
+				
+				
+				//schedule the report in quartz
+				Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
+				
+				LOGGER.info("Successfully inserted report into the database, report " + document.toString());
 				exchange.getResponseSender().send("Payload successfully stored as document on Mongo Database");
 			}
 	        else 
@@ -357,7 +365,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		//Interface and error type are optional fields
 		try{
-			String interfaceName = report.getJSONObject("report").getString("interface");
+			String interfaceName = report.getJSONObject("report").getString("interface1");
 			
 			if(!interfaceName.isEmpty())
 				jobKeyName = applicationName + "." + interfaceName;
@@ -464,6 +472,22 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 
 		// default schedule is 1 hr
+		int seconds = calculateDurationInseconds(duration, unit);
+
+
+		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
+				.simpleSchedule().withIntervalInSeconds(seconds)
+				.repeatForever();
+
+		Trigger trigger = TriggerBuilder.newTrigger()
+				.withIdentity(triggerName).withSchedule(scheduleBuilder)
+				.startAt(triggerStartTime).build();
+
+		return trigger;
+	}
+	
+	public static int calculateDurationInseconds(int duration, String unit){
+		//defaul is 1 hr
 		int seconds = 60 * 60;
 
 		switch (unit) {
@@ -490,16 +514,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		default:
 
 		}
-
-		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
-				.simpleSchedule().withIntervalInSeconds(seconds)
-				.repeatForever();
-
-		Trigger trigger = TriggerBuilder.newTrigger()
-				.withIdentity(triggerName).withSchedule(scheduleBuilder)
-				.startAt(triggerStartTime).build();
-
-		return trigger;
+		return seconds;
 	}
 }
 		
