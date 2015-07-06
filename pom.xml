@@ -188,6 +188,12 @@
             <groupId>org.reficio</groupId>
             <artifactId>soap-server</artifactId>
             <version>1.0.0-SNAPSHOT</version>
+            <exclusions>
+            	<exclusion>
+            		<artifactId>slf4j-log4j12</artifactId>
+            		<groupId>org.slf4j</groupId>
+            	</exclusion>
+            </exclusions>
         </dependency>
         <dependency>
 			<groupId>org.apache.httpcomponents</groupId>
@@ -211,6 +217,18 @@
 		<version>2.2.1</version>
   	</dependency>
 		 
+	<dependency>
+		<groupId>org.jsoup</groupId>
+		<artifactId>jsoup</artifactId>
+		<version>1.8.2</version>
+	</dependency>
+	
+	<dependency>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-email</artifactId>
+		<version>1.4</version>
+	</dependency>
+	
     </dependencies>
     <build>
         <finalName>${project.artifactId}-${project.version}-nodeps</finalName>
