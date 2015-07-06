@@ -121,11 +121,6 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/LoginService
-    - what: com.ultimo.AuditService
-      where: /ES/ErrorSpotActual/AuditService
-      secured: false
-      args:
-          url: /_logic/ES/ErrorSpotActual/AuditService
     - what: com.ultimo.SettingService
       where: /ES/ErrorSpotSetting/SettingService
       secured: false
@@ -173,10 +168,10 @@ metadata-named-singletons:
 
 idm:
     implementation-class: org.restheart.security.impl.SimpleFileIdentityManager
-    conf-file: ../etc/security-dev-ultimo.yml
+    conf-file: ../etc/security.yml
 access-manager:
     implementation-class: org.restheart.security.impl.SimpleAccessManager
-    conf-file: ../etc/security-dev-ultimo.yml
+    conf-file: ../etc/security.yml
 
 # authentication token
 

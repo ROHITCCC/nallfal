@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 public class AggregateService extends ApplicationLogicHandler implements IAuthToken {
 	
 	MongoClient db;
-	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
+	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 
 	public AggregateService(PipedHttpHandler next, Map<String, Object> args) {
 		super(next, args);
@@ -71,7 +71,6 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 				db = MongoDBClientSingleton.getInstance().getClient();
 		        DB database = db.getDB(dbname);
 		        DBCollection collection = database.getCollection(collectionName);
-		        
 		    //============================================================================================================    
 		    //  Get Payload  
 		        try{ 
@@ -95,66 +94,69 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 
 					
 			//===========================================================================================================	
-			// Begin Formatting Query Pipeline	
-					DBObject dbInputObject = null;
-			        List<DBObject> query = new ArrayList<DBObject>();
-					JSONArray inputArray = new JSONArray(payload);
-					for (int a = 0; a < inputArray.length(); a++)
-					{
-						JSONObject inputObject = (JSONObject) inputArray.get(a);
-					if (inputObject.has("$project"))
-				    {
-						dbInputObject = new BasicDBObject("$project",JSON.parse(inputObject.get("$project").toString()));
-				        query.add(dbInputObject); 	
-				    }
-					if (inputObject.has("$match"))
-			        {
-			        	dbInputObject = new BasicDBObject("$match",JSON.parse(inputObject.get("$match").toString()));
-			        	System.out.println("Match" + dbInputObject.get("$match").toString());
-
-			        	query.add(dbInputObject); 	
-			        }
-					if (inputObject.has("$group"))
-					 {
-			        	dbInputObject = new BasicDBObject("$group",JSON.parse(inputObject.get("$group").toString()));
-			        	query.add(dbInputObject); 	
-					 }
-					if (inputObject.has("$sort"))
-					 {
-			        	dbInputObject = new BasicDBObject("$sort",JSON.parse(inputObject.get("$sort").toString()));
-			        	query.add(dbInputObject);
-					 }
-					}
-					LOGGER.trace(query.toString());
-					LOGGER.debug("Query List Made");
-							        
-			     //==========================================================================================================
-			     // Send Query to DB
-			
-			        AggregationOutput output = collection.aggregate( query );	
-			        LOGGER.debug("Query Executed");
-			       /// System.out.println(output.)
-			     //==========================================================================================================
-			     // Process Results
-			        JSONArray resultsArray = new JSONArray(output.results().toString());
-			        List<DBObject> outputList = new ArrayList<DBObject>();
-			        int i = 0;
-			        while(i < resultsArray.length())
-			        {
-			        DBObject outputObject = (DBObject) JSON.parse(resultsArray.get(i).toString());
-			        outputList.add(outputObject);
-			        	i++;
-			        }
-			        if (resultsArray.length() == 0)
-			        {
-			        	LOGGER.debug("No Results Were Found.");
-			        }
-			        for(DBObject b : outputList)
-			        {
-			        	//System.out.println(b);
-			        	LOGGER.trace(b.toString());
-			        }
-			        
+//			// Begin Formatting Query Pipeline	
+//					DBObject dbInputObject = null;
+//			        List<DBObject> query = new ArrayList<DBObject>();
+//					JSONArray inputArray = new JSONArray(payload);
+//					for (int a = 0; a < inputArray.length(); a++)
+//					{
+//						JSONObject inputObject = (JSONObject) inputArray.get(a);
+//					if (inputObject.has("$project"))
+//				    {
+//						dbInputObject = new BasicDBObject("$project",JSON.parse(inputObject.get("$project").toString()));
+//				        query.add(dbInputObject); 	
+//				    }
+//					if (inputObject.has("$match"))
+//			        {
+//			        	dbInputObject = new BasicDBObject("$match",JSON.parse(inputObject.get("$match").toString()));
+//			        	System.out.println("Match" + dbInputObject.get("$match").toString());
+//
+//			        	query.add(dbInputObject); 	
+//			        }
+//					if (inputObject.has("$group"))
+//					 {
+//			        	dbInputObject = new BasicDBObject("$group",JSON.parse(inputObject.get("$group").toString()));
+//			        	query.add(dbInputObject); 	
+//					 }
+//					if (inputObject.has("$sort"))
+//					 {
+//			        	dbInputObject = new BasicDBObject("$sort",JSON.parse(inputObject.get("$sort").toString()));
+//			        	query.add(dbInputObject);
+//					 }
+//					}
+//					LOGGER.trace(query.toString());
+//					LOGGER.debug("Query List Made");
+//							        
+//			     //==========================================================================================================
+//			     // Send Query to DB
+//			
+//			        AggregationOutput output = collection.aggregate( query );	
+//			        LOGGER.debug("Query Executed");
+//			       /// System.out.println(output.)
+//			     //==========================================================================================================
+//			     // Process Results
+//			        JSONArray resultsArray = new JSONArray(output.results().toString());
+//			        List<DBObject> outputList = new ArrayList<DBObject>();
+//			        int i = 0;
+//			        while(i < resultsArray.length())
+//			        {
+//			        DBObject outputObject = (DBObject) JSON.parse(resultsArray.get(i).toString());
+//			        outputList.add(outputObject);
+//			        	i++;
+//			        }
+//			        if (resultsArray.length() == 0)
+//			        {
+//			        	LOGGER.debug("No Results Were Found.");
+//			        }
+//			        for(DBObject b : outputList)
+//			        {
+//			        	//System.out.println(b);
+//			        	LOGGER.trace(b.toString());
+//			        }
+//			        
+					//call method for aggregate
+					List<DBObject> outputList = executeMongoAggregate(payload, collection);
+					
 			        
 			        CollectionRepresentationFactory data =  new CollectionRepresentationFactory();			        
 			        Representation response = data.getRepresentation(exchange, context, outputList, outputList.size());
@@ -229,7 +231,7 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 		        }
 		       
        
-	}
+        }
         else 
     	{
         	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
@@ -238,4 +240,68 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 	
 	
 }
+	//cal mongo aggregate 
+	public static List<DBObject> executeMongoAggregate(String payload, DBCollection collection ){
+		// Begin Formatting Query Pipeline	
+		DBObject dbInputObject = null;
+        List<DBObject> query = new ArrayList<DBObject>();
+		JSONArray inputArray = new JSONArray(payload);
+		for (int a = 0; a < inputArray.length(); a++)
+		{
+			JSONObject inputObject = (JSONObject) inputArray.get(a);
+		if (inputObject.has("$project"))
+	    {
+			dbInputObject = new BasicDBObject("$project",JSON.parse(inputObject.get("$project").toString()));
+	        query.add(dbInputObject); 	
+	    }
+		if (inputObject.has("$match"))
+        {
+        	dbInputObject = new BasicDBObject("$match",JSON.parse(inputObject.get("$match").toString()));
+        	System.out.println("Match" + dbInputObject.get("$match").toString());
+
+        	query.add(dbInputObject); 	
+        }
+		if (inputObject.has("$group"))
+		 {
+        	dbInputObject = new BasicDBObject("$group",JSON.parse(inputObject.get("$group").toString()));
+        	query.add(dbInputObject); 	
+		 }
+		if (inputObject.has("$sort"))
+		 {
+        	dbInputObject = new BasicDBObject("$sort",JSON.parse(inputObject.get("$sort").toString()));
+        	query.add(dbInputObject);
+		 }
+		}
+		LOGGER.trace(query.toString());
+		LOGGER.debug("Query List Made");
+				        
+     //==========================================================================================================
+     // Send Query to DB
+
+        AggregationOutput output = collection.aggregate( query );	
+        LOGGER.debug("Query Executed");
+       /// System.out.println(output.)
+     //==========================================================================================================
+     // Process Results
+        JSONArray resultsArray = new JSONArray(output.results().toString());
+        List<DBObject> outputList = new ArrayList<DBObject>();
+        int i = 0;
+        while(i < resultsArray.length())
+        {
+        DBObject outputObject = (DBObject) JSON.parse(resultsArray.get(i).toString());
+        outputList.add(outputObject);
+        	i++;
+        }
+        if (resultsArray.length() == 0)
+        {
+        	LOGGER.debug("No Results Were Found.");
+        }
+        for(DBObject b : outputList)
+        {
+        	//System.out.println(b);
+        	LOGGER.trace(b.toString());
+        }
+        
+        return outputList;
+	}
 }
