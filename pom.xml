@@ -211,6 +211,18 @@
 		<version>2.2.1</version>
   	</dependency>
 		 
+	<dependency>
+		<groupId>org.jsoup</groupId>
+		<artifactId>jsoup</artifactId>
+		<version>1.8.2</version>
+	</dependency>
+	
+	<dependency>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-email</artifactId>
+		<version>1.4</version>
+	</dependency>
+	
     </dependencies>
     <build>
         <finalName>${project.artifactId}-${project.version}-nodeps</finalName>
