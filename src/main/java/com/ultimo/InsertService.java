@@ -58,15 +58,21 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		 {
 			try
 			{
-				// Reading the Input from the URL
-				InputStream input = exchange.getInputStream();
-				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
+				
+				/*
+				 * Declare the Variables that will be used in this Insert Service. 
+				 */
 				String payload = "";
 				String delimiter = "";
 				String audit = "";
 				String auditHeaders="";
 				String payloadHeaders="";
 				String payloadContentType = "";
+				/*
+				 * Read the Payload of the Incoming Request, and find the delimiter.
+				 */
+				InputStream input = exchange.getInputStream();
+				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
 				int i = 0;
 				readLoop : while(true)
 						{
@@ -91,7 +97,10 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 							}
 						}
 				delimiter = delimiter.split("=")[1]; 
-				//    
+				//=============================================================================================================================================
+				/*
+				 * Read and Parse Multipart/Mixed Message.     
+				 */
 				    byte[] boundary = delimiter.getBytes();
 				    byte[] contents = payload.getBytes();
 			        ByteArrayInputStream content = new ByteArrayInputStream(contents);
@@ -135,6 +144,11 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			        payload = payload.replace("\r\n", "");
 			        String[] pHeaders = payloadHeaders.split("\n");
 			        
+					//=============================================================================================================================================
+					/*
+					 * Find out the content type of the Payload Headers.     
+					 */
+
 			        for (String headerPart : pHeaders)
 			        {
 			        	
@@ -147,35 +161,48 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				        		payloadContentType = contentType[1].trim().replace(";", "");
 				        	}			        	}
 			        }
-			        
-			        DBObject payloadInput = null;
-			        
-			        if (payloadContentType.equalsIgnoreCase("application/xml") | payload.contains(""))
-			        {
-			        	payloadInput = PayloadService.payloadtoJSON(payload, "application/xml", exchange, context);
-			        }
-			        else if (payloadContentType.equalsIgnoreCase("application/json"))
-			        {
-			        	payloadInput = PayloadService.payloadtoJSON(payload, "application/json", exchange, context);
-			        }
-			        else if (payloadContentType.equalsIgnoreCase("text/plain"))
-			        {
+					//=============================================================================================================================================
+					/*
+					 * Insert the Payload based upon the Content Type. The Payload will be Converted in PayloadService    
+					 */
+
+			       DBObject payloadInput = null;
+			       try{
+				        if (payloadContentType.equalsIgnoreCase("application/xml"))
+				        {
+				        	payloadInput = PayloadService.payloadtoJSON(payload, "application/xml", exchange, context);
+				        }
+				        else if (payloadContentType.equalsIgnoreCase("application/json"))
+				        {
+				        	payloadInput = PayloadService.payloadtoJSON(payload, "application/json", exchange, context);
+				        }
+				        else if (payloadContentType.equalsIgnoreCase("text/plain"))
+				        {
+				        	payloadInput = PayloadService.payloadtoJSON(payload, "text/plain", exchange, context);
+				        }
+				        else 
+				        {
+				        	LOGGER.error("Not Acceptable Input");
+							 throw new PayloadConversionException();
+				        }
+			       }
+			       
+			       /*
+			        * If there is an error in conversion, then the payload will be saved as a text/plain payload. Conversion will happen in the PayloadService
+			        */
+			       catch(PayloadConversionException e)
+			       {
+			    	   LOGGER.error("Payload was Saved in text/plain format." );
 			        	payloadInput = PayloadService.payloadtoJSON(payload, "text/plain", exchange, context);
-			        }
-			        else 
-			        {
-			        	LOGGER.error("Not Acceptable Input");
-						 ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Not Acceptable Input. Please ensure that Content Type for Audit is: application/json and the Content-Type for Payload is among these: application/xml, application/json, application");
-						 exchange.endExchange();
-
-						 throw new Exception();
-
-			        	
-			        }
-			        
+			       }
+			       
+			       // Decide a ObjectID fro the payload. 
+			       
 			        LOGGER.trace("Payload: " + payload);
 			        ObjectId id = new ObjectId();
 			        LOGGER.trace("Payload Object ID: " + id.toString());
+			        
+			        //Insert the Payload in to the Payload Collection. 
 			        
 					String status = payloadInsert(id, payloadInput, context, exchange);
 					LOGGER.debug("Payload Insert: " + status);
@@ -187,6 +214,9 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	
 						DBObject inputDBObject = (DBObject) JSON.parse(audit);
 						
+						
+				     //If the payload insert is successful, then insert the audit. 
+	
 						String auditInsertStatus = auditInsert(id, inputDBObject, context, exchange);
 						if (auditInsertStatus == "Success")
 						{
@@ -217,21 +247,33 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	}
 	
 	
+	protected static String insertService (HttpServerExchange exchange, RequestContext context)
+	{
+		return null;
+		
+	}
+	
+	
 	private static String auditInsert (ObjectId referenceID , DBObject inputObject, RequestContext context,HttpServerExchange exchange) throws Exception
 	{
 		String status = "";
 	    try{
-	    	 
+		       /*
+		        * Steps for Audit Insert
+		        *  1) Add Payload ID to Reference ID
+		        *  2) Check if Audit has a timestamp or not. 
+		        *  3) Change the Format of the Date from String to a Date Object. 
+		        *  4) Update the timstamp in the payload object. 
+		        *  5) Inser the Update. 
+		        */
 	     
 				 inputObject.removeField("dataLocation");
 			     inputObject.put("dataLocation", referenceID.toString());
-		         System.out.println(inputObject.containsField("timestamp"));
 		         if (!inputObject.containsField("timestamp"))
 		         {
 		        	 LOGGER.debug("Audit does not contain timestamp");
 		         }
 		         String timestamp =  inputObject.get("timestamp").toString();
-		         System.out.println(timestamp);
 		 	     Date gtDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(timestamp);
 		 	     System.out.println(gtDate.toString());
 		         inputObject.removeField("timestamp");
@@ -248,7 +290,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted Date. Accepted Date Format is: YYYY-MM-DDTHH:MM:SS");
 			    MongoClient client = getMongoConnection(exchange, context);
 			    DB db = client.getDB(context.getDBName());
-			    DBCollection collection = db.getCollection("samplePayloads");
+			    DBCollection collection = db.getCollection("payloadCollection");
 			    DBObject removalObject = new BasicDBObject("_id", referenceID);
 			    collection.remove(removalObject);
 			     status = "Failed";
@@ -263,7 +305,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
 			    MongoClient client = getMongoConnection(exchange, context);
 			    DB db = client.getDB(context.getDBName());
-			    DBCollection collection = db.getCollection("samplePayloads");
+			    DBCollection collection = db.getCollection("payloadCollection");
 			    DBObject removalObject = new BasicDBObject("_id", referenceID);
 			    collection.remove(removalObject);
 			     status = "Failed";
@@ -277,7 +319,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
 				    MongoClient client = getMongoConnection(exchange, context);
 				    DB db = client.getDB(context.getDBName());
-				    DBCollection collection = db.getCollection("samplePayloads");
+				    DBCollection collection = db.getCollection("payloadCollection");
 				    DBObject removalObject = new BasicDBObject("_id", referenceID);
 				    collection.remove(removalObject);
 				     status = "Failed";
@@ -292,7 +334,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    	status = "Failed";
 	    	MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("samplePayloads");
+		    DBCollection collection = db.getCollection("payloadCollection");
 		    DBObject removalObject = new BasicDBObject("_id", referenceID);
 		    collection.remove(removalObject);
 	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
@@ -306,7 +348,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    	status = "Failed";
 	    	MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("samplePayloads");
+		    DBCollection collection = db.getCollection("payloadCollection");
 		    DBObject removalObject = new BasicDBObject("_id", referenceID);
 		    collection.remove(removalObject);
 	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error. Please check MongoDB Connection and Permissions");
@@ -319,7 +361,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    	LOGGER.error("Unspecified Application Error" );
 	    	MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("samplePayloads");
+		    DBCollection collection = db.getCollection("payloadCollection");
 		    DBObject removalObject = new BasicDBObject("_id", referenceID);
 		    collection.remove(removalObject);
 	    	status = "Failed";
@@ -334,12 +376,15 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	
 	private static String payloadInsert(ObjectId id, DBObject inputObject, RequestContext context, HttpServerExchange exchange) throws Exception
 	{
+		/*
+		 *  Get MongoDB connection and insert the converted payload document. 
+		 */
 		String status = "";
 		try {
 		    inputObject.put("_id", id);
 		    MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("samplePayloads");
+		    DBCollection collection = db.getCollection("payloadCollection");
 		    collection.insert(inputObject);
 		    status = "Success";
 		}

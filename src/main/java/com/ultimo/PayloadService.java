@@ -3,12 +3,16 @@ package com.ultimo;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
+
+import org.json.JSONException;
 import org.json.JSONML;
 import org.json.JSONObject;
 import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.HttpStatus;
 import org.restheart.utils.ResponseHelper;
+
 import java.util.Map;
+
 import org.bson.types.ObjectId;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.hal.Representation;
@@ -18,6 +22,7 @@ import org.restheart.handlers.RequestContext.METHOD;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -145,7 +150,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 			}
 			else if (contentType.equalsIgnoreCase("text/plain"))
 			{
-		        String intermediateJSON = "{\"payload\" : \""+ input + "\"}";
+		        String intermediateJSON = "{\"payload\" : \""+ input.replace("\"", "&quot;") + "\"}";
 		        output = (DBObject) JSON.parse(intermediateJSON);
 				output.put("errorSpotContentType","text/plain");
 	
@@ -156,12 +161,12 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		catch(JSONParseException e)
 		{
 			LOGGER.error("Incorrectly Formated JSON Object. Please check JSON Object Format");
-	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Payload Parsing Error");
+	        throw new PayloadConversionException();
 		}
-		catch(MongoException e)
+		catch(JSONException e)
 		{
-			LOGGER.error("Unable to Retrieve Document");
-	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "Unable to Retrieve Document from MongoDB. Document either does not exist or MongoDB is down");
+			LOGGER.error("Unable to Format Document");
+	        throw new PayloadConversionException();
 		}
 		
 		
@@ -192,7 +197,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		else if (contentType.equalsIgnoreCase("text/plain"))
 		{
 			inputObject.removeField("errorSpotContentType");
-			output = inputObject.get("payload").toString();
+			output = inputObject.get("payload").toString().replace("&quot;", "\"");
 		}
 		return output;
 		

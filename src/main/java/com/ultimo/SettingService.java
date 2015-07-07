@@ -190,13 +190,12 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				}
 				collection.insert(document);
 				
-				
-				
-				
-				
-				
-				//schedule the report in quartz
-				Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
+				//schedule a notification if the document is a report
+				if(document.get("report")!=null){
+					//schedule the report in quartz
+					Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
+					LOGGER.info("successfully scheduled report");
+				}
 				
 				LOGGER.info("Successfully inserted report into the database, report " + document.toString());
 				exchange.getResponseSender().send("Payload successfully stored as document on Mongo Database");
@@ -379,7 +378,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		try{
 			
-			String errorType = report.getJSONObject("report").getString("errortype");
+			String errorType = report.getJSONObject("report").getString("errorType");
 			
 			if(!errorType.isEmpty())
 				jobKeyName = jobKeyName + "." + errorType;
@@ -399,7 +398,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		try{
 			
 			scheduler = new StdSchedulerFactory().getScheduler();
-			
 		
 		} catch (SchedulerException e){
 			LOGGER.error(e.getMessage());
@@ -426,15 +424,19 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		job.getJobDataMap().put("report", report.toString());
 		
+		LOGGER.info("created new job");
+		
 		//Create Trigger
 		Trigger trigger = getSechduleTrigger(report, jobKeyName);
+		
+		LOGGER.info("created new trigger");
 
 		
 		//if scheduler is not start it, start the scheduler
 		if(!scheduler.isStarted()){
 			scheduler.start();
 		}
-		
+		LOGGER.info("scheduler is started");
 		
 		Date startDateTime = scheduler.scheduleJob(job, trigger);
 		
@@ -447,21 +449,28 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 
 	private static Trigger getSechduleTrigger(JSONObject report, String triggerName) throws JSONException, java.text.ParseException {
-
+		LOGGER.trace("trigger name: "+triggerName);
 		//JSONObject report = new JSONObject(payload);
 		
-		
-
-		JSONObject frequency = report.getJSONObject("report").getJSONObject("frequency");
-
-		int duration = frequency.getInt("duration");
-		String unit = frequency.getString("unit");
-
+		JSONObject frequency; 
+		int duration; 
+		String unit;
+		try{
+			frequency = report.getJSONObject("report").getJSONObject("frequency");
+			duration = frequency.getInt("duration");
+			unit = frequency.getString("unit");
+		}
+		catch (JSONException e){
+			LOGGER.error(e.getMessage());
+			LOGGER.error(e.getStackTrace().toString());
+			throw e;
+		}
 		Date triggerStartTime;
 		String startDateTime = frequency.getString("starttime");
 		
 
 		if (startDateTime != null && !startDateTime.isEmpty()) {
+			LOGGER.info("start time is given");
 
 			SimpleDateFormat formatter = new SimpleDateFormat(
 					"MM/dd/yyyy'T'hh:mm:ss");
@@ -469,11 +478,13 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 
 		} else {
 			triggerStartTime = new Date();
+			LOGGER.info("no starttime is given, using current time as default stattime");
 		}
 
 		// default schedule is 1 hr
 		int seconds = calculateDurationInseconds(duration, unit);
 
+		LOGGER.trace("seconds: "+seconds);
 
 		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
 				.simpleSchedule().withIntervalInSeconds(seconds)
@@ -487,7 +498,10 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 	
 	public static int calculateDurationInseconds(int duration, String unit){
-		//defaul is 1 hr
+		LOGGER.trace("duration: "+duration);
+		LOGGER.trace("unit: "+ unit);
+		
+		//default is 1 hr
 		int seconds = 60 * 60;
 
 		switch (unit) {
@@ -512,8 +526,9 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 			break;
 
 		default:
-
+			
 		}
+		LOGGER.info("the time interval is scheduled for "+seconds+" seconds");
 		return seconds;
 	}
 }
