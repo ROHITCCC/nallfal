@@ -105,6 +105,9 @@ public class ReportJob implements Job{
 		
 		List<DBObject> result = queryMongo(previousJobExecutionTime, jobData.getString("report"), jobName);
 		
+		/*TODO: get from email info from cofig file*/
+		
+		NotificationService.sendEmail(result.toString(), "template2.html", "securesmtp.xo.com", 1025, "tyco96@gmail.com", "errorspot@ultimosoft.com", "errorspot@ultimosoft.com", "Manager2860!");
 		
 		LOGGER.info("Executed report (" + jobName + ") output " + result.toString());
 		
