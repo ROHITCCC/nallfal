@@ -59,8 +59,21 @@ public class ReportJob implements Job{
 	    	previousJobExecutionTime = df.format(previousRun);
 	    }
 	    
+
+	    if(payload.containsField("interface1") && payload.getString("interface1").length() == 0){
+	    	payload.remove("interface1");
+	    }
+	    if(payload.containsField("errorType") && payload.getString("errorType").length() == 0){
+	    	payload.remove("errorType");
+	    }
 	    
 	    String matchParam = payload.toString();
+	    
+	    
+	    
+	    
+	    
+	    
 	    payload.replace("application", "$application");
 	    if(payload.containsField("interface1")){
 	    	payload.replace("interface1", "$interface1");
