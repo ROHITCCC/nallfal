@@ -131,6 +131,12 @@ application-logic-mounts:
       secured: false
       args:
           url: /_logic/ES/ErrorSpotSetting/SettingService
+    - what: com.ultimo.SearchService
+      where: /ES/payloadCollection/SearchService
+      secured: false
+      args:
+          url: /_logic/ES/payloadCollection/SearchService
+
   
 ### metadata named singletons
 
@@ -241,3 +247,28 @@ buffer-size: 16384
 buffers-per-region: 20
 # should the buffer pool use direct buffers, this instructs the JVM to use native (if possible) I/O operations on the buffers
 direct-buffers: true
+
+
+#below are extended configurations
+error-spot-configs:
+    - what: u-mongodb-database
+      where: ES
+    - what: u-payload-collection
+      where: payloadCollection
+    - what: u-audit-collection  
+      where: ErrorSpotActual
+    - what: u-setting-collection
+      where: ErrorSpotSetting
+    - what: u-smtp-server
+      where: smtp.xxxxx.com
+    - what: u-smtp-port
+      where: 25
+    - what: u-default-to-email-address
+      where: example@ultimosoft.com
+    - what: u-default-from-email-address
+      where: example@ultimosoft.com
+    - what: u-email-username
+      where: ultimo
+    - what: u-email-password
+      where: xxxxx
+ 

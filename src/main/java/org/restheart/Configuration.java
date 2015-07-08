@@ -114,7 +114,19 @@ public class Configuration {
     
     private final boolean authTokenEnabled;
     private final int authTokenTtl;
+    
+    /**===================================================
+     * Below are extended configuaration for ultimo
+     * 
+    */
+    private final List<Map<String, Object>> errorSpotConfigs;
+    
+    
+    public static final String ERROR_SPOT_CONFIGS = "error-spot-configs";
 
+    
+
+    
     /**
      * default mongodb port 27017.
      */
@@ -460,8 +472,12 @@ public class Configuration {
      * the key for the auth-token-ttl property.
      */
     public static final String AUTH_TOKEN_TTL = "auth-token-ttl";
+    
+    
 
-    /**
+
+
+	/**
      * Creates a new instance of ErrorHandler with defaults values.
      */
     public Configuration() {
@@ -545,6 +561,13 @@ public class Configuration {
         
         authTokenEnabled = true;
         authTokenTtl = 15; // minutes
+        
+        
+        /**
+         * Ultimo extended prop
+         */
+        errorSpotConfigs =  new ArrayList<>();
+        
     }
 
     /**
@@ -683,6 +706,15 @@ public class Configuration {
         
         authTokenEnabled = getAsBooleanOrDefault(conf, AUTH_TOKEN_ENABLED, true);
         authTokenTtl = getAsIntegerOrDefault(conf, AUTH_TOKEN_TTL, 15);
+        
+        
+        /**
+         * ultimo extended properties
+         */
+        
+        errorSpotConfigs = getAsListOfMaps(conf, ERROR_SPOT_CONFIGS, new ArrayList<>());
+        
+             
     }
 
     private List<Map<String, Object>> getAsListOfMaps(final Map<String, Object> conf, final String key, final List<Map<String, Object>> defaultValue) {
@@ -1183,4 +1215,14 @@ public class Configuration {
     public int getAuthTokenTtl() {
         return authTokenTtl;
     }
+
+	/**
+	 * @return the ultimoConfigs
+	 */
+	public final List<Map<String, Object>> getErrorSpotConfigs() {
+		return errorSpotConfigs;
+	}
+
+    
+    
 }
