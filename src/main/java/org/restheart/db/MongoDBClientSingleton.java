@@ -23,11 +23,14 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+
 import org.restheart.Configuration;
+
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +44,8 @@ public class MongoDBClientSingleton {
 
     private static transient List<Map<String, Object>> mongoServers;
     private static transient List<Map<String, Object>> mongoCredentials;
+    private static transient List<Map<String, Object>> errorSpotConfigs;
+    
 
     private MongoClient mongoClient;
 
@@ -67,6 +72,7 @@ public class MongoDBClientSingleton {
     public static void init(Configuration conf) {
         mongoServers = conf.getMongoServers();
         mongoCredentials = conf.getMongoCredentials();
+        errorSpotConfigs = conf.getErrorSpotConfigs();
 
         if (mongoServers != null && !mongoServers.isEmpty()) {
             initialized = true;
@@ -141,5 +147,9 @@ public class MongoDBClientSingleton {
      */
     public static boolean isInitialized() {
         return initialized;
+    }
+    
+    public static List<Map<String, Object>> getErrorSpotConfigs() {
+        return errorSpotConfigs;
     }
 }
