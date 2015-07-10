@@ -195,8 +195,10 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				
 				
 				
-				//schedule the report in quartz
-				Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
+				//if document is report, schedule the report in quartz
+				if(document.get("report")!=null){
+					Date scheduleTime = scheduleReport(new JSONObject(document.toString()));
+				}
 				
 				LOGGER.info("Successfully inserted report into the database, report " + document.toString());
 				exchange.getResponseSender().send("Payload successfully stored as document on Mongo Database");
