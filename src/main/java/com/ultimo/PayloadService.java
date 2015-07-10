@@ -175,7 +175,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		
 	}
 
-	private static String jsonToPayload(DBObject inputObject)
+	protected static String jsonToPayload(DBObject inputObject)
 	{
 		
 		String contentType = inputObject.get("errorSpotContentType").toString();
