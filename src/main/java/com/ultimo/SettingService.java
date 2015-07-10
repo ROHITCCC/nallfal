@@ -379,7 +379,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		try{
 			
-			String errorType = report.getJSONObject("report").getString("errortype");
+			String errorType = report.getJSONObject("report").getString("errorType");
 			
 			if(!errorType.isEmpty())
 				jobKeyName = jobKeyName + "." + errorType;
