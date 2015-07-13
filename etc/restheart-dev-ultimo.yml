@@ -127,10 +127,10 @@ application-logic-mounts:
       args:
           url: /_logic/ES/ErrorSpotSetting/SettingService
     - what: com.ultimo.SearchService
-      where: /ES/payloadCollection/SearchService
+      where: /SearchService
       secured: false
       args:
-          url: /_logic/ES/payloadCollection/SearchService
+          url: /_logic/SearchService
 
   
 ### metadata named singletons
