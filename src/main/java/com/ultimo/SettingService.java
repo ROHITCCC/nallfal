@@ -188,16 +188,33 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 					LOGGER.info("replacing exisiting document with the new one");
 					collection.findAndRemove(doc);
 				}
+				
+				//if the document is a report then validate the passes template
+				if(document.get("report")!=null){
+					//get the template string
+					String template=((DBObject)document.get("report")).get("template").toString();
+					if(template==null){ 
+						LOGGER.error("The report document does not have a template field");
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
+						return;
+					}
+					boolean templateExists=NotificationService.validateTemplate(template);
+					if(templateExists){
+						LOGGER.info("the given report has a valid template field");
+					}
+					else{
+						LOGGER.error("the template: "+template+" could not be found");
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The passed report document has an invalid template field");
+						return;
+					}
+				}
 				collection.insert(document);
 				
-				
-				
-				
-				
-				
-				//if document is report, schedule the report in quartz
+				//schedule a notification if the document is a report
 				if(document.get("report")!=null){
-					Date scheduleTime = scheduleReport(new JSONObject(document.toString()));
+					//schedule the report in quartz
+					Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
+					LOGGER.info("successfully scheduled report");
 				}
 				
 				LOGGER.info("Successfully inserted report into the database, report " + document.toString());
@@ -325,6 +342,10 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 		whereQuery.putAll(queryMap);
 		LOGGER.trace(whereQuery.toString());
+		//check if where query is empty and if so, make sure it only displays reports
+		if(whereQuery.isEmpty()){
+			whereQuery.put("report", new BasicDBObject("$ne", null));
+		}
 		DBCursor cursor = collection.find(whereQuery);
 		List<DBObject> resultList= new ArrayList<>();
 	    while (cursor.hasNext()) {
@@ -401,7 +422,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		try{
 			
 			scheduler = new StdSchedulerFactory().getScheduler();
-			
 		
 		} catch (SchedulerException e){
 			LOGGER.error(e.getMessage());
@@ -428,15 +448,19 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		job.getJobDataMap().put("report", report.toString());
 		
+		LOGGER.info("created new job");
+		
 		//Create Trigger
 		Trigger trigger = getSechduleTrigger(report, jobKeyName);
+		
+		LOGGER.info("created new trigger");
 
 		
 		//if scheduler is not start it, start the scheduler
 		if(!scheduler.isStarted()){
 			scheduler.start();
 		}
-		
+		LOGGER.info("scheduler is started");
 		
 		Date startDateTime = scheduler.scheduleJob(job, trigger);
 		
@@ -449,21 +473,28 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 
 	private static Trigger getSechduleTrigger(JSONObject report, String triggerName) throws JSONException, java.text.ParseException {
-
+		LOGGER.trace("trigger name: "+triggerName);
 		//JSONObject report = new JSONObject(payload);
 		
-		
-
-		JSONObject frequency = report.getJSONObject("report").getJSONObject("frequency");
-
-		int duration = frequency.getInt("duration");
-		String unit = frequency.getString("unit");
-
+		JSONObject frequency; 
+		int duration; 
+		String unit;
+		try{
+			frequency = report.getJSONObject("report").getJSONObject("frequency");
+			duration = frequency.getInt("duration");
+			unit = frequency.getString("unit");
+		}
+		catch (JSONException e){
+			LOGGER.error(e.getMessage());
+			LOGGER.error(e.getStackTrace().toString());
+			throw e;
+		}
 		Date triggerStartTime;
 		String startDateTime = frequency.getString("starttime");
 		
 
 		if (startDateTime != null && !startDateTime.isEmpty()) {
+			LOGGER.info("start time is given");
 
 			SimpleDateFormat formatter = new SimpleDateFormat(
 					"MM/dd/yyyy'T'hh:mm:ss");
@@ -471,11 +502,13 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 
 		} else {
 			triggerStartTime = new Date();
+			LOGGER.info("no starttime is given, using current time as default stattime");
 		}
 
 		// default schedule is 1 hr
 		int seconds = calculateDurationInseconds(duration, unit);
 
+		LOGGER.trace("seconds: "+seconds);
 
 		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
 				.simpleSchedule().withIntervalInSeconds(seconds)
@@ -489,7 +522,10 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 	
 	public static int calculateDurationInseconds(int duration, String unit){
-		//defaul is 1 hr
+		LOGGER.trace("duration: "+duration);
+		LOGGER.trace("unit: "+ unit);
+		
+		//default is 1 hr
 		int seconds = 60 * 60;
 
 		switch (unit) {
@@ -514,8 +550,9 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 			break;
 
 		default:
-
+			
 		}
+		LOGGER.info("the time interval is scheduled for "+seconds+" seconds");
 		return seconds;
 	}
 }

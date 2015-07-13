@@ -39,7 +39,7 @@ public class NotificationService extends ApplicationLogicHandler {
 		
 	}
 	
-	public void sendEmail(String emailID,String content, String template, String hostname,int port,String toEmailID,String fromEmailID,String username,String password){
+	public static void sendEmail(String content, String template, String hostname,int port,String toEmailID,String fromEmailID,String username,String password){
 		try{
 			JSONArray jsonArray = new JSONArray(content);
 			File file = new File("C:/Users/Smita/EmailTest/"+template);
