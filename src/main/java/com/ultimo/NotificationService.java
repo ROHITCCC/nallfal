@@ -107,7 +107,7 @@ public class NotificationService extends ApplicationLogicHandler {
 		try{
 			//get the specific job depending on the template
 			HtmlNotificationFactory emailFactory= new HtmlNotificationFactory();
-			NotificationJob emailJob = emailFactory.getJob(template);
+			NotificationTemplate emailJob = emailFactory.getJob(template);
 			Document doc = emailJob.createEmail(content, location, template);
 			
 			//send the email
