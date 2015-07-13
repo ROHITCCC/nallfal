@@ -256,15 +256,17 @@ error-spot-configs:
     - what: u-setting-collection
       where: ErrorSpotSetting
     - what: u-smtp-server
-      where: smtp.xxxxx.com
+      where: securesmtp.xo.com
     - what: u-smtp-port
       where: 25
     - what: u-default-to-email-address
-      where: example@ultimosoft.com
+      where: tyco96@gmail.com
     - what: u-default-from-email-address
-      where: example@ultimosoft.com
+      where: errorspot@ultimosoft.com
     - what: u-email-username
-      where: ultimo
+      where: errorspot@ultimosoft.com
     - what: u-email-password
-      where: xxxxx
+      where: Manager2860!
+    - what: u-template-location
+      where: C:\Users\Smita\EmailTest
  

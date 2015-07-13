@@ -93,7 +93,7 @@ public class NotificationService extends ApplicationLogicHandler {
 		LOGGER.info("The given template: "+template+" exists");
 		try{
 			template=template.replaceAll("\\.html", "");
-			Class<?> t=Class.forName(template);
+			Class<?> t=Class.forName("com.ultimo."+template);
 			LOGGER.info("the template has  "+t.toString()+" associated with it");
 			return true;
 		}

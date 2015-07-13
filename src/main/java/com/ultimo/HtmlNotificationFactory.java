@@ -9,10 +9,10 @@ public class HtmlNotificationFactory {
 
 	//use getJob method to get object of type NotificationJob 
 	public NotificationTemplate getJob(String template){
-		LOGGER.info("Getting th right job for template: "+template);
-		template.replaceAll("\\.html", "");	
+		LOGGER.info("Getting the right job for template: "+template);
+		template=template.replaceAll("\\.html", "");	
 		try{
-			NotificationTemplate job= (NotificationTemplate)Class.forName(template).newInstance();
+			NotificationTemplate job= (NotificationTemplate)Class.forName("com.ultimo."+template).newInstance();
 			LOGGER.info("found :"+job.getClass().toString());
 			return job;
       	}
