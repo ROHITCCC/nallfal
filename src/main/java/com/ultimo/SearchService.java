@@ -21,8 +21,8 @@ import org.restheart.handlers.collection.CollectionRepresentationFactory;
 import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.HttpStatus;
 import org.restheart.utils.ResponseHelper;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -35,12 +35,13 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 {
 
 	MongoClient db;
-	//private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
+	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 
 	public SearchService(PipedHttpHandler next, Map<String, Object> args) {
 		super(next, args);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void handleRequest(HttpServerExchange exchange,RequestContext context) throws Exception {
 
@@ -54,26 +55,27 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		else if (context.getMethod() == METHOD.GET)
 		{
 			List<DBObject> output = new ArrayList<DBObject>();
+			List<Object> outputList = new ArrayList<Object>();
 			if (exchange.getQueryParameters().get("searchtype").getFirst().equalsIgnoreCase("advanced") & exchange.getQueryParameters().get("searchdb").getFirst().equalsIgnoreCase("payload"))
 			{
-				output = advancedSearchPayload(exchange, context);
+				outputList = advancedSearchPayload(exchange, context);
 			}
 			else if (exchange.getQueryParameters().get("searchtype").getFirst().equalsIgnoreCase("advanced") & exchange.getQueryParameters().get("searchdb").getFirst().equalsIgnoreCase("audit"))
 			{
-				output = advancedSearchAudit(exchange, context);
+				outputList = advancedSearchAudit(exchange, context);
 			}
 			else if (exchange.getQueryParameters().get("searchtype").getFirst().equalsIgnoreCase("basic") & exchange.getQueryParameters().get("searchdb").getFirst().equalsIgnoreCase("audit"))
 			{
-				output = basicSearchAudit(exchange, context);
+				outputList = basicSearchAudit(exchange, context);
 			}
 			else if (exchange.getQueryParameters().get("searchtype").getFirst().equalsIgnoreCase("basic") & exchange.getQueryParameters().get("searchdb").getFirst().equalsIgnoreCase("payload"))
 			{
-				output = basicSearchPayload(exchange, context);
+				outputList = basicSearchPayload(exchange, context);
 			}
-
-			
+			output = (List<DBObject>) outputList.get(0);
+			long size = Long.parseLong(outputList.get(1).toString());
 			CollectionRepresentationFactory data = new CollectionRepresentationFactory();
-			Representation response = data.getRepresentation(exchange, context, output, output.size());
+			Representation response = data.getRepresentation(exchange, context, output, size);
 			int code = HttpStatus.SC_ACCEPTED;
 			exchange.setResponseCode(code);
 			exchange.getResponseHeaders().put(Headers.CONTENT_TYPE,Representation.HAL_JSON_MEDIA_TYPE);
@@ -125,12 +127,22 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		return resultList;
 	}
 */
-	public static List<DBObject> advancedSearchAudit(HttpServerExchange exchange, RequestContext context)
+	public static ArrayList<Object> advancedSearchAudit(HttpServerExchange exchange, RequestContext context)
 	{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
 		String searchKeyword = "";
+		int page = 1;
+		int pagesize = 25;
+		if (exchange.getQueryParameters().containsKey("page"))
+		{
+			page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
+		}
+		if (exchange.getQueryParameters().containsKey("pagesize"))
+		{
+			pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		}
 		List<Map<String, Object>> configList = MongoDBClientSingleton.getErrorSpotConfigs();
 		databaseName = configList.get(0).get("where").toString();
 		payloadCollectionName = configList.get(1).get("where").toString();
@@ -159,17 +171,17 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		{
 			filter.add("{\"$text\" : { \"$search\" : \"" + searchKeyword + "\" }}" );
 		}
-		int page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
-		int pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
 
 		List<DBObject> resultList = dao.getCollectionData(auditCollection, page,pagesize, null, filter, null);
-		
-		
-		return resultList;
+		long size = dao.getCollectionSize(auditCollection, filter);
+		ArrayList<Object> outputArray = new ArrayList<Object>();
+		outputArray.add(resultList);
+		outputArray.add(new Long(size));
+		return outputArray;
 		
 	}
 	
-	public static List<DBObject> advancedSearchPayload(HttpServerExchange exchange,RequestContext context)
+	public static ArrayList<Object> advancedSearchPayload(HttpServerExchange exchange,RequestContext context)
 	{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
@@ -178,8 +190,16 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		databaseName = configList.get(0).get("where").toString();
 		payloadCollectionName = configList.get(1).get("where").toString();
 		auditCollectionName = configList.get(2).get("where").toString();
-		int page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
-		int pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		int page = 1;
+		int pagesize = 25;
+		if (exchange.getQueryParameters().containsKey("page"))
+		{
+			page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
+		}
+		if (exchange.getQueryParameters().containsKey("pagesize"))
+		{
+			pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		}
 		System.out.println(databaseName);
 		System.out.println(payloadCollectionName);
 		System.out.println(auditCollectionName);
@@ -239,19 +259,22 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		 Deque<String> input = new ArrayDeque<String>();
 		 input.add(payloadQuery.toString());
 		 List<DBObject> outputList = dao.getCollectionData(auditCollection, page, pagesize, null, input, null);
-		 
-		
-				return outputList;
-
+			long size1 = dao.getCollectionSize(auditCollection, input);
+			ArrayList<Object> outputArray = new ArrayList<Object>();
+			outputArray.add(outputList);
+			outputArray.add(new Long(size1));
+			return outputArray;
 		
 	}
 
-	public static List<DBObject> basicSearchAudit(HttpServerExchange exchange, RequestContext context)
+	public static ArrayList<Object> basicSearchAudit(HttpServerExchange exchange, RequestContext context)
 	{
 		
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
+		int page = 1;
+		int pagesize = 25;
 		List<Map<String, Object>> configList = MongoDBClientSingleton.getErrorSpotConfigs();
 		databaseName = configList.get(0).get("where").toString();
 		payloadCollectionName = configList.get(1).get("where").toString();
@@ -264,26 +287,43 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		DB database = db.getDB(databaseName);
 		DBCollection auditCollection = database.getCollection(auditCollectionName);
 		Deque<String> filterQuery = exchange.getQueryParameters().get("filter");
-		int page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
-		int pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		if (exchange.getQueryParameters().containsKey("page"))
+		{
+			page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
+		}
+		if (exchange.getQueryParameters().containsKey("pagesize"))
+		{
+			pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		}
 
 		List<DBObject> resultList = dao.getCollectionData(auditCollection, page,pagesize, null, filterQuery, null);
-		
-		return resultList;
+		long size = dao.getCollectionSize(auditCollection, filterQuery);
+		ArrayList<Object> outputArray = new ArrayList<Object>();
+		outputArray.add(resultList);
+		outputArray.add(new Long(size));
+		return outputArray;
 		
 	}
 
-	public static List<DBObject> basicSearchPayload(HttpServerExchange exchange, RequestContext context)
+	public static ArrayList<Object> basicSearchPayload(HttpServerExchange exchange, RequestContext context)
 	{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
+		int page = 1;
+		int pagesize = 25;
 		List<Map<String, Object>> configList = MongoDBClientSingleton.getErrorSpotConfigs();
 		databaseName = configList.get(0).get("where").toString();
 		payloadCollectionName = configList.get(1).get("where").toString();
 		auditCollectionName = configList.get(2).get("where").toString();
-		int page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
-		int pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		if (exchange.getQueryParameters().containsKey("page"))
+		{
+			page = Integer.parseInt(exchange.getQueryParameters().get("page").getFirst().toString());
+		}
+		if (exchange.getQueryParameters().containsKey("pagesize"))
+		{
+			pagesize = Integer.parseInt(exchange.getQueryParameters().get("pagesize").getFirst().toString());
+		}
 		System.out.println(databaseName);
 		System.out.println(payloadCollectionName);
 		System.out.println(auditCollectionName);
@@ -292,11 +332,22 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		DB database = db.getDB(databaseName);
 		DBCollection auditCollection = database.getCollection(auditCollectionName);
 		DBCollection payloadCollection = database.getCollection(payloadCollectionName);
+		
+		
+		Deque<String> filterQuery = exchange.getQueryParameters().get("filter");
+		String filterString = filterQuery.getFirst();
+		JSONObject intermediateQuery = new JSONObject(filterString);
+		Deque<String> filter = new ArrayDeque<String>();
+		filter.add(intermediateQuery.toString());
+		int size = (int) dao.getCollectionSize(payloadCollection, filter);
+		List<DBObject >resultList = dao.getCollectionData(payloadCollection, 1, size, null, filter, null);
 		List<String> payloadFilterResult = new ArrayList<String>();
-		DBCursor cursor = payloadCollection.find();
-		while(cursor.hasNext())
+
+		
+		for(DBObject s : resultList)
 		{
-			payloadFilterResult.add(cursor.next().get("_id").toString());
+			payloadFilterResult.add(s.get("_id").toString());
+			System.out.println(s.toString());
 			
 		}
 		
@@ -306,13 +357,13 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		DBObject payloadQuery = new BasicDBObject("dataLocation" , inClause);
 		Deque<String> input = new ArrayDeque<String>();
 		input.add(payloadQuery.toString());
+		long size1 = dao.getCollectionSize(auditCollection, input);
 		List<DBObject> outputList = dao.getCollectionData(auditCollection, page, pagesize, null, input, null);
+		ArrayList<Object> outputArray = new ArrayList<Object>();
+		outputArray.add(outputList);
+		outputArray.add(new Long(size1));
 		
-		
-		
-		
-
-		return outputList;
+		return outputArray;
 		
 	}
 }
