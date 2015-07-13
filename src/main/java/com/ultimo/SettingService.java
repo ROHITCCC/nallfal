@@ -188,6 +188,26 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 					LOGGER.info("replacing exisiting document with the new one");
 					collection.findAndRemove(doc);
 				}
+				
+				//if the document is a report then validate the passes template
+				if(document.get("report")!=null){
+					//get the template string
+					String template=((DBObject)document.get("report")).get("template").toString();
+					if(template==null){ 
+						LOGGER.error("The report document does not have a template field");
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
+						return;
+					}
+					boolean templateExists=NotificationService.validateTemplate(template);
+					if(templateExists){
+						LOGGER.info("the given report has a valid template field");
+					}
+					else{
+						LOGGER.error("the template: "+template+" could not be found");
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The passed report document has an invalid template field");
+						return;
+					}
+				}
 				collection.insert(document);
 				
 				//schedule a notification if the document is a report
@@ -322,6 +342,10 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 		whereQuery.putAll(queryMap);
 		LOGGER.trace(whereQuery.toString());
+		//check if where query is empty and if so, make sure it only displays reports
+		if(whereQuery.isEmpty()){
+			whereQuery.put("report", new BasicDBObject("$ne", null));
+		}
 		DBCursor cursor = collection.find(whereQuery);
 		List<DBObject> resultList= new ArrayList<>();
 	    while (cursor.hasNext()) {
