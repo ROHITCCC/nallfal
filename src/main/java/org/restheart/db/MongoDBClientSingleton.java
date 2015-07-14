@@ -29,6 +29,7 @@ import org.restheart.Configuration;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -152,4 +153,17 @@ public class MongoDBClientSingleton {
     public static List<Map<String, Object>> getErrorSpotConfigs() {
         return errorSpotConfigs;
     }
+    
+    public static String getErrorSpotConfig(String param){
+		
+		ListIterator<Map<String, Object>> iterator= errorSpotConfigs.listIterator();
+		while(iterator.hasNext()){
+			Map<String, Object> configMap= iterator.next();
+			if(configMap.get("what").toString().equals(param)){
+				return configMap.get("where").toString();
+			}
+			
+		}
+		return null;
+	}
 }
