@@ -89,8 +89,9 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				Collection<String> allowedMethods= new ArrayList<>();
 				allowedMethods.add("GET");
 				allowedMethods.add("POST");
+				allowedMethods.add("DELETE");
 	            exchange.getResponseHeaders().putAll(HttpString.tryFromString("Access-Control-Allow-Methods"), allowedMethods);
-	            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
+	            //exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
 	            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Accept, Accept-Encoding, Authorization, Content-Length, Content-Type, Host, Origin, X-Requested-With, User-Agent, No-Auth-Challenge, " + AUTH_TOKEN_HEADER + ", " + AUTH_TOKEN_VALID_HEADER + ", " + AUTH_TOKEN_LOCATION_HEADER);
 	            exchange.setResponseCode(HttpStatus.SC_OK);
 	            exchange.endExchange();
@@ -162,45 +163,70 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				//insert payload/document into the mongodb--------------------------------------------------
 				DBObject document = (DBObject) JSON.parse(payload);
 				// this is used for validations for duplicate insertions of setting and reports
-				BasicDBObject whereQuery = new BasicDBObject(); 
+				BasicDBObject whereQuery = new BasicDBObject();
 				if(document.get("setting")!=null){
 					LOGGER.info("document is a setting");
 					//overwrite setting if it exists. If it doesn't exist, adds a new one
 					whereQuery.put("setting", new BasicDBObject("$ne", null));
 					//LOGGER.trace(whereQuery.toString());
+					LOGGER.info(whereQuery.toString());
+					DBCursor cursor = collection.find(whereQuery);
+					if(cursor.size()!=0){
+						//if there is already a document with the given fields and values as whereQuery, 
+						//overwrite the document.
+						DBObject doc = cursor.next();
+						LOGGER.info("replacing exisiting document with the new one");
+						collection.findAndRemove(doc);
+					}
+					collection.insert(document);
 				}
-				else if(document.get("report")!=null){
+				else if (document.get("report")!=null ){
 					LOGGER.info("document is a report");
-					//JSONObject jsonDoc = (JSONObject)document;
-					//reportSubDoc =document.get("report");
-					String tempDocument = document.toString();
-					whereQuery=(BasicDBObject)JSON.parse(tempDocument);
-					((BasicDBObject)whereQuery.get("report")).removeField("email");
-					((BasicDBObject)whereQuery.get("report")).removeField("frequency");
-					
+					if(document.get("_id")!=null){
+						DBObject tempDocument=collection.findOne(document.get("_id"));
+						if(tempDocument!=null){
+							collection.update(tempDocument, document);
+						}
+						else{
+							collection.insert(document);
+						}
+					}
+					else{
+						collection.insert(document);
+					}
+					//schedule a notification if the document is a report
+					//schedule the report in quartz
+					Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
+					LOGGER.info("successfully scheduled report");
 				}
-				LOGGER.info(whereQuery.toString());
-				DBCursor cursor = collection.find(whereQuery);
-				if(cursor.size()!=0){
-					//if there is already a document with the given fields and values as whereQuery, 
-					//overwrite the document.
-					DBObject doc = cursor.next();
-					LOGGER.info("replacing exisiting document with the new one");
-					collection.findAndRemove(doc);
+				else {
+					LOGGER.error("unsuported object type "+document.toString());
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Object type is not supported");
+					return;
 				}
-				collection.insert(document);
-				
-				
-				
-				
-				
-				
-				//schedule the report in quartz
-				Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
-				
+			
 				LOGGER.info("Successfully inserted report into the database, report " + document.toString());
-				exchange.getResponseSender().send("Payload successfully stored as document on Mongo Database");
+				exchange.getResponseSender().send(document.get("_id").toString());
 			}
+	        else if(context.getMethod() == METHOD.DELETE){
+	        	InputStream input = exchange.getInputStream();
+				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
+				String line = null;
+				String payload = "";
+				while((line = inputReader.readLine())!=null){
+					payload += line;
+				}
+				DBObject document = (DBObject) JSON.parse(payload);
+				if(document.get("_id")!=null){
+					collection.remove(document);
+					boolean deleted = deleteJob(new JSONObject(document.toString()));
+					exchange.getResponseSender().send("schedule job delted? "+deleted);
+					/*TODO: handle exception, detet scheduled repport*/
+				}
+				else{
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "Report needs to have id");
+				}
+	        }
 	        else 
 	        {
 	        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
@@ -323,6 +349,10 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 		whereQuery.putAll(queryMap);
 		LOGGER.trace(whereQuery.toString());
+		//check if where query is empty and if so, make sure it only displays reports
+		if(whereQuery.isEmpty()){
+			whereQuery.put("report", new BasicDBObject("$ne", null));
+		}
 		DBCursor cursor = collection.find(whereQuery);
 		List<DBObject> resultList= new ArrayList<>();
 	    while (cursor.hasNext()) {
@@ -355,8 +385,206 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		return;
 	}
 	
+	public boolean validateReport(DBObject document,HttpServerExchange exchange){
+		//get the template string
+		String template=((DBObject)document.get("report")).get("template").toString();
+		if(template==null){ 
+			LOGGER.error("The report document does not have a template field");
+			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
+			return false;
+		}
+		boolean templateExists=NotificationService.validateTemplate(template);
+		if(templateExists){
+			LOGGER.info("the given report has a valid template field");
+			return true;
+		}
+		else{
+			LOGGER.error("the template: "+template+" could not be found");
+			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The passed report document has an invalid template field");
+			return false;
+		}
+	}
+	
 	private static Date scheduleReport(JSONObject report) throws SchedulerException, java.text.ParseException{
+//		
+//		
+//		
+//		String applicationName = report.getJSONObject("report").getString("application");
+//		
+//		String jobKeyName;
+//		
+//		//Interface and error type are optional fields
+//		try{
+//			String interfaceName = report.getJSONObject("report").getString("interface1");
+//			
+//			if(!interfaceName.isEmpty())
+//				jobKeyName = applicationName + "." + interfaceName;
+//			else
+//				jobKeyName = applicationName;
+//			
+//		} catch (JSONException e){
+//			LOGGER.warn(e.getMessage());
+//			jobKeyName = applicationName;
+//		}
+//		
+//		try{
+//			
+//			String errorType = report.getJSONObject("report").getString("errorType");
+//			
+//			if(!errorType.isEmpty())
+//				jobKeyName = jobKeyName + "." + errorType;
+//			
+//		} catch (JSONException e){
+//			LOGGER.warn(e.getMessage());
+//			
+//		}
+//		
+//		LOGGER.info("Job Key name " + jobKeyName);
+//		
+//		
+		String jobKeyName = getJobName(report);
+		JobKey jobKey = new JobKey(jobKeyName);
+		Scheduler scheduler;
+		//get scheduler 
+		try{
+			
+			scheduler = new StdSchedulerFactory().getScheduler();
 		
+		} catch (SchedulerException e){
+			LOGGER.error(e.getMessage());
+			LOGGER.error(e.getStackTrace().toString());
+			throw e;
+		}
+		
+		JobDetail job;
+		try{
+				job = scheduler.getJobDetail(jobKey);
+				
+				//remove old job if exists
+				scheduler.deleteJob(jobKey);
+				
+		} catch(SchedulerException e){
+			LOGGER.info("Job with JobKey " + jobKeyName + " does not exits. Createing new Job");
+
+		}
+		
+		//create  job
+		job = JobBuilder.newJob(ReportJob.class)
+				.withIdentity(jobKey).build();
+
+		
+		job.getJobDataMap().put("report", report.toString());
+		
+		LOGGER.info("created new job");
+		
+		//Create Trigger
+		Trigger trigger = getSechduleTrigger(report, jobKeyName);
+		
+		LOGGER.info("created new trigger");
+
+		
+		//if scheduler is not start it, start the scheduler
+		if(!scheduler.isStarted()){
+			scheduler.start();
+		}
+		LOGGER.info("scheduler is started");
+		
+		Date startDateTime = scheduler.scheduleJob(job, trigger);
+		
+		LOGGER.info("Report " + jobKeyName + " is scheduled to start at " + startDateTime.toString() + " and will run every " 
+		+ report.getJSONObject("report").getJSONObject("frequency").getString("duration") + " " 
+				+ report.getJSONObject("report").getJSONObject("frequency").getString("unit"));
+		
+		return startDateTime;
+		
+	}
+
+	private static Trigger getSechduleTrigger(JSONObject report, String triggerName) throws JSONException, java.text.ParseException {
+		LOGGER.trace("trigger name: "+triggerName);
+		//JSONObject report = new JSONObject(payload);
+		
+		JSONObject frequency; 
+		int duration; 
+		String unit;
+		try{
+			frequency = report.getJSONObject("report").getJSONObject("frequency");
+			duration = frequency.getInt("duration");
+			unit = frequency.getString("unit");
+		}
+		catch (JSONException e){
+			LOGGER.error(e.getMessage());
+			LOGGER.error(e.getStackTrace().toString());
+			throw e;
+		}
+		Date triggerStartTime;
+		String startDateTime = frequency.getString("starttime");
+		
+
+		if (startDateTime != null && !startDateTime.isEmpty()) {
+			LOGGER.info("start time is given");
+
+			SimpleDateFormat formatter = new SimpleDateFormat(
+					"MM/dd/yyyy'T'hh:mm:ss");
+			triggerStartTime = formatter.parse(startDateTime);
+
+		} else {
+			triggerStartTime = new Date();
+			LOGGER.info("no starttime is given, using current time as default stattime");
+		}
+
+		// default schedule is 1 hr
+		int seconds = calculateDurationInseconds(duration, unit);
+
+		LOGGER.trace("seconds: "+seconds);
+
+		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
+				.simpleSchedule().withIntervalInSeconds(seconds)
+				.repeatForever();
+
+		Trigger trigger = TriggerBuilder.newTrigger()
+				.withIdentity(triggerName).withSchedule(scheduleBuilder)
+				.startAt(triggerStartTime).build();
+
+		return trigger;
+	}
+	
+	public static int calculateDurationInseconds(int duration, String unit){
+		LOGGER.trace("duration: "+duration);
+		LOGGER.trace("unit: "+ unit);
+		
+		//default is 1 hr
+		int seconds = 60 * 60;
+
+		switch (unit) {
+
+		case "sec":
+			seconds = duration;
+			break;
+		case "min":
+			seconds = 60 * duration;
+			break;
+		case "hr":
+			seconds = 60 * 60 * duration;
+			break;
+		case "hrs":
+			seconds = 60 * 60 * duration;
+			break;
+		case "day":
+			seconds = 24 * 60 * 60 * duration;
+			break;
+		case "days":
+			seconds = 24 * 60 * 60 * duration;
+			break;
+
+		default:
+			
+		}
+		LOGGER.info("the time interval is scheduled for "+seconds+" seconds");
+		return seconds;
+	} 
+
+	public static String getJobName(JSONObject report){
+	
 		
 		
 		String applicationName = report.getJSONObject("report").getString("application");
@@ -391,130 +619,36 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		LOGGER.info("Job Key name " + jobKeyName);
 		
-		
-		
-		JobKey jobKey = new JobKey(jobKeyName);
+		return jobKeyName;
+	}
+	
+	public static boolean deleteJob(JSONObject report) throws Exception{
 		Scheduler scheduler;
 		//get scheduler 
 		try{
 			
 			scheduler = new StdSchedulerFactory().getScheduler();
-			
 		
 		} catch (SchedulerException e){
 			LOGGER.error(e.getMessage());
 			LOGGER.error(e.getStackTrace().toString());
 			throw e;
 		}
-		
+		boolean jobDeleted=false;
 		JobDetail job;
 		try{
+			JobKey jobKey = new JobKey(getJobName(report));
 				job = scheduler.getJobDetail(jobKey);
 				
 				//remove old job if exists
-				scheduler.deleteJob(jobKey);
+				jobDeleted=scheduler.deleteJob(jobKey);
 				
 		} catch(SchedulerException e){
-			LOGGER.info("Job with JobKey " + jobKeyName + " does not exits. Createing new Job");
+			LOGGER.info("Job with JobKey " + getJobName(report) + " does not exits. Createing new Job");
 
 		}
-		
-		//create  job
-		job = JobBuilder.newJob(ReportJob.class)
-				.withIdentity(jobKey).build();
-
-		
-		job.getJobDataMap().put("report", report.toString());
-		
-		//Create Trigger
-		Trigger trigger = getSechduleTrigger(report, jobKeyName);
-
-		
-		//if scheduler is not start it, start the scheduler
-		if(!scheduler.isStarted()){
-			scheduler.start();
-		}
-		
-		
-		Date startDateTime = scheduler.scheduleJob(job, trigger);
-		
-		LOGGER.info("Report " + jobKeyName + " is scheduled to start at " + startDateTime.toString() + " and will run every " 
-		+ report.getJSONObject("report").getJSONObject("frequency").getString("duration") + " " 
-				+ report.getJSONObject("report").getJSONObject("frequency").getString("unit"));
-		
-		return startDateTime;
-		
-	}
-
-	private static Trigger getSechduleTrigger(JSONObject report, String triggerName) throws JSONException, java.text.ParseException {
-
-		//JSONObject report = new JSONObject(payload);
-		
-		
-
-		JSONObject frequency = report.getJSONObject("report").getJSONObject("frequency");
-
-		int duration = frequency.getInt("duration");
-		String unit = frequency.getString("unit");
-
-		Date triggerStartTime;
-		String startDateTime = frequency.getString("starttime");
-		
-
-		if (startDateTime != null && !startDateTime.isEmpty()) {
-
-			SimpleDateFormat formatter = new SimpleDateFormat(
-					"MM/dd/yyyy'T'hh:mm:ss");
-			triggerStartTime = formatter.parse(startDateTime);
-
-		} else {
-			triggerStartTime = new Date();
-		}
-
-		// default schedule is 1 hr
-		int seconds = calculateDurationInseconds(duration, unit);
-
-
-		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
-				.simpleSchedule().withIntervalInSeconds(seconds)
-				.repeatForever();
-
-		Trigger trigger = TriggerBuilder.newTrigger()
-				.withIdentity(triggerName).withSchedule(scheduleBuilder)
-				.startAt(triggerStartTime).build();
-
-		return trigger;
-	}
-	
-	public static int calculateDurationInseconds(int duration, String unit){
-		//defaul is 1 hr
-		int seconds = 60 * 60;
-
-		switch (unit) {
-
-		case "sec":
-			seconds = duration;
-			break;
-		case "min":
-			seconds = 60 * duration;
-			break;
-		case "hr":
-			seconds = 60 * 60 * duration;
-			break;
-		case "hrs":
-			seconds = 60 * 60 * duration;
-			break;
-		case "day":
-			seconds = 24 * 60 * 60 * duration;
-			break;
-		case "days":
-			seconds = 24 * 60 * 60 * duration;
-			break;
-
-		default:
-
-		}
-		return seconds;
+		return jobDeleted;
 	}
 }
+
 		
