@@ -3,12 +3,16 @@ package com.ultimo;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.HttpString;
+
 import org.bson.types.ObjectId;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.restheart.db.DbsDAO;
 import org.restheart.db.MongoDBClientSingleton;
@@ -23,6 +27,7 @@ import org.restheart.utils.HttpStatus;
 import org.restheart.utils.ResponseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -332,11 +337,33 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		DB database = db.getDB(databaseName);
 		DBCollection auditCollection = database.getCollection(auditCollectionName);
 		DBCollection payloadCollection = database.getCollection(payloadCollectionName);
-		
-		
 		Deque<String> filterQuery = exchange.getQueryParameters().get("filter");
 		String filterString = filterQuery.getFirst();
 		JSONObject intermediateQuery = new JSONObject(filterString);
+		JSONArray andClause = intermediateQuery.getJSONArray("$and");
+		JSONArray finalandClause = new JSONArray();
+		String newQuery = "[";
+		String environmentID = "";
+		for( int i = 0; i < andClause.length(); i++)
+		{
+			JSONObject b = andClause.getJSONObject(i);
+			System.out.println(b.has("envid"));
+			if (b.has("envid"))
+			{
+				environmentID = b.get("envid").toString();
+				System.out.println(environmentID);
+				
+			}
+			else 
+			{
+				finalandClause.put(andClause.getJSONObject(i));
+				newQuery = newQuery + andClause.getJSONObject(i).toString();
+			}
+		}
+		newQuery = newQuery + "]";
+		System.out.println(finalandClause.toString());
+		intermediateQuery = new JSONObject("{$and:" + finalandClause.toString()+"}");
+		System.out.println("intermediate query " + intermediateQuery.toString());
 		Deque<String> filter = new ArrayDeque<String>();
 		filter.add(intermediateQuery.toString());
 		int size = (int) dao.getCollectionSize(payloadCollection, filter);
@@ -347,7 +374,7 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		for(DBObject s : resultList)
 		{
 			payloadFilterResult.add(s.get("_id").toString());
-			System.out.println(s.toString());
+		//	System.out.println(s.toString());
 			
 		}
 		
@@ -355,8 +382,11 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		resultPayloadIDList.addAll(payloadFilterResult);
 		DBObject inClause = new BasicDBObject("$in",resultPayloadIDList);
 		DBObject payloadQuery = new BasicDBObject("dataLocation" , inClause);
+		payloadQuery.put("envid", environmentID);
+		
 		Deque<String> input = new ArrayDeque<String>();
 		input.add(payloadQuery.toString());
+		System.out.println(payloadQuery.toString());
 		long size1 = dao.getCollectionSize(auditCollection, input);
 		List<DBObject> outputList = dao.getCollectionData(auditCollection, page, pagesize, null, input, null);
 		ArrayList<Object> outputArray = new ArrayList<Object>();
