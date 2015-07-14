@@ -89,8 +89,9 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				Collection<String> allowedMethods= new ArrayList<>();
 				allowedMethods.add("GET");
 				allowedMethods.add("POST");
+				allowedMethods.add("DELETE");
 	            exchange.getResponseHeaders().putAll(HttpString.tryFromString("Access-Control-Allow-Methods"), allowedMethods);
-	            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
+	            //exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
 	            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Accept, Accept-Encoding, Authorization, Content-Length, Content-Type, Host, Origin, X-Requested-With, User-Agent, No-Auth-Challenge, " + AUTH_TOKEN_HEADER + ", " + AUTH_TOKEN_VALID_HEADER + ", " + AUTH_TOKEN_LOCATION_HEADER);
 	            exchange.setResponseCode(HttpStatus.SC_OK);
 	            exchange.endExchange();
@@ -162,64 +163,70 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				//insert payload/document into the mongodb--------------------------------------------------
 				DBObject document = (DBObject) JSON.parse(payload);
 				// this is used for validations for duplicate insertions of setting and reports
-				BasicDBObject whereQuery = new BasicDBObject(); 
+				BasicDBObject whereQuery = new BasicDBObject();
 				if(document.get("setting")!=null){
 					LOGGER.info("document is a setting");
 					//overwrite setting if it exists. If it doesn't exist, adds a new one
 					whereQuery.put("setting", new BasicDBObject("$ne", null));
 					//LOGGER.trace(whereQuery.toString());
-				}
-				else if(document.get("report")!=null){
-					LOGGER.info("document is a report");
-					//JSONObject jsonDoc = (JSONObject)document;
-					//reportSubDoc =document.get("report");
-					String tempDocument = document.toString();
-					whereQuery=(BasicDBObject)JSON.parse(tempDocument);
-					((BasicDBObject)whereQuery.get("report")).removeField("email");
-					((BasicDBObject)whereQuery.get("report")).removeField("frequency");
-					
-				}
-				LOGGER.info(whereQuery.toString());
-				DBCursor cursor = collection.find(whereQuery);
-				if(cursor.size()!=0){
-					//if there is already a document with the given fields and values as whereQuery, 
-					//overwrite the document.
-					DBObject doc = cursor.next();
-					LOGGER.info("replacing exisiting document with the new one");
-					collection.findAndRemove(doc);
-				}
-				
-				//if the document is a report then validate the passes template
-				if(document.get("report")!=null){
-					//get the template string
-					String template=((DBObject)document.get("report")).get("template").toString();
-					if(template==null){ 
-						LOGGER.error("The report document does not have a template field");
-						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
-						return;
+					LOGGER.info(whereQuery.toString());
+					DBCursor cursor = collection.find(whereQuery);
+					if(cursor.size()!=0){
+						//if there is already a document with the given fields and values as whereQuery, 
+						//overwrite the document.
+						DBObject doc = cursor.next();
+						LOGGER.info("replacing exisiting document with the new one");
+						collection.findAndRemove(doc);
 					}
-					boolean templateExists=NotificationService.validateTemplate(template);
-					if(templateExists){
-						LOGGER.info("the given report has a valid template field");
+					collection.insert(document);
+				}
+				else if (document.get("report")!=null ){
+					LOGGER.info("document is a report");
+					if(document.get("_id")!=null){
+						DBObject tempDocument=collection.findOne(document.get("_id"));
+						if(tempDocument!=null){
+							collection.update(tempDocument, document);
+						}
+						else{
+							collection.insert(document);
+						}
 					}
 					else{
-						LOGGER.error("the template: "+template+" could not be found");
-						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The passed report document has an invalid template field");
-						return;
+						collection.insert(document);
 					}
-				}
-				collection.insert(document);
-				
-				//schedule a notification if the document is a report
-				if(document.get("report")!=null){
+					//schedule a notification if the document is a report
 					//schedule the report in quartz
 					Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
 					LOGGER.info("successfully scheduled report");
 				}
-				
+				else {
+					LOGGER.error("unsuported object type "+document.toString());
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Object type is not supported");
+					return;
+				}
+			
 				LOGGER.info("Successfully inserted report into the database, report " + document.toString());
-				exchange.getResponseSender().send("Payload successfully stored as document on Mongo Database");
+				exchange.getResponseSender().send(document.get("_id").toString());
 			}
+	        else if(context.getMethod() == METHOD.DELETE){
+	        	InputStream input = exchange.getInputStream();
+				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
+				String line = null;
+				String payload = "";
+				while((line = inputReader.readLine())!=null){
+					payload += line;
+				}
+				DBObject document = (DBObject) JSON.parse(payload);
+				if(document.get("_id")!=null){
+					collection.remove(document);
+					boolean deleted = deleteJob(new JSONObject(document.toString()));
+					exchange.getResponseSender().send("schedule job delted? "+deleted);
+					/*TODO: handle exception, detet scheduled repport*/
+				}
+				else{
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "Report needs to have id");
+				}
+	        }
 	        else 
 	        {
 	        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
@@ -378,44 +385,64 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		return;
 	}
 	
+	public boolean validateReport(DBObject document,HttpServerExchange exchange){
+		//get the template string
+		String template=((DBObject)document.get("report")).get("template").toString();
+		if(template==null){ 
+			LOGGER.error("The report document does not have a template field");
+			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
+			return false;
+		}
+		boolean templateExists=NotificationService.validateTemplate(template);
+		if(templateExists){
+			LOGGER.info("the given report has a valid template field");
+			return true;
+		}
+		else{
+			LOGGER.error("the template: "+template+" could not be found");
+			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The passed report document has an invalid template field");
+			return false;
+		}
+	}
+	
 	private static Date scheduleReport(JSONObject report) throws SchedulerException, java.text.ParseException{
-		
-		
-		
-		String applicationName = report.getJSONObject("report").getString("application");
-		
-		String jobKeyName;
-		
-		//Interface and error type are optional fields
-		try{
-			String interfaceName = report.getJSONObject("report").getString("interface1");
-			
-			if(!interfaceName.isEmpty())
-				jobKeyName = applicationName + "." + interfaceName;
-			else
-				jobKeyName = applicationName;
-			
-		} catch (JSONException e){
-			LOGGER.warn(e.getMessage());
-			jobKeyName = applicationName;
-		}
-		
-		try{
-			
-			String errorType = report.getJSONObject("report").getString("errorType");
-			
-			if(!errorType.isEmpty())
-				jobKeyName = jobKeyName + "." + errorType;
-			
-		} catch (JSONException e){
-			LOGGER.warn(e.getMessage());
-			
-		}
-		
-		LOGGER.info("Job Key name " + jobKeyName);
-		
-		
-		
+//		
+//		
+//		
+//		String applicationName = report.getJSONObject("report").getString("application");
+//		
+//		String jobKeyName;
+//		
+//		//Interface and error type are optional fields
+//		try{
+//			String interfaceName = report.getJSONObject("report").getString("interface1");
+//			
+//			if(!interfaceName.isEmpty())
+//				jobKeyName = applicationName + "." + interfaceName;
+//			else
+//				jobKeyName = applicationName;
+//			
+//		} catch (JSONException e){
+//			LOGGER.warn(e.getMessage());
+//			jobKeyName = applicationName;
+//		}
+//		
+//		try{
+//			
+//			String errorType = report.getJSONObject("report").getString("errorType");
+//			
+//			if(!errorType.isEmpty())
+//				jobKeyName = jobKeyName + "." + errorType;
+//			
+//		} catch (JSONException e){
+//			LOGGER.warn(e.getMessage());
+//			
+//		}
+//		
+//		LOGGER.info("Job Key name " + jobKeyName);
+//		
+//		
+		String jobKeyName = getJobName(report);
 		JobKey jobKey = new JobKey(jobKeyName);
 		Scheduler scheduler;
 		//get scheduler 
@@ -554,6 +581,74 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 		LOGGER.info("the time interval is scheduled for "+seconds+" seconds");
 		return seconds;
+	} 
+
+	public static String getJobName(JSONObject report){
+	
+		
+		
+		String applicationName = report.getJSONObject("report").getString("application");
+		
+		String jobKeyName;
+		
+		//Interface and error type are optional fields
+		try{
+			String interfaceName = report.getJSONObject("report").getString("interface1");
+			
+			if(!interfaceName.isEmpty())
+				jobKeyName = applicationName + "." + interfaceName;
+			else
+				jobKeyName = applicationName;
+			
+		} catch (JSONException e){
+			LOGGER.warn(e.getMessage());
+			jobKeyName = applicationName;
+		}
+		
+		try{
+			
+			String errorType = report.getJSONObject("report").getString("errorType");
+			
+			if(!errorType.isEmpty())
+				jobKeyName = jobKeyName + "." + errorType;
+			
+		} catch (JSONException e){
+			LOGGER.warn(e.getMessage());
+			
+		}
+		
+		LOGGER.info("Job Key name " + jobKeyName);
+		
+		return jobKeyName;
+	}
+	
+	public static boolean deleteJob(JSONObject report) throws Exception{
+		Scheduler scheduler;
+		//get scheduler 
+		try{
+			
+			scheduler = new StdSchedulerFactory().getScheduler();
+		
+		} catch (SchedulerException e){
+			LOGGER.error(e.getMessage());
+			LOGGER.error(e.getStackTrace().toString());
+			throw e;
+		}
+		boolean jobDeleted=false;
+		JobDetail job;
+		try{
+			JobKey jobKey = new JobKey(getJobName(report));
+				job = scheduler.getJobDetail(jobKey);
+				
+				//remove old job if exists
+				jobDeleted=scheduler.deleteJob(jobKey);
+				
+		} catch(SchedulerException e){
+			LOGGER.info("Job with JobKey " + getJobName(report) + " does not exits. Createing new Job");
+
+		}
+		return jobDeleted;
 	}
 }
+
 		
