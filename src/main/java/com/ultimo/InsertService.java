@@ -10,6 +10,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import org.bson.types.ObjectId;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
 import org.restheart.handlers.RequestContext;
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientException;
@@ -267,6 +270,11 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		        *  5) Inser the Update. 
 		        */
 	     
+	    		 //Makes audit's envid field into uppercase
+   		 		 String uppercaseEnvid = inputObject.get("envid").toString().toUpperCase();
+   		 		 inputObject.removeField("envid");
+   		 		 inputObject.put("envid", uppercaseEnvid);
+   		 		
 				 inputObject.removeField("dataLocation");
 			     inputObject.put("dataLocation", referenceID.toString());
 		         if (!inputObject.containsField("timestamp"))
@@ -282,11 +290,71 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     PostCollectionHandler handler = new PostCollectionHandler();
 			     handler.handleRequest(exchange, context);
 			     status = "Success";
+			     
+			     /*=======Immediate Notification for audits=======*/
+			     //Fetch setting document
+			     String auditContent = "";
+			     DBObject fetchedConfig = null;
+			     fetchedConfig = fetchImmediateNotification();
+			     if (fetchedConfig == null)
+			     {
+			    	 LOGGER.debug("Could not fetch a config document to compare with audit.");
+			     }
+			     else
+			     {
+			    	 LOGGER.debug("Config document fetched");
+			     }
+			     String auditSeverity = "";
+			     String auditName = "";
+			     String auditInterface = "";
+			     String auditEnvid = "";
+				 
+			     //Obtain fields to be compared from audit if they exist
+				 if (inputObject.containsField("envid")) {
+			    	 auditEnvid = inputObject.get("envid").toString();
+			    	 LOGGER.debug("Audit envid: " + auditEnvid);
+			     }
+				 
+			     if (inputObject.containsField("severity")) {
+			    	 auditSeverity = inputObject.get("severity").toString();
+			    	 LOGGER.debug("Audit severity: " + auditSeverity);
+			     }
+			     
+			     if (inputObject.containsField("application")) {
+			    	 auditName = inputObject.get("application").toString(); 
+			    	 LOGGER.debug("Audit application name: " + auditName);
+			     }
+			     
+			     if (inputObject.containsField("interface1")) {
+			    	 auditInterface = inputObject.get("interface1").toString(); 
+			    	 LOGGER.debug("Audit interface: " + auditInterface);
+			     }
+			     
+			     //Initializes ErrorSpotSinglton
+			     if (!ErrorSpotSinglton.isInitialized())
+			    	 ErrorSpotSinglton.init();
+			     
+			     LOGGER.debug("Retrieving information from config...");
+			     
+			     JSONObject config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
+			     
+			     String toEmailId = config.getString("email");
+			     LOGGER.debug("Email retrieved: " + toEmailId);
+			     
+			     String template = config.getString("template");
+			     LOGGER.debug("Template retrieved: " + template);
+			     
+			     //Call NotificationService
+		     	 auditContent = inputObject.toString();
+		     	 NotificationService.sendEmail(auditContent, template, toEmailId);
+		     	 LOGGER.debug("NotificationService called.");
+		     	 LOGGER.debug("Notification sent to " + toEmailId);
+			     
 	    	}
 	    catch(	java.text.ParseException e) 
 		   {
 		    	LOGGER.error("Date Not Correctly Formatted. Date Format is: YYYY-MM-DDTHH:MM:SS");
-		    	
+		    	e.printStackTrace();
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted Date. Accepted Date Format is: YYYY-MM-DDTHH:MM:SS");
 			    MongoClient client = getMongoConnection(exchange, context);
 			    DB db = client.getDB(context.getDBName());
@@ -301,7 +369,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    catch(IllegalArgumentException e) 
 		   {
 		    	LOGGER.error("Date Not Correctly Formatted. Date Format is: YYYY-MM-DDTHH:MM:SS");
-		    	
+		    	e.printStackTrace();
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
 			    MongoClient client = getMongoConnection(exchange, context);
 			    DB db = client.getDB(context.getDBName());
@@ -315,7 +383,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		 catch(JSONParseException e) 
 			   {
 			    	LOGGER.error("Incorrectly Formated JSON Array. Please check JSON Array Format");
-			    	
+			    	e.printStackTrace();
 			        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
 				    MongoClient client = getMongoConnection(exchange, context);
 				    DB db = client.getDB(context.getDBName());
@@ -331,6 +399,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    {
 	    	LOGGER.error("MongoDB Client Error. Ensure that DB and Collection exist");
 	    	LOGGER.error(e.getMessage());
+	    	e.printStackTrace();
 	    	status = "Failed";
 	    	MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
@@ -345,6 +414,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    {
 	    	LOGGER.error("General MongoDB Error. Please check MongoDB Connection and Permissions");
 	    	LOGGER.error(e.getMessage());
+	    	e.printStackTrace();
 	    	status = "Failed";
 	    	MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
@@ -359,6 +429,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    catch(Exception e) 
 	    {
 	    	LOGGER.error("Unspecified Application Error" );
+	    	e.printStackTrace();
 	    	MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(context.getDBName());
 		    DBCollection collection = db.getCollection("payloadCollection");
@@ -424,6 +495,25 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		return client;
 			}
 
-	
+	private static DBObject fetchImmediateNotification() 
+	{
+		
+		MongoClient configClient = MongoDBClientSingleton.getInstance().getClient();
+		//DB and collection of setting document
+		DB configdb = configClient.getDB("ES");
+		DBCollection configCollection = configdb.getCollection("ErrorSpotSetting");
+		
+		//Query for the setting document
+		DBObject configQuery = new BasicDBObject("setting", new BasicDBObject("$ne", null));
+		DBCursor cursor = configCollection.find(configQuery);
+		//assuming there's only 1 setting document
+		DBObject config = (DBObject) cursor.next();
+		
+		System.out.println("CONFIG FETCHED");
+		System.out.println(config.toString());
+		
+		return config;
+		
+	}
 	
 }
