@@ -73,7 +73,7 @@ public class ErrorSpotSinglton {
         	DBObject notficationObject = (DBObject)settingObject.get("notification");
         	DBObject immidateObject = (DBObject)notficationObject.get("immidate");
         	
-        	System.out.println(immidateObject.toMap().toString());
+        	
         	
         	notifications = new JSONArray(((DBObject)immidateObject.get("notification")).toString());
         	frequency = new JSONObject(((DBObject)immidateObject.get("frequency")).toString());
@@ -83,9 +83,7 @@ public class ErrorSpotSinglton {
         		
         		JSONObject currentNotification = notifications.optJSONObject(i);
         		JSONArray interfaces = currentNotification.optJSONObject("application").optJSONArray("interfaces");
-        		
-        		System.out.println(interfaces.toString());
-        		System.out.println(currentNotification.toString());
+
         		
         		for(int j = 0; j < interfaces.length(); j++){
         			
@@ -128,8 +126,8 @@ public class ErrorSpotSinglton {
     	return match;
     }
     
-    public static boolean checkNotificationAndTimeExpired(String envid, String application, String interfaceName, String severity){
-    	
+    public static JSONObject getExpiredNotificationDetail(String envid, String application, String interfaceName, String severity){
+    	JSONObject configuredNotification = null;
     	boolean expired = false;
     	
         boolean notificationExists = isNotificationConfigured(envid, application,interfaceName, severity);
@@ -148,15 +146,17 @@ public class ErrorSpotSinglton {
         		if(timeDiffrence/1000 > notifcationPeriod){
         			expired = true;
         			lastNotificationsTime.put(key, currentDate);
+        			configuredNotification = notificationsMap.get(key);
         		}
     		    
     		} else {
     			expired = true;
     			lastNotificationsTime.put(key, currentDate);
+    			configuredNotification = notificationsMap.get(key);
     		}
     		
     	}
-    	return expired;	
+    	return configuredNotification;	
     	
     }
 
