@@ -103,21 +103,22 @@ public class NotificationService extends ApplicationLogicHandler {
 		}
 	}
 	
-	public static void sendEmail(String content, String location, String template, String hostname,int port,String toEmailID,String fromEmailID,String username,String password){
+	public static void sendEmail(String content, String template, String toEmailID){
 		try{
+			setEmailConfigs();
 			//get the specific job depending on the template
 			HtmlNotificationFactory emailFactory= new HtmlNotificationFactory();
-			NotificationTemplate emailJob = emailFactory.getJob(template);
-			Document doc = emailJob.createEmail(content, location, template);
+			NotificationTemplate emailNotification = emailFactory.getNotificationClass(template);
+			Document doc = emailNotification.createEmail(content, location, template);
 			
 			//send the email
 			HtmlEmail email = new HtmlEmail();
 			email.setHtmlMsg(doc.toString());
 			email.setHostName(hostname);
 			email.addTo(toEmailID);
-			email.setFrom(fromEmailID);
+			email.setFrom(fromEmailId);
 			email.setAuthentication(username,password);
-			email.setSmtpPort(port);
+			email.setSmtpPort(Integer.parseInt(port));
 			email.send();
 			LOGGER.info("Email was sent sucessfully");
 		}

@@ -8,13 +8,13 @@ public class HtmlNotificationFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 
 	//use getJob method to get object of type NotificationJob 
-	public NotificationTemplate getJob(String template){
+	public NotificationTemplate getNotificationClass(String template){
 		LOGGER.info("Getting the right job for template: "+template);
 		template=template.replaceAll("\\.html", "");	
 		try{
-			NotificationTemplate job= (NotificationTemplate)Class.forName("com.ultimo."+template).newInstance();
-			LOGGER.info("found :"+job.getClass().toString());
-			return job;
+			NotificationTemplate notificationClass= (NotificationTemplate)Class.forName("com.ultimo."+template).newInstance();
+			LOGGER.info("found :"+notificationClass.getClass().toString());
+			return notificationClass;
       	}
 		catch (ClassCastException e){
 			LOGGER.error("the given class: "+template+" does not implement NotificationJob");
