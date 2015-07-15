@@ -24,6 +24,7 @@ public class ReportNotification implements NotificationTemplate{
 	@Override
 	public Document createEmail(String content, String location, String template) {
 		try{
+			LOGGER.info(content.toString());
 			BasicDBObject report = (BasicDBObject)JSON.parse(content);
 			JSONArray jsonArray = new JSONArray(report.get("row").toString());
 			File file = new File(location+"/"+template);
