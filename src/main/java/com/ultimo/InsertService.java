@@ -294,16 +294,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     /*=======Immediate Notification for audits=======*/
 			     //Fetch setting document
 			     String auditContent = "";
-			     DBObject fetchedConfig = null;
-			     fetchedConfig = fetchImmediateNotification();
-			     if (fetchedConfig == null)
-			     {
-			    	 LOGGER.debug("Could not fetch a config document to compare with audit.");
-			     }
-			     else
-			     {
-			    	 LOGGER.debug("Config document fetched");
-			     }
+			     
 			     String auditSeverity = "";
 			     String auditName = "";
 			     String auditInterface = "";
@@ -336,19 +327,27 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     
 			     LOGGER.debug("Retrieving information from config...");
 			     
-			     JSONObject config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
+			     JSONObject config = null;
+			     config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
 			     
-			     String toEmailId = config.getString("email");
-			     LOGGER.debug("Email retrieved: " + toEmailId);
+			     if (config != null)
+			     {
+			    	 String toEmailId = config.getString("email");
+			    	 LOGGER.debug("Email retrieved: " + toEmailId);
 			     
-			     String template = config.getString("template");
-			     LOGGER.debug("Template retrieved: " + template);
+			    	 String template = config.getString("template");
+			    	 LOGGER.debug("Template retrieved: " + template);
 			     
-			     //Call NotificationService
-		     	 auditContent = inputObject.toString();
-		     	 NotificationService.sendEmail(auditContent, template, toEmailId);
-		     	 LOGGER.debug("NotificationService called.");
-		     	 LOGGER.debug("Notification sent to " + toEmailId);
+			    	 //Call NotificationService
+			    	 auditContent = inputObject.toString();
+			    	 NotificationService.sendEmail(auditContent, template, toEmailId);
+			    	 LOGGER.debug("NotificationService called.");
+			    	 LOGGER.debug("Notification sent to " + toEmailId); 
+			     }
+			     else
+			     {
+			    	 LOGGER.debug("Duration of previous notification has not yet expired. No notification sent.");
+			     }
 			     
 	    	}
 	    catch(	java.text.ParseException e) 
@@ -494,26 +493,5 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();   
 		return client;
 			}
-
-	private static DBObject fetchImmediateNotification() 
-	{
-		
-		MongoClient configClient = MongoDBClientSingleton.getInstance().getClient();
-		//DB and collection of setting document
-		DB configdb = configClient.getDB("ES");
-		DBCollection configCollection = configdb.getCollection("ErrorSpotSetting");
-		
-		//Query for the setting document
-		DBObject configQuery = new BasicDBObject("setting", new BasicDBObject("$ne", null));
-		DBCursor cursor = configCollection.find(configQuery);
-		//assuming there's only 1 setting document
-		DBObject config = (DBObject) cursor.next();
-		
-		System.out.println("CONFIG FETCHED");
-		System.out.println(config.toString());
-		
-		return config;
-		
-	}
 	
 }

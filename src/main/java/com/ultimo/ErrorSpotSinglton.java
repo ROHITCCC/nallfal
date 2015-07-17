@@ -42,7 +42,7 @@ public class ErrorSpotSinglton {
 
     private MongoClient mongoClient;
 
-    private static final Logger logger = LoggerFactory.getLogger(ErrorSpotSinglton.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ErrorSpotSinglton.class);
 
     private ErrorSpotSinglton() {
         if (!initialized) {
@@ -68,6 +68,7 @@ public class ErrorSpotSinglton {
     	
         if(cursor.size() == 1){
         	
+        	LOGGER.debug("Settings document retrieved");
         	DBObject setting = cursor.next();
         	DBObject settingObject = (DBObject)setting.get("setting");
         	DBObject notficationObject = (DBObject)settingObject.get("notification");
@@ -77,6 +78,7 @@ public class ErrorSpotSinglton {
         	
         	notifications = new JSONArray(((DBObject)immidateObject.get("notification")).toString());
         	frequency = new JSONObject(((DBObject)immidateObject.get("frequency")).toString());
+        	LOGGER.debug("Frequency is " + frequency.toString());
         	
         	//convert JSONArray into map for faster access.
         	for (int i = 0; i < notifications.length(); i++) {
@@ -106,7 +108,7 @@ public class ErrorSpotSinglton {
         	lastNotificationsTime = new HashMap<String, Date>();
         	
         	initialized = true;
-        	
+        	LOGGER.debug("ErrorSpotSinglton has been initialized.");
         }
         
 
@@ -120,17 +122,17 @@ public class ErrorSpotSinglton {
     	JSONObject configuredNotification = notificationsMap.get(key);
     	
     	if (configuredNotification != null)
+    	{
     		match = true;
-    	
+    		LOGGER.debug("Notification is configured.");
+    	}
     	
     	return match;
     }
     
     public static JSONObject getExpiredNotificationDetail(String envid, String application, String interfaceName, String severity){
     	JSONObject configuredNotification = null;
-    	boolean expired = false;
-    	
-        boolean notificationExists = isNotificationConfigured(envid, application,interfaceName, severity);
+    	boolean notificationExists = isNotificationConfigured(envid, application,interfaceName, severity);
     	
         String key = envid.toUpperCase() + "." +application.toUpperCase() + "." + interfaceName.trim().toUpperCase() + "." + severity.toUpperCase();
         
@@ -141,16 +143,22 @@ public class ErrorSpotSinglton {
     		if(lastNotiTime  !=  null){
     			
     		    long timeDiffrence = Math.abs(currentDate.getTime() - lastNotiTime.getTime());
+    		    LOGGER.debug("Duration of last notification has been " + timeDiffrence/1000 + " seconds.");
     		    long notifcationPeriod = SettingService.calculateDurationInseconds(frequency.getInt("duration"), frequency.getString("unit"));
+    		    LOGGER.debug("The intended duration of the last notification is " + notifcationPeriod + " seconds.");
     		 
         		if(timeDiffrence/1000 > notifcationPeriod){
-        			expired = true;
+        			LOGGER.debug("The previous notification has expired.");
         			lastNotificationsTime.put(key, currentDate);
         			configuredNotification = notificationsMap.get(key);
         		}
+        		else
+        		{
+        			LOGGER.debug("The previous notification has not yet expired.");
+        		}
     		    
     		} else {
-    			expired = true;
+    			LOGGER.debug("There was no previous notification.");
     			lastNotificationsTime.put(key, currentDate);
     			configuredNotification = notificationsMap.get(key);
     		}
@@ -181,7 +189,8 @@ public class ErrorSpotSinglton {
      */
     public MongoClient getClient() {
         if (this.mongoClient == null) {
-            throw new IllegalStateException("mongo client not initialized");
+        	LOGGER.error("Mongo client not initialized.");
+            throw new IllegalStateException("Mongo client not initialized");
         }
 
         return this.mongoClient;
@@ -191,6 +200,14 @@ public class ErrorSpotSinglton {
      * @return the initialized
      */
     public static boolean isInitialized() {
+    	if (initialized)
+    	{
+    		LOGGER.debug("ErrorSpotSinglton is initialized.");
+    	}
+    	else
+    	{
+    		LOGGER.debug("ErrorSpotSinglton is not initialized.");
+    	}
         return initialized;
     }
 
