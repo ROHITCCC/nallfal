@@ -1,9 +1,10 @@
 package com.ultimo;
 
+
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.commons.mail.EmailException;
+
 import org.json.JSONArray;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -16,6 +17,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 import com.mongodb.util.JSONParseException;
+import com.ultimo.NotificationTemplate;
 
 public class ReportNotification implements NotificationTemplate{
 	
@@ -31,6 +33,9 @@ public class ReportNotification implements NotificationTemplate{
 			
 			Document doc = Jsoup.parse(file,null); //get the template
 			
+			if(jsonArray.length()>0){
+				doc.select("tr").last().remove();
+			}
 			//iterate through each element in JSON array and add as rows on table
 			for(int i=0; i<jsonArray.length();i++){
 				//get the individual element of the objects from the array as a DBObject
@@ -60,7 +65,7 @@ public class ReportNotification implements NotificationTemplate{
 			
 			report.remove("row");
 			for(String key : report.keySet()){
-				doc.select("body").first().prepend("<p>"+key+" : "+report.get(key)+"</p>");
+				doc.select("body").first().prepend("<p><b>"+key+": </b>"+report.get(key)+"</p>");
 			}
 			
 			LOGGER.trace(doc.toString());

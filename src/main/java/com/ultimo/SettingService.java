@@ -207,10 +207,11 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 						LOGGER.info("The given document does not already exsist in the databse, adding a new one");
 						LOGGER.trace(document.toString());
 						collection.insert(document);
-						LOGGER.info("successfuly inserted document");
+						LOGGER.info("successfuly inserted document with the id: "+document.get("_id").toString());
 					}
 					//schedule a notification if the document is a report
 					//schedule the report in quartz
+					LOGGER.info("scheduling report");
 					Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
 					LOGGER.info("successfully scheduled report");
 				}
@@ -253,13 +254,13 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
         {
         	LOGGER.error("Incorrectly Formated JSON Array. Please check JSON Array Format");
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
-            LOGGER.error(e.getStackTrace().toString());
+            LOGGER.error("the error: ",e);
         }
         catch(MongoCommandException e) 
         {
         	LOGGER.error("Bad MongoDB Request. Request Errored Out");
         	LOGGER.error(e.getMessage());
-        	LOGGER.error(e.getStackTrace().toString());
+        	LOGGER.error("the error: ",e);
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Bad MongoDB Request. Please rephrase your command.");
         }       
         
@@ -267,34 +268,40 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
         {
         	LOGGER.error("MongoDB Connection Timed Out. Please check MongoDB Status and try again ");
         	LOGGER.error(e.getMessage());
-        	LOGGER.error(e.getStackTrace().toString());
+        	LOGGER.error("the error: ",e);
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Connection TimedOut");
         }
         catch(MongoClientException e)
         {
         	LOGGER.error("MongoDB Client Error. Ensure that DB and Collection exist");
         	LOGGER.error(e.getMessage());
-        	LOGGER.error(e.getStackTrace().toString());
+        	LOGGER.error("the error: ",e);
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
         }
 		catch(WriteConcernException e)
         {
         	LOGGER.error("The remove or update failed");
         	LOGGER.error(e.getMessage());
-        	LOGGER.error(e.getStackTrace().toString());
+        	LOGGER.error("the error: ",e);
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The remove or update failed");
+        }
+		catch(SchedulerException e)
+        {
+        	LOGGER.error("could not get the scheduler to schedule the job");
+        	LOGGER.error(e.getMessage());
+        	LOGGER.error("the error: ",e);
         }
         catch(MongoException e)
         {
         	LOGGER.error("General MongoDB Exception");
         	LOGGER.error(e.getMessage());
-        	LOGGER.error(e.getStackTrace().toString());
+        	LOGGER.error("the error: ",e);
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error");
         }
         catch(Exception e) 
         {
         	LOGGER.error("Unspecified Application Error" );
-        	LOGGER.error(e.getStackTrace().toString());
+        	LOGGER.error("the error: ",e);
             ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Unspecified Application Error");
         }
 	}
@@ -402,7 +409,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	
 	public void displayCollection(HttpServerExchange exchange, RequestContext context, List<DBObject> outputList) throws IllegalQueryParamenterException{
 		//displays content in HAL representation on the webpage
-		LOGGER.info("displaying the collection as ");
+		LOGGER.info("displaying the documents as part of collection in HAL format");
 		CollectionRepresentationFactory data =  new CollectionRepresentationFactory();			        
 		Representation response = data.getRepresentation(exchange, context, outputList, outputList.size());
 		LOGGER.trace("Results Transformed into RestHeart Represenation");
@@ -417,12 +424,15 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	
 	public boolean validateReport(DBObject document,HttpServerExchange exchange){
 		//get the template string
+		LOGGER.info("validating report");
+		LOGGER.trace(document.toString());
 		String template=((DBObject)document.get("report")).get("template").toString();
 		if(template==null){ 
 			LOGGER.error("The report document does not have a template field");
 			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
 			return false;
 		}
+		LOGGER.info("the document does have a template field: "+template);
 		boolean templateExists=NotificationService.validateTemplate(template);
 		if(templateExists){
 			LOGGER.info("the given report has a valid template field");
@@ -435,43 +445,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 	}
 	
-	private static Date scheduleReport(JSONObject report) throws SchedulerException, java.text.ParseException{
-//		
-//		
-//		
-//		String applicationName = report.getJSONObject("report").getString("application");
-//		
-//		String jobKeyName;
-//		
-//		//Interface and error type are optional fields
-//		try{
-//			String interfaceName = report.getJSONObject("report").getString("interface1");
-//			
-//			if(!interfaceName.isEmpty())
-//				jobKeyName = applicationName + "." + interfaceName;
-//			else
-//				jobKeyName = applicationName;
-//			
-//		} catch (JSONException e){
-//			LOGGER.warn(e.getMessage());
-//			jobKeyName = applicationName;
-//		}
-//		
-//		try{
-//			
-//			String errorType = report.getJSONObject("report").getString("errorType");
-//			
-//			if(!errorType.isEmpty())
-//				jobKeyName = jobKeyName + "." + errorType;
-//			
-//		} catch (JSONException e){
-//			LOGGER.warn(e.getMessage());
-//			
-//		}
-//		
-//		LOGGER.info("Job Key name " + jobKeyName);
-//		
-//		
+	private static Date scheduleReport(JSONObject report) throws SchedulerException, java.text.ParseException{		
 		String jobKeyName = getJobName(report);
 		JobKey jobKey = new JobKey(jobKeyName);
 		Scheduler scheduler;
@@ -482,7 +456,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		} catch (SchedulerException e){
 			LOGGER.error(e.getMessage());
-			LOGGER.error(e.getStackTrace().toString());
+			LOGGER.error("the error: ",e);
 			throw e;
 		}
 		
@@ -505,7 +479,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		job.getJobDataMap().put("report", report.toString());
 		
-		LOGGER.info("created new job");
+		LOGGER.info("created new job with job key: "+jobKeyName);
 		
 		//Create Trigger
 		Trigger trigger = getSechduleTrigger(report, jobKeyName);
@@ -543,7 +517,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 		catch (JSONException e){
 			LOGGER.error(e.getMessage());
-			LOGGER.error(e.getStackTrace().toString());
+			LOGGER.error("the error: ",e);
 			throw e;
 		}
 		Date triggerStartTime;
@@ -658,7 +632,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		
 		} catch (SchedulerException e){
 			LOGGER.error(e.getMessage());
-			LOGGER.error(e.getStackTrace().toString());
+			LOGGER.error("the error: ",e);
 			throw e;
 		}
 		boolean jobDeleted=false;
