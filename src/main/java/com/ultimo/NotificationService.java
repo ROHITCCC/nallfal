@@ -115,7 +115,7 @@ public class NotificationService extends ApplicationLogicHandler {
 		}
 	}
 	
-	public static void sendEmail(String content, String template, String toEmailID){
+	public static void sendEmail(String content, String template, String toEmailID, String subject){
 		try{
 			LOGGER.info("Notification Service Started");
 			LOGGER.trace("content recieved: "+content);
@@ -134,6 +134,7 @@ public class NotificationService extends ApplicationLogicHandler {
 			email.setHostName(hostname);
 			email.addTo(toEmailID);
 			email.setFrom(fromEmailId);
+			email.setSubject(subject);
 			email.setAuthentication(username,password);
 			email.setSmtpPort(Integer.parseInt(port));
 			email.send();
