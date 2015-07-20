@@ -181,6 +181,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 						collection.findAndRemove(doc);
 					}
 					collection.insert(document);
+					exchange.getResponseSender().send(document.get("_id").toString());
 					LOGGER.info("successfully inserted a setting document");
 					LOGGER.trace("document: "+document.toString());
 				}
@@ -200,6 +201,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 						DBObject tempDocument=collection.findOne(document.get("_id"));
 						LOGGER.info("updating the document");
 						collection.update(tempDocument, document);
+						exchange.getResponseSender().send(document.get("_id").toString());
 						LOGGER.info("successfully updated the document");
 						LOGGER.info("scheduler will update the job");
 					}
@@ -207,13 +209,19 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 						LOGGER.info("The given document does not already exsist in the databse, adding a new one");
 						LOGGER.trace(document.toString());
 						collection.insert(document);
+						exchange.getResponseSender().send(document.get("_id").toString());
 						LOGGER.info("successfuly inserted document with the id: "+document.get("_id").toString());
 					}
 					//schedule a notification if the document is a report
 					//schedule the report in quartz
 					LOGGER.info("scheduling report");
-					Date sceduleTime = scheduleReport(new JSONObject(document.toString()));
-					LOGGER.info("successfully scheduled report");
+					//change this later
+					if(SchedulerService.scheduleReport(new JSONObject(document.toString()))!=null){;
+						LOGGER.info("successfully scheduled report");
+					}
+					else{
+						LOGGER.error("couldn't schedule the document");
+					}
 				}
 				else {
 					LOGGER.error("unsuported object type "+document.toString());
@@ -231,7 +239,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 					WriteResult result=collection.remove(document);
 					if(result.getN()==1){
 						LOGGER.info("The document is removed");
-						deleteJob(new JSONObject(document.toString()));
+						SchedulerService.deleteJob(new JSONObject(document.toString()));
 						LOGGER.info("The job associated with the document is deleted");
 						exchange.getResponseSender().send("scheduled job is deleted");
 					}
@@ -443,212 +451,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The passed report document has an invalid template field");
 			return false;
 		}
-	}
-	
-	private static Date scheduleReport(JSONObject report) throws SchedulerException, java.text.ParseException{		
-		String jobKeyName = getJobName(report);
-		JobKey jobKey = new JobKey(jobKeyName);
-		Scheduler scheduler;
-		//get scheduler 
-		try{
-			
-			scheduler = new StdSchedulerFactory().getScheduler();
-		
-		} catch (SchedulerException e){
-			LOGGER.error(e.getMessage());
-			LOGGER.error("the error: ",e);
-			throw e;
-		}
-		
-		JobDetail job;
-		try{
-				job = scheduler.getJobDetail(jobKey);
-				
-				//remove old job if exists
-				scheduler.deleteJob(jobKey);
-				
-		} catch(SchedulerException e){
-			LOGGER.info("Job with JobKey " + jobKeyName + " does not exits. Createing new Job");
-
-		}
-		
-		//create  job
-		job = JobBuilder.newJob(ReportJob.class)
-				.withIdentity(jobKey).build();
-
-		
-		job.getJobDataMap().put("report", report.toString());
-		
-		LOGGER.info("created new job with job key: "+jobKeyName);
-		
-		//Create Trigger
-		Trigger trigger = getSechduleTrigger(report, jobKeyName);
-		
-		LOGGER.info("created new trigger");
-
-		
-		//if scheduler is not start it, start the scheduler
-		if(!scheduler.isStarted()){
-			scheduler.start();
-		}
-		LOGGER.info("scheduler is started");
-		
-		Date startDateTime = scheduler.scheduleJob(job, trigger);
-		
-		LOGGER.info("Report " + jobKeyName + " is scheduled to start at " + startDateTime.toString() + " and will run every " 
-		+ report.getJSONObject("report").getJSONObject("frequency").getString("duration") + " " 
-				+ report.getJSONObject("report").getJSONObject("frequency").getString("unit"));
-		
-		return startDateTime;
-		
-	}
-
-	private static Trigger getSechduleTrigger(JSONObject report, String triggerName) throws JSONException, java.text.ParseException {
-		LOGGER.trace("trigger name: "+triggerName);
-		//JSONObject report = new JSONObject(payload);
-		
-		JSONObject frequency; 
-		int duration; 
-		String unit;
-		try{
-			frequency = report.getJSONObject("report").getJSONObject("frequency");
-			duration = frequency.getInt("duration");
-			unit = frequency.getString("unit");
-		}
-		catch (JSONException e){
-			LOGGER.error(e.getMessage());
-			LOGGER.error("the error: ",e);
-			throw e;
-		}
-		Date triggerStartTime;
-		String startDateTime = frequency.getString("starttime");
-		
-
-		if (startDateTime != null && !startDateTime.isEmpty()) {
-			LOGGER.info("start time is given");
-
-			SimpleDateFormat formatter = new SimpleDateFormat(
-					"MM/dd/yyyy'T'hh:mm:ss");
-			triggerStartTime = formatter.parse(startDateTime);
-
-		} else {
-			triggerStartTime = new Date();
-			LOGGER.info("no starttime is given, using current time as default stattime");
-		}
-
-		// default schedule is 1 hr
-		int seconds = calculateDurationInseconds(duration, unit);
-
-		LOGGER.trace("seconds: "+seconds);
-
-		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
-				.simpleSchedule().withIntervalInSeconds(seconds)
-				.repeatForever();
-
-		Trigger trigger = TriggerBuilder.newTrigger()
-				.withIdentity(triggerName).withSchedule(scheduleBuilder)
-				.startAt(triggerStartTime).build();
-
-		return trigger;
-	}
-	
-	public static int calculateDurationInseconds(int duration, String unit){
-		LOGGER.trace("duration: "+duration);
-		LOGGER.trace("unit: "+ unit);
-		
-		//default is 1 hr
-		int seconds = 60 * 60;
-
-		switch (unit) {
-
-		case "sec":
-			seconds = duration;
-			break;
-		case "min":
-			seconds = 60 * duration;
-			break;
-		case "hr":
-			seconds = 60 * 60 * duration;
-			break;
-		case "hrs":
-			seconds = 60 * 60 * duration;
-			break;
-		case "day":
-			seconds = 24 * 60 * 60 * duration;
-			break;
-		case "days":
-			seconds = 24 * 60 * 60 * duration;
-			break;
-
-		default:
-			
-		}
-		LOGGER.info("the time interval is scheduled for "+seconds+" seconds");
-		return seconds;
-	} 
-
-	public static String getJobName(JSONObject report){
-	
-		String envName = report.getJSONObject("report").getString("envid");
-		
-		String applicationName = report.getJSONObject("report").getString("application");
-		
-		String jobKeyName=envName+"."+applicationName;
-		
-		//Interface and error type are optional fields
-		try{
-			String interfaceName = report.getJSONObject("report").getString("interface1");
-			
-			if(!interfaceName.isEmpty())
-				jobKeyName = jobKeyName + "." + interfaceName;
-			
-		} catch (JSONException e){
-			LOGGER.warn(e.getMessage());
-		}
-		
-		try{
-			
-			String errorType = report.getJSONObject("report").getString("errorType");
-			
-			if(!errorType.isEmpty())
-				jobKeyName = jobKeyName + "." + errorType;
-			
-		} catch (JSONException e){
-			LOGGER.warn(e.getMessage());
-			
-		}
-		
-		LOGGER.info("Job Key name " + jobKeyName);
-		
-		return jobKeyName;
-	}
-	
-	public static boolean deleteJob(JSONObject report) throws Exception{
-		Scheduler scheduler;
-		//get scheduler 
-		try{
-			
-			scheduler = new StdSchedulerFactory().getScheduler();
-		
-		} catch (SchedulerException e){
-			LOGGER.error(e.getMessage());
-			LOGGER.error("the error: ",e);
-			throw e;
-		}
-		boolean jobDeleted=false;
-		JobDetail job;
-		try{
-			JobKey jobKey = new JobKey(getJobName(report));
-				job = scheduler.getJobDetail(jobKey);
-				
-				//remove old job if exists
-				jobDeleted=scheduler.deleteJob(jobKey);
-				
-		} catch(SchedulerException e){
-			LOGGER.info("Job with JobKey " + getJobName(report) + " does not exits. Createing new Job");
-
-		}
-		return jobDeleted;
 	}
 	
 	public static DBObject convertPayloadToDocument(HttpServerExchange exchange) throws IOException,JSONParseException{

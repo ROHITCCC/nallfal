@@ -53,7 +53,7 @@ public class ReportJob implements Job{
 	    String previousJobExecutionTime;
 	    
 	    if(previousRun == null){
-	    	int duationInSeconds = SettingService.calculateDurationInseconds(Integer.parseInt(frequency.getString("duration")), frequency.getString("unit"));
+	    	int duationInSeconds = SchedulerService.calculateDurationInseconds(Integer.parseInt(frequency.getString("duration")), frequency.getString("unit"));
 	    	long reportStartTime = currentTime.getTime()/1000 - duationInSeconds;
 	    	
 	    	previousJobExecutionTime = df.format(new Date(reportStartTime * 1000));
@@ -146,7 +146,7 @@ public class ReportJob implements Job{
 			resultObject.put("Time Started", previousFireTime.toString());
 			resultObject.put("row", result);
 			
-			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"));
+			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),"Report: Job Name= "+ context.getJobDetail().getKey().toString()+", Execution Time= "+context.getFireTime());
 			LOGGER.info("Executed report (" + jobName + ") output " + resultObject.toString());
 		} catch (Exception e) {
 			e.printStackTrace();

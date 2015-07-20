@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 public class HtmlNotificationFactory {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
+	ClassLoader cl;
 
 	//use getJob method to get object of type NotificationJob 
 	public NotificationTemplate getNotificationClass(String template){
@@ -39,7 +40,7 @@ public class HtmlNotificationFactory {
 			    LOGGER.trace("The url of the file: "+url.toString());
 			    URL[] urls = new URL[]{url};
 			    // Create a new class loader with the directory
-			    ClassLoader cl = new URLClassLoader(urls);
+			    cl = new URLClassLoader(urls);
 			    // Load in the class; MyClass.class should be located in
 			    // the directory file:/c:/myclasses/com/mycompany
 			    cls = cl.loadClass(template);

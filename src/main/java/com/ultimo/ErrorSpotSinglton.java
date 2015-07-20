@@ -144,7 +144,7 @@ public class ErrorSpotSinglton {
     			
     		    long timeDiffrence = Math.abs(currentDate.getTime() - lastNotiTime.getTime());
     		    LOGGER.debug("Duration of last notification has been " + timeDiffrence/1000 + " seconds.");
-    		    long notifcationPeriod = SettingService.calculateDurationInseconds(frequency.getInt("duration"), frequency.getString("unit"));
+    		    long notifcationPeriod = SchedulerService.calculateDurationInseconds(frequency.getInt("duration"), frequency.getString("unit"));
     		    LOGGER.debug("The intended duration of the last notification is " + notifcationPeriod + " seconds.");
     		 
         		if(timeDiffrence/1000 > notifcationPeriod){
