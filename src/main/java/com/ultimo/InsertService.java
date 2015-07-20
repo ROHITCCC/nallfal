@@ -340,7 +340,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     
 			    	 //Call NotificationService
 			    	 auditContent = inputObject.toString();
-			    	 NotificationService.sendEmail(auditContent, template, toEmailId);
+			    	 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
+			    	 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
 			    	 LOGGER.debug("NotificationService called.");
 			    	 LOGGER.debug("Notification sent to " + toEmailId); 
 			     }
