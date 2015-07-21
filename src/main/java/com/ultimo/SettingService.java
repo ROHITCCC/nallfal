@@ -88,15 +88,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 			LOGGER.info("successfully connected to the database: "+dbname+" and collection: "+collectionName);
 			
 			if (context.getMethod() == METHOD.OPTIONS) {
-				Collection<String> allowedMethods= new ArrayList<>();
-				allowedMethods.add("GET");
-				allowedMethods.add("POST");
-				allowedMethods.add("DELETE");
-	            exchange.getResponseHeaders().putAll(HttpString.tryFromString("Access-Control-Allow-Methods"), allowedMethods);
-	            //exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
-	            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Accept, Accept-Encoding, Authorization, Content-Length, Content-Type, Host, Origin, X-Requested-With, User-Agent, No-Auth-Challenge, " + AUTH_TOKEN_HEADER + ", " + AUTH_TOKEN_VALID_HEADER + ", " + AUTH_TOKEN_LOCATION_HEADER);
-	            exchange.setResponseCode(HttpStatus.SC_OK);
-	            exchange.endExchange();
+				ErrorSpotSinglton.optionsMethod(exchange);
 	        } 
 	        else if (context.getMethod() == METHOD.GET){
 	        	LOGGER.info("Starting the GET service");

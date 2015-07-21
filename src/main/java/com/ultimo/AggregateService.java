@@ -57,10 +57,7 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 	
         if (context.getMethod() == METHOD.OPTIONS) 
         {
-            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "GET");
-            exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Accept, Accept-Encoding, Authorization, Content-Length, Content-Type, Host, Origin, X-Requested-With, User-Agent, No-Auth-Challenge, " + AUTH_TOKEN_HEADER + ", " + AUTH_TOKEN_VALID_HEADER + ", " + AUTH_TOKEN_LOCATION_HEADER);
-            exchange.setResponseCode(HttpStatus.SC_OK);
-            exchange.endExchange();
+        	ErrorSpotSinglton.optionsMethod(exchange);
         } 
         else if (context.getMethod() == METHOD.POST)
         {	

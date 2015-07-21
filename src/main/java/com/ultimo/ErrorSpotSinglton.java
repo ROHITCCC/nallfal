@@ -11,12 +11,18 @@ import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HttpString;
+
 import org.restheart.Configuration;
 import org.restheart.db.DbsDAO;
 import org.restheart.db.MongoDBClientSingleton;
+import org.restheart.security.handlers.IAuthToken;
+import org.restheart.utils.HttpStatus;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class ErrorSpotSinglton {
+
+public class ErrorSpotSinglton implements IAuthToken{
 
     private static boolean initialized = false;
 
@@ -211,4 +218,18 @@ public class ErrorSpotSinglton {
         return initialized;
     }
 
+    public static void optionsMethod(HttpServerExchange exchange) {
+    	
+    	Collection<String> allowedMethods= new ArrayList<>();
+		allowedMethods.add("GET");
+		allowedMethods.add("POST");
+		allowedMethods.add("DELETE");
+        exchange.getResponseHeaders().putAll(HttpString.tryFromString("Access-Control-Allow-Methods"), allowedMethods);
+        //exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
+        exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Accept, Accept-Encoding, Authorization, Env-ID, Content-Length, Content-Type, Host, Origin, X-Requested-With, User-Agent, No-Auth-Challenge, " + AUTH_TOKEN_HEADER + ", " + AUTH_TOKEN_VALID_HEADER + ", " + AUTH_TOKEN_LOCATION_HEADER);
+        exchange.setResponseCode(HttpStatus.SC_OK);
+        exchange.endExchange();
+    	
+    }
+    
 }
