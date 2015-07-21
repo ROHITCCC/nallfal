@@ -131,24 +131,63 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
             	inputString[x] = inputString[x].substring(inputString[x].indexOf("=") + 1);
             }
     		
+            String[] codeAndMessage = null;
+            
 	    		switch(inputString[0].toUpperCase()){
 	    		
-	    		case "REST":handleREST(exchange, context, inputString);break;
-	    		case "FILE":handleFILE(exchange, context, inputString);break;
-	    		case "WS":handleWS(exchange, context, inputString);break;
-	    		case "FTP":handleFTP(exchange,context,inputString);break;
+	    		case "REST":codeAndMessage = handleREST(inputString);break;
+	    		case "FILE":codeAndMessage = handleFILE(inputString);break;
+	    		case "WS":codeAndMessage = handleWS(inputString);break;
+	    		case "FTP":codeAndMessage = handleFTP(inputString);break;
 	    		
 	    		default:break;
 	    		
 	    		}
-    			
-    		}
+	    		
+	    	//value of -1 is safe since it is only returned from getResponseCode() if response is not valid http
+		   	int code = -1;
+		   	String message = null;
+		   	String response = null;
+		    		
+		    if (codeAndMessage[0] != null)
+		    {
+		    	code = Integer.parseInt(codeAndMessage[0]);
+		    }
+		    
+		    if (codeAndMessage[1] != null)
+		    {
+		    	message = codeAndMessage[1];
+		    }
+		    
+		    if (codeAndMessage[2] != null)
+		    {
+		    	response = codeAndMessage[2];
+		    }
+		    
+		    if ((code != -1)&&(message != null))
+		    {
+		    	ResponseHelper.endExchangeWithMessage(exchange, code, message);
+		    }
+		    
+		    if ((codeAndMessage.length == 4)&&(codeAndMessage[3].equalsIgnoreCase("true")))
+		    {
+		    	exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, Representation.HAL_JSON_MEDIA_TYPE);
+		    }
+		    
+		    if (response != null)
+		    {
+		    	exchange.getResponseSender().send(response);
+		    }
+		    	
+    	}
 
-        }
+     }
 	
-		public void handleREST(HttpServerExchange exchange,RequestContext context, String[] inputString) throws Exception{
+		public String[] handleREST(String[] inputString) throws Exception{
 			//Uses Java Rest API
-			LOGGER.info("REST Service started");
+			LOGGER.info("Starting REST Service");
+			
+			String[] returnArray = null;
 
 			String restEnd = inputString[1].replaceAll("\\s","");
 			String restMethod = inputString[2].replaceAll("\\s","");
@@ -286,6 +325,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	            httpCon.setRequestProperty("Content-Type", restContentType);
 	            OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream(), "UTF-8");
 	            out.write(restPayload);
+	            LOGGER.info("Payload has been written");
 	            
 	            out.close();
 	            
@@ -297,7 +337,9 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	            } 
 	            else {
 	            	LOGGER.error(httpCon.getResponseCode() + ": " + httpCon.getResponseMessage());
-	            	ResponseHelper.endExchangeWithMessage(exchange, httpCon.getResponseCode(), httpCon.getResponseMessage());
+					returnArray = new String[4];
+	            	returnArray[0] = Integer.toString(httpCon.getResponseCode());
+	            	returnArray[1] = httpCon.getResponseMessage();
 	            }
 	            
 	
@@ -308,21 +350,30 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	             
 	            bufferedReader.close();
 	
-				exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, Representation.HAL_JSON_MEDIA_TYPE);
-	            exchange.getResponseSender().send(result);
-	            exchange.endExchange();
+				if (returnArray == null)
+				{
+					returnArray = new String[4];
+				}
+				returnArray[3] = "true";
+	            returnArray[2] = result;
         	}
         	else{
         		LOGGER.error("Error on " + errorReason);
-        		ResponseHelper.endExchangeWithMessage(exchange, 409, "Error with: " + errorReason);
+				returnArray = new String[3];
+        		returnArray[0] = Integer.toString(409);
+            	returnArray[1] = "Error with: " + errorReason;
         	}
 		
+            return returnArray;
+            
         }
 		
         
-		public void handleFILE(HttpServerExchange exchange,RequestContext context, String[] inputString) throws Exception{
+		public String[] handleFILE(String[] inputString) throws Exception{
 			//Host must manually be mounted before file handling can take place
 			LOGGER.info("Starting FILE Service");
+			
+			String[] returnArray = null;
 			
 			String fileLocation = inputString[1];
 			String filePayload = inputString[2];
@@ -339,7 +390,9 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			
 				if (file.exists()) {
 					LOGGER.error("Duplicate file name found at: " + fileLocation);
-					ResponseHelper.endExchangeWithMessage(exchange, 409, "Duplicate File Found at: " + fileLocation);
+					returnArray = new String[3];
+					returnArray[0] = Integer.toString(409);
+	            	returnArray[1] = "Duplicate File Found at: " + fileLocation;
 				}
 				else{
 					file.createNewFile();
@@ -347,25 +400,33 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 					FileWriter fWriter = new FileWriter(file.getAbsoluteFile(), false); //set to true to allow file appending
 					BufferedWriter bWriter = new BufferedWriter(fWriter);
 					bWriter.write(filePayload);											//enters payload into file
+					LOGGER.info("Payload has been written");
 					bWriter.close();
 					fWriter.close();
 					LOGGER.info("Creating new file at: " + fileLocation);
-					exchange.getResponseSender().send("File Successfully Created");
+					returnArray = new String[3];
+					returnArray[2] = "File Successfully Created";
 				}
 			}
 			else {
 				LOGGER.error("Payload not formatted correctly");
-				ResponseHelper.endExchangeWithMessage(exchange, 406, "Payload not formatted correctly");
+				returnArray = new String[3];
+				returnArray[0] = Integer.toString(406);
+            	returnArray[1] = "Payload not formatted correctly";
 			}
+			
+			return returnArray;
 			
 		}
 		
 		
 		
-		public void handleWS(HttpServerExchange exchange,RequestContext context, String[] inputString) throws Exception{
+		public String[] handleWS(String[] inputString) throws Exception{
 			
 			//Uses soap-ws from github
 			LOGGER.info("Starting Web Service");
+			
+			String[] returnArray = null;
 			
 			try{
 			String wsdlInput = inputString[1];
@@ -398,7 +459,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				
 				FileWriter fWriter = new FileWriter(file.getAbsoluteFile(), false); 
 				BufferedWriter bWriter = new BufferedWriter(fWriter);
-				bWriter.write(wsdlInput);											
+				bWriter.write(wsdlInput);
+				LOGGER.info("Input has been written");
 				bWriter.close();
 				fWriter.close();
 				
@@ -477,19 +539,26 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		    LOGGER.trace(response);
 		    
 		    LOGGER.info("Web Service Complete");
-            exchange.getResponseSender().send(response);
+            returnArray = new String[3];
+            returnArray[2] = response;
 			}
 			catch(Exception e){
 				e.printStackTrace();
-				ResponseHelper.endExchangeWithMessage(exchange, 406, "");
+				returnArray = new String[3];
+				returnArray[0] = Integer.toString(406);
+            	returnArray[1] = "";
 			}
+			
+			return returnArray;
 			
 		}
 		
-		public void handleFTP(HttpServerExchange exchange,RequestContext context, String[] inputString) throws Exception{
-			LOGGER.info("Strating FTP service");
+		public String[] handleFTP(String[] inputString) throws Exception{
+			LOGGER.info("Starting FTP service");
 			LOGGER.trace(""+inputString.length);
 			FTPClient ftp= new FTPClient();
+			
+			String[] returnArray = null;
 			
 			// break input string to its contents
 			String hostname= inputString[1];
@@ -541,8 +610,10 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			}
 			else{
 				LOGGER.error("incorrect file name");
-				ResponseHelper.endExchangeWithMessage(exchange, 500,"file name contain incorrect character: only aphanumaeric and underscore allowed");
-				return;
+				returnArray = new String[3];
+				returnArray[0] = Integer.toString(500);
+            	returnArray[1] = "File name contains incorrect character: only aphanumaeric and underscore allowed";
+				return returnArray;
 			}
 			
 			String filename=location+file+fileType;
@@ -566,7 +637,9 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				connected=true;
 			} catch (IOException e) {
 				LOGGER.error("incorrect host: "+hostname);
-				ResponseHelper.endExchangeWithMessage(exchange, 500, "Host is invalid");
+				returnArray = new String[3];
+				returnArray[0] = Integer.toString(500);
+            	returnArray[1] = "Host is invalid";
 			}
 			
 			//login to server with given credentials
@@ -579,7 +652,9 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 					LOGGER.info("login successful");
 				} catch (IOException e) {
 					LOGGER.error("login failed");
-					ResponseHelper.endExchangeWithMessage(exchange, 500,"username or password is incorrect");
+					returnArray = new String[3];
+					returnArray[0] = Integer.toString(500);
+	            	returnArray[1] = "Username or password is incorrect";
 				}
 			}
 			
@@ -596,7 +671,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 						boolean stored = ftp.storeFile(filename,ftpPayloadInput);
 						if(stored){
 							LOGGER.info("successfully stored payload into file");
-							exchange.getResponseSender().send("Payload successfully stored on file on server");
+							returnArray = new String[3];
+							returnArray[2] = "Payload successfully stored on file on server";
 						}
 						else{
 							//if you are trying to input to a nonexsisting direcotry
@@ -614,22 +690,29 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 							if(storedNewDir){
 								LOGGER.trace("payload stored in direcotry: "+directories[directories.length-2]);
 								LOGGER.info("successfully stored payload into file");
-								exchange.getResponseSender().send("Payload successfully stored on file on server");
+								returnArray = new String[3];
+								returnArray[2] = "Payload successfully store on file on server";
 							}
 							else{
 								LOGGER.error("storing file failed: incorrect filepath");
-								ResponseHelper.endExchangeWithMessage(exchange, 500,"incorrect file path");
+								returnArray = new String[3];
+								returnArray[0] = Integer.toString(500);
+				            	returnArray[1] = "Incorrect file path";
 							}
 						}
 					}
 					catch (IOException e){
 						LOGGER.error("login failed: incorrect filepath");
-						ResponseHelper.endExchangeWithMessage(exchange, 500,"incorrect file path");
+						returnArray = new String[3];
+						returnArray[0] = Integer.toString(500);
+		            	returnArray[1] = "Incorrect file path";
 					}
 				}
 				else{
 					LOGGER.error("Payload not formatted correctly");
-					ResponseHelper.endExchangeWithMessage(exchange, 500, "Payload not formatted correctly");
+					returnArray = new String[3];
+					returnArray[0] = Integer.toString(500);
+	            	returnArray[1] = "Payload not formatted correctly";
 				}
 			}
 			
@@ -646,6 +729,9 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				ftp.disconnect();
 				LOGGER.info("disconnected successfully");
 			}
+			
+			return returnArray;
+			
 		}
 		
 		public static boolean isValidIP(String ipAddr){
