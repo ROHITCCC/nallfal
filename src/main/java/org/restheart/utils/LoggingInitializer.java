@@ -42,8 +42,10 @@ public class LoggingInitializer {
     public static void setLogLevel(Level level) {
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         Logger logger = loggerContext.getLogger("org.restheart");
+        Logger loggerUltimo = loggerContext.getLogger("com.ultimo");
 
         logger.setLevel(level);
+        loggerUltimo.setLevel(level);
     }
 
     /**
