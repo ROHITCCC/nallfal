@@ -263,8 +263,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		        *  1) Add Payload ID to Reference ID
 		        *  2) Check if Audit has a timestamp or not. 
 		        *  3) Change the Format of the Date from String to a Date Object. 
-		        *  4) Update the timstamp in the payload object. 
-		        *  5) Inser the Update. 
+		        *  4) Update the timestamp in the payload object. 
+		        *  5) Insert the Update. 
 		        */
 	     
 	    		 //Makes audit's envid field into uppercase
@@ -354,8 +354,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		    	e.printStackTrace();
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted Date. Accepted Date Format is: YYYY-MM-DDTHH:MM:SS");
 			    MongoClient client = getMongoConnection(exchange, context);
-			    DB db = client.getDB(context.getDBName());
-			    DBCollection collection = db.getCollection("payloadCollection");
+			    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+			    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 			    DBObject removalObject = new BasicDBObject("_id", referenceID);
 			    collection.remove(removalObject);
 			     status = "Failed";
@@ -369,8 +369,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		    	e.printStackTrace();
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
 			    MongoClient client = getMongoConnection(exchange, context);
-			    DB db = client.getDB(context.getDBName());
-			    DBCollection collection = db.getCollection("payloadCollection");
+			    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+			    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 			    DBObject removalObject = new BasicDBObject("_id", referenceID);
 			    collection.remove(removalObject);
 			     status = "Failed";
@@ -383,8 +383,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			    	e.printStackTrace();
 			        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Incorrectly Formatted JSON Array. Please check JSON Array Format");
 				    MongoClient client = getMongoConnection(exchange, context);
-				    DB db = client.getDB(context.getDBName());
-				    DBCollection collection = db.getCollection("payloadCollection");
+				    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+				    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 				    DBObject removalObject = new BasicDBObject("_id", referenceID);
 				    collection.remove(removalObject);
 				     status = "Failed";
@@ -399,8 +399,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    	e.printStackTrace();
 	    	status = "Failed";
 	    	MongoClient client = getMongoConnection(exchange, context);
-		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("payloadCollection");
+		    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+		    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 		    DBObject removalObject = new BasicDBObject("_id", referenceID);
 		    collection.remove(removalObject);
 	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
@@ -414,8 +414,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    	e.printStackTrace();
 	    	status = "Failed";
 	    	MongoClient client = getMongoConnection(exchange, context);
-		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("payloadCollection");
+		    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+		    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 		    DBObject removalObject = new BasicDBObject("_id", referenceID);
 		    collection.remove(removalObject);
 	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error. Please check MongoDB Connection and Permissions");
@@ -428,8 +428,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 	    	LOGGER.error("Unspecified Application Error" );
 	    	e.printStackTrace();
 	    	MongoClient client = getMongoConnection(exchange, context);
-		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("payloadCollection");
+		    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+		    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 		    DBObject removalObject = new BasicDBObject("_id", referenceID);
 		    collection.remove(removalObject);
 	    	status = "Failed";
@@ -451,8 +451,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		try {
 		    inputObject.put("_id", id);
 		    MongoClient client = getMongoConnection(exchange, context);
-		    DB db = client.getDB(context.getDBName());
-		    DBCollection collection = db.getCollection("payloadCollection");
+		    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+		    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 		    collection.insert(inputObject);
 		    status = "Success";
 		}

@@ -68,8 +68,8 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		try
 		{
 			MongoClient client = getMongoConnection(exchange,context);
-			DB db = client.getDB(context.getDBName());
-			DBCollection collection = db.getCollection(context.getCollectionName());
+			DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+			DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 			String objectID = exchange.getQueryString().replace("id=", "");
 			LOGGER.trace("Requested Object ID"+objectID);
 			ObjectId queryObjectId = new ObjectId(objectID);

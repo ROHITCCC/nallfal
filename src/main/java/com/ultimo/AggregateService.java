@@ -63,8 +63,8 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
         {	
 
 		
-				String dbname = context.getDBName();
-				String collectionName = context.getCollectionName();
+				String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+				String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 				db = MongoDBClientSingleton.getInstance().getClient();
 		        DB database = db.getDB(dbname);
 		        DBCollection collection = database.getCollection(collectionName);
