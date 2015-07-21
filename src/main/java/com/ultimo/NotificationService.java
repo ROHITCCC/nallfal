@@ -33,13 +33,13 @@ public class NotificationService extends ApplicationLogicHandler {
 	
 	public static String hostname="";
 	public static String port="";
-	public static String toEmailId="";
 	public static String fromEmailId="";
 	public static String username="";
 	public static String password="";
 	public static String location="";
 	
 	public static void setEmailConfigs(){
+		LOGGER.info("getting the configurations for the email");
 		List<Map<String, Object>> configList = MongoDBClientSingleton.getErrorSpotConfigs();
 		ListIterator<Map<String, Object>> iterator= configList.listIterator();
 		while(iterator.hasNext()){
@@ -49,9 +49,6 @@ public class NotificationService extends ApplicationLogicHandler {
 			}
 			else if(configMap.get("what").toString().equals("u-smtp-port")){
 				port = configMap.get("where").toString();
-			}
-			else if(configMap.get("what").toString().equals("u-default-to-email-address")){
-				toEmailId=configMap.get("where").toString();
 			}
 			else if(configMap.get("what").toString().equals("u-default-from-email-address")){
 				fromEmailId=configMap.get("where").toString();
@@ -66,6 +63,13 @@ public class NotificationService extends ApplicationLogicHandler {
 				location=configMap.get("where").toString();
 			}
 		}
+		LOGGER.info("got the email erver, port, emailID, username, password, and the location of the template file");
+		LOGGER.trace("hostname: "+hostname);
+		LOGGER.trace("port: "+port);
+		LOGGER.trace("emailID: "+fromEmailId);
+		LOGGER.trace("username: "+username);
+		LOGGER.trace("password: "+password);
+		LOGGER.trace("location of template: "+location);
 	}
 
 	public NotificationService(PipedHttpHandler next, Map<String, Object> args) {
@@ -81,20 +85,28 @@ public class NotificationService extends ApplicationLogicHandler {
 	}
 	
 	public static boolean validateTemplate(String template){
-		setEmailConfigs();
-		String location=NotificationService.location;
+		LOGGER.info("validating template");
+		LOGGER.info("checking to see if template: "+template+" exists");
+		LOGGER.info("getting the location to look for from the config file");
+		location=MongoDBClientSingleton.getErrorSpotConfig("u-template-location");
+		LOGGER.info("checking for the template in location:"+location);
 		File file = new File(location+"/"+template);
 		
 		//checks if template exists
 		if(!file.exists()){
-			LOGGER.error("the given template: "+template+" is not found");
+			LOGGER.error("the given template: "+template+" is not found in location: "+location);
 			return false;
 		}
 		LOGGER.info("The given template: "+template+" exists");
 		try{
 			template=template.replaceAll("\\.html", "");
-			Class<?> t=Class.forName("com.ultimo."+template);
-			LOGGER.info("the template has  "+t.toString()+" associated with it");
+			LOGGER.info("checking if "+template+".class exists in location: "+location);
+			File classFile= new File(location+"/"+template+".class");
+			if(!(classFile.exists())){
+				LOGGER.info("class is not in the given location, checking to see if it exists in the default package: com.ultimo");
+				Class.forName("com.ultimo."+template);
+			}
+			LOGGER.info("the template has  "+template+".class associated with it");
 			return true;
 		}
 		catch(ClassNotFoundException e){
@@ -103,31 +115,42 @@ public class NotificationService extends ApplicationLogicHandler {
 		}
 	}
 	
-	public static void sendEmail(String content, String location, String template, String hostname,int port,String toEmailID,String fromEmailID,String username,String password){
+	public static void sendEmail(String content, String template, String toEmailID, String subject){
 		try{
+			LOGGER.info("Notification Service Started");
+			LOGGER.trace("content recieved: "+content);
+			LOGGER.trace("the template that is being used:"+ template);
+			LOGGER.info("getting email information form the configuration file");
+			LOGGER.trace("sending email to: "+toEmailID);
+			setEmailConfigs();
 			//get the specific job depending on the template
 			HtmlNotificationFactory emailFactory= new HtmlNotificationFactory();
-			NotificationTemplate emailJob = emailFactory.getJob(template);
-			Document doc = emailJob.createEmail(content, location, template);
+			NotificationTemplate emailNotification = emailFactory.getNotificationClass(template);
+			Document doc = emailNotification.createEmail(content, location, template);
 			
 			//send the email
 			HtmlEmail email = new HtmlEmail();
 			email.setHtmlMsg(doc.toString());
 			email.setHostName(hostname);
 			email.addTo(toEmailID);
-			email.setFrom(fromEmailID);
+			email.setFrom(fromEmailId);
+			email.setSubject(subject);
 			email.setAuthentication(username,password);
-			email.setSmtpPort(port);
+			email.setSmtpPort(Integer.parseInt(port));
 			email.send();
 			LOGGER.info("Email was sent sucessfully");
 		}
 		catch(EmailException e){
 			LOGGER.error("The email couldn't be sent");
-			e.printStackTrace();
+			LOGGER.error("the error: ",e);
+		}
+		catch(NullPointerException e){
+			LOGGER.error("the passed report had invalid structure and therefore could not be processed");
+			LOGGER.error("the error: ",e);
 		}
 		catch(Exception e){
 			LOGGER.error("unspecified error");
-			e.printStackTrace();
+			LOGGER.error("the error: ",e);
 		}
 	}
 	

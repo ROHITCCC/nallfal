@@ -35,6 +35,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientException;
+import com.mongodb.MongoException;
 
 public class SearchService extends ApplicationLogicHandler implements IAuthToken 
 {
@@ -59,6 +61,8 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		} 
 		else if (context.getMethod() == METHOD.GET)
 		{
+			try
+			{
 			List<DBObject> output = new ArrayList<DBObject>();
 			List<Object> outputList = new ArrayList<Object>();
 			if (exchange.getQueryParameters().get("searchtype").getFirst().equalsIgnoreCase("advanced") & exchange.getQueryParameters().get("searchdb").getFirst().equalsIgnoreCase("payload"))
@@ -86,7 +90,21 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 			exchange.getResponseHeaders().put(Headers.CONTENT_TYPE,Representation.HAL_JSON_MEDIA_TYPE);
 			exchange.getResponseSender().send(response.toString());
 			exchange.endExchange();
+			}
+			catch(NumberFormatException e)
+			{
+				
+				LOGGER.error("Cannot parse output. Search parameters are 'searchtype', 'searchdb', and either 'advanced' or 'basic'.");
+				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_ACCEPTABLE, "Cannot parse output. Search parameters are 'searchtype', 'searchdb', and either 'advanced' or 'basic'.");
+				
+			}
+			
+			catch(Exception e) 
+		    {
+		    	LOGGER.error("Unspecified Application Error" );
 
+		    }
+			
 		} 
 		else 
 		{
@@ -134,6 +152,8 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 */
 	public static ArrayList<Object> advancedSearchAudit(HttpServerExchange exchange, RequestContext context)
 	{
+		try
+		{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
@@ -183,11 +203,36 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		outputArray.add(resultList);
 		outputArray.add(new Long(size));
 		return outputArray;
+		}
+		catch(MongoClientException e)
+	    {
+	    	LOGGER.error("MongoDB Client Error. Ensure that DB and Collection exist");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
+
+	    }
+		catch(MongoException e)
+	    {
+	    	LOGGER.error("General MongoDB Error. Please check MongoDB Connection and Permissions");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error. Please check MongoDB Connection and Permissions");
+
+	    }
+	
+	    catch(Exception e) 
+	    {
+	    	LOGGER.error("Unspecified Application Error" );
+
+	    }
+		
+		return null;
 		
 	}
 	
 	public static ArrayList<Object> advancedSearchPayload(HttpServerExchange exchange,RequestContext context)
 	{
+		try
+		{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
@@ -269,12 +314,37 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 			outputArray.add(outputList);
 			outputArray.add(new Long(size1));
 			return outputArray;
+		}
+		catch(MongoClientException e)
+	    {
+	    	LOGGER.error("MongoDB Client Error. Ensure that DB and Collection exist");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
+
+	    }
+		catch(MongoException e)
+	    {
+	    	LOGGER.error("General MongoDB Error. Please check MongoDB Connection and Permissions");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error. Please check MongoDB Connection and Permissions");
+
+	    }
+	
+	    catch(Exception e) 
+	    {
+	    	LOGGER.error("Unspecified Application Error" );
+
+	    }
+		
+		return null;
 		
 	}
 
 	public static ArrayList<Object> basicSearchAudit(HttpServerExchange exchange, RequestContext context)
 	{
-		
+	
+		try
+		{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
@@ -307,11 +377,37 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		outputArray.add(resultList);
 		outputArray.add(new Long(size));
 		return outputArray;
+		}
+		catch(MongoClientException e)
+	    {
+	    	LOGGER.error("MongoDB Client Error. Ensure that DB and Collection exist");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
+
+	    }
+		catch(MongoException e)
+	    {
+	    	LOGGER.error("General MongoDB Error. Please check MongoDB Connection and Permissions");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error. Please check MongoDB Connection and Permissions");
+
+	    }
+	
+	    catch(Exception e) 
+	    {
+	    	LOGGER.error("Unspecified Application Error" );
+
+	    }
+		
+		return null;
 		
 	}
 
 	public static ArrayList<Object> basicSearchPayload(HttpServerExchange exchange, RequestContext context)
 	{
+		
+		try
+		{
 		String payloadCollectionName = "";
 		String auditCollectionName = "";
 		String databaseName = "";
@@ -394,6 +490,29 @@ public class SearchService extends ApplicationLogicHandler implements IAuthToken
 		outputArray.add(new Long(size1));
 		
 		return outputArray;
+		}
+		catch(MongoClientException e)
+	    {
+	    	LOGGER.error("MongoDB Client Error. Ensure that DB and Collection exist");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "MongoDB Client Exception. Please check MongoDB Status");
+
+	    }
+		catch(MongoException e)
+	    {
+	    	LOGGER.error("General MongoDB Error. Please check MongoDB Connection and Permissions");
+	    	LOGGER.error(e.getMessage());
+	        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_INTERNAL_SERVER_ERROR, "General MongoDB Error. Please check MongoDB Connection and Permissions");
+
+	    }
+	
+	    catch(Exception e) 
+	    {
+	    	LOGGER.error("Unspecified Application Error" );
+
+	    }
+		
+		return null;
 		
 	}
 }

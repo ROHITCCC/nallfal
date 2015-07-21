@@ -53,7 +53,7 @@ public class ReportJob implements Job{
 	    String previousJobExecutionTime;
 	    
 	    if(previousRun == null){
-	    	int duationInSeconds = SettingService.calculateDurationInseconds(Integer.parseInt(frequency.getString("duration")), frequency.getString("unit"));
+	    	int duationInSeconds = SchedulerService.calculateDurationInseconds(Integer.parseInt(frequency.getString("duration")), frequency.getString("unit"));
 	    	long reportStartTime = currentTime.getTime()/1000 - duationInSeconds;
 	    	
 	    	previousJobExecutionTime = df.format(new Date(reportStartTime * 1000));
@@ -105,8 +105,8 @@ public class ReportJob implements Job{
 		LOGGER.info("Executing Job ("+ jobName + ") query " + query);
 		
 		//needs to get he colletion from config file
-		String dbname = "ES";
-		String collectionName = "ErrorSpotActual";
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		
         DB database = client.getDB(dbname);
         DBCollection collection = database.getCollection(collectionName);
@@ -135,7 +135,6 @@ public class ReportJob implements Job{
 			resultObject.put("Environment ID", inputObject.get("envid"));
 			resultObject.put("Job Key", context.getJobDetail().getKey().toString());
 			resultObject.put("Job ID", context.getFireInstanceId());
-			resultObject.put("Execution Time", ""+context.getJobRunTime());
 			resultObject.put("Time Ended", context.getFireTime().toString());
 			Date previousFireTime=context.getPreviousFireTime();
 			if(previousFireTime==null){
@@ -147,17 +146,7 @@ public class ReportJob implements Job{
 			resultObject.put("Time Started", previousFireTime.toString());
 			resultObject.put("row", result);
 			
-			/*get email info from config file*/
-			NotificationService.setEmailConfigs();
-			String hostname=NotificationService.hostname;
-			String port=NotificationService.port;
-			String toEmailId=NotificationService.toEmailId;
-			String fromEmailId=NotificationService.fromEmailId;
-			String username=NotificationService.username;
-			String password=NotificationService.password;
-			String location=NotificationService.location;
-			
-			NotificationService.sendEmail(resultObject.toString(), location,inputObject.get("template").toString(), hostname, Integer.parseInt(port), toEmailId, fromEmailId, username, password);
+			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),"Report: Job Name= "+ context.getJobDetail().getKey().toString()+", Execution Time= "+context.getFireTime());
 			LOGGER.info("Executed report (" + jobName + ") output " + resultObject.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
