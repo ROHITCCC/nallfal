@@ -1,5 +1,6 @@
 package com.ultimo;
 
+import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import org.restheart.handlers.RequestContext.METHOD;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.HttpStatus;
+import org.restheart.utils.ResponseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +45,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	
 	public SchedulerService(PipedHttpHandler next, Map<String, Object> args) {
 		super(next, args);
-		// TODO Auto-generated constructor stub
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
@@ -61,7 +62,13 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
 			if(propertiesFile.length()>0){
 				//check existence of file
-				schedulerFactory.initialize(propertiesFile);
+				File file = new File(propertiesFile);
+				if(file.exists()){
+					schedulerFactory.initialize(propertiesFile);
+				}
+				else{
+					LOGGER.warn(propertiesFile+" doesn't exist in current working directory");
+				}
 			}
 			else{
 				schedulerFactory.initialize("etc/quartz.properties");
@@ -99,7 +106,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			return;
 		}
 		else{
-			LOGGER.info("shutting down the scheduler");
+			LOGGER.info("shutting down the scheduler "+scheduler.getSchedulerName());
 			scheduler.shutdown();
 		}
 	}
@@ -234,6 +241,8 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	} 
 
 	public static String getJobName(JSONObject report){
+		LOGGER.info("getting the name of the job");
+		LOGGER.trace("getting the job name for the job: "+report.toString());
 	
 		String envName = report.getJSONObject("report").getString("envid");
 		
@@ -309,24 +318,58 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 
 	@Override
 	public void handleRequest(HttpServerExchange exchange, RequestContext context) throws Exception {
+		LOGGER.info("starting the SchedulerService");
 		if (context.getMethod() == METHOD.OPTIONS) {
 			ErrorSpotSinglton.optionsMethod(exchange);
         }
 		else if(context.getMethod() == METHOD.POST){
+			LOGGER.info("Starting the post in SchedulerService");
 			Map<String, Deque<String>> queryParams= exchange.getQueryParameters();
+			LOGGER.trace("Query Parameters: "+queryParams.toString());
+			if(!queryParams.containsKey("server")){
+				LOGGER.error("No server field was specified. Server Status must be specified preceded by: \"server= \"");
+				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Server Status must be specified preceded by: \"server= \"");
+				return;
+			}
+			if(queryParams.get("server").size()!=1){
+				LOGGER.error("Multiple calls to server are being specified. only one server must be specified preceded by: \"server= \"");
+				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Multiple calls to server are being specified. only one server must be specified.");
+				return;
+			}
 			String serverRequest=queryParams.get("server").getFirst();
+			LOGGER.trace("the server request: "+serverRequest);
 			Deque<String> propertiesFile=queryParams.get("propertiesFile");
 			if(serverRequest.equals("start")){
-				if(propertiesFile!=null){
+				LOGGER.info("strating scheduler");
+				if(queryParams.get("propertiesFile")!=null){
+					LOGGER.info("starting scheduler with properties file: "+propertiesFile.getFirst());
+					File file =new File(propertiesFile.getFirst());
+					if(!file.exists()){
+						LOGGER.error("The given properties file does not exist");
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The given properties file does not exist");
+						return;
+					}
 					startScheduler(propertiesFile.getFirst());
 				}
 				else{
 					startScheduler();
 				}
+				LOGGER.info("successfully started scheudler "+scheduler.getSchedulerName());
+				exchange.getResponseSender().send("Started scheduler: "+scheduler.getSchedulerName());
 			}
 			else if(serverRequest.equals("stop")){
+				LOGGER.info("stopping scheudler");
 				stopScheduler();
 			}
+			else{
+				LOGGER.error("server request can only be start or stop and passed in value is: "+serverRequest);
+				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "the passed server request: "+serverRequest+" is invalid. It can be only start or stop");
+			}
 		}
+		else 
+        {
+			LOGGER.info("invaild http option");
+        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
+        }
 	}
 }
