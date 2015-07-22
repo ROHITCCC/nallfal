@@ -180,7 +180,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 
      }
 	
-		public String[] handleREST(String[] inputString) throws Exception{
+		public static String[] handleREST(String[] inputString) throws Exception{
 			//Uses Java Rest API
 			LOGGER.info("Starting REST Service");
 			
