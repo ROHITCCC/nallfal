@@ -271,6 +271,27 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
    		 		 String uppercaseEnvid = inputObject.get("envid").toString().toUpperCase();
    		 		 inputObject.removeField("envid");
    		 		 inputObject.put("envid", uppercaseEnvid);
+   		 		 
+   		 	     //Makes audit's application, transactionDomain, transactionType, severity, and errorType fields into lowercase
+   		 		 String lowercaseApplication = inputObject.get("application").toString().toLowerCase();
+   		 		 inputObject.removeField("application");
+  		 		 inputObject.put("application", lowercaseApplication);
+  		 		 
+   		 		 String lowercaseTDomain = inputObject.get("transactionDomain").toString().toLowerCase();
+   		 		 inputObject.removeField("transactionDomain");
+ 		 		 inputObject.put("transactionDomain", lowercaseTDomain);
+ 		 		 
+   		 		 String lowercaseTType = inputObject.get("transactionType").toString().toLowerCase();
+   		 		 inputObject.removeField("transactionType");
+ 		 		 inputObject.put("transactionType", lowercaseTType);
+ 		 		 
+   		 	     String lowercaseSeverity = inputObject.get("severity").toString().toLowerCase();
+   		 	     inputObject.removeField("severity");
+		 		 inputObject.put("severity", lowercaseSeverity);
+		 		 
+   		         String lowercaseEType = inputObject.get("errorType").toString().toLowerCase();
+   		 		 inputObject.removeField("errorType");
+   		 		 inputObject.put("errorType", lowercaseEType);
    		 		
 				 inputObject.removeField("dataLocation");
 			     inputObject.put("dataLocation", referenceID.toString());
