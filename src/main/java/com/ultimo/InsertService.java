@@ -284,8 +284,12 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		         inputObject.removeField("timestamp");
 		         inputObject.put("timestamp",gtDate);
 			     context.setContent(inputObject);
-			     PostCollectionHandler handler = new PostCollectionHandler();
-			     handler.handleRequest(exchange, context);
+			     MongoClient client = getMongoConnection(exchange, context);
+				 DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+				 DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
+				 collection.insert(inputObject);
+				    
+
 			     status = "Success";
 			     
 			     /*=======Immediate Notification for audits=======*/
