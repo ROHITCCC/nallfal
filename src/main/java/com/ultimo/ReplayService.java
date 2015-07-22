@@ -366,7 +366,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
         }
 		
         
-		public String[] handleFILE(String[] inputString) throws Exception{
+		public static String[] handleFILE(String[] inputString) throws Exception{
 			//Host must manually be mounted before file handling can take place
 			LOGGER.info("Starting FILE Service");
 			
@@ -418,7 +418,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		
 		
 		
-		public String[] handleWS(String[] inputString) throws Exception{
+		public static String[] handleWS(String[] inputString) throws Exception{
 			
 			//Uses soap-ws from github
 			LOGGER.info("Starting Web Service");
@@ -550,7 +550,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			
 		}
 		
-		public String[] handleFTP(String[] inputString) throws Exception{
+		public static String[] handleFTP(String[] inputString) throws Exception{
 			LOGGER.info("Starting FTP service");
 			LOGGER.trace(""+inputString.length);
 			FTPClient ftp= new FTPClient();
