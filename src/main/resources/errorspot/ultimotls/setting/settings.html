@@ -1,0 +1,460 @@
+<div id="settingpage" ng-controller="SettingsController">
+    <div class="[ col-xs-12 col-sm-12 ]">
+        <div class="panel-group" id="accordion">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12" data-toggle="collapse" data-target="#api" data-parent="#accordion" aria-controls="immidate">REST API Setup</button>
+                    </h4>
+                </div>
+                <div id="api" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <form class="form-horizontal" name="Apiform" role="form">
+                            <div class="form-group col-sm-12"> 
+                                <div class="col-sm-1">
+                                    <label class="control-label">Payload:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="payload" value="{{settings.setting.apisetup.collections.payload}}" ng-model="settings.setting.apisetup.collections.payload" placeholder="Payload Collection..." required>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Audits:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="audit" value="{{settings.setting.apisetup.collections.audits}}" ng-model="settings.setting.apisetup.collections.audits" placeholder="Audits Collection..." required>
+                                </div>
+                            </div>
+                            <div class="form-group col-sm-12">
+                                <div class="col-sm-1">
+                                    <label class="control-label">Database:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="database" value="{{settings.setting.apisetup.database}}" ng-model="settings.setting.apisetup.database" placeholder="Database..." required>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Hostname:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="hostname" value="{{settings.setting.apisetup.hostname}}" ng-model="settings.setting.apisetup.hostname" placeholder="Hostname..." required>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Port:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="port" value="{{settings.setting.apisetup.port}}" ng-model="settings.setting.apisetup.port" placeholder="Port..." required>
+                                </div>
+                                <div class="col-sm-2">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-12" style="color: red;">
+                                <button class="btn btn-success" ng-click="savesetting()" ng-disabled="Apiform.payload.$error.required || Apiform.audit.$error.required || Apiform.database.$error.required || Apiform.hostname.$error.required || Apiform.port.$error.required" disabled="disabled">Save API setup</button>
+                                <span ng-show="Apiform.payload.$error.required || Apiform.audit.$error.required || Apiform.database.$error.required || Apiform.hostname.$error.required || Apiform.port.$error.required">Value for: </span>
+                                <span ng-show="Apiform.payload.$error.required">Payload, </span>
+                                <span ng-show="Apiform.audit.$error.required">Audit, </span>
+                                <span ng-show="Apiform.database.$error.required">Database, </span>
+                                <span ng-show="Apiform.hostname.$error.required">Hostname, </span>
+                                <span ng-show="Apiform.port.$error.required">Port, </span>
+                                <span ng-show="Apiform.payload.$error.required || Apiform.audit.$error.required || Apiform.database.$error.required || Apiform.hostname.$error.required || Apiform.port.$error.required"><strong>required</strong></span>
+                            </div>  
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- second accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12" data-toggle="collapse" data-target="#env" data-parent="#accordion" aria-controls="immidate">Environment Setup</button>
+                    </h4>
+                </div>
+                <div id="env" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <form name="EnvForm" role="form">
+                            <div class="form-group bordertab ng-scope col-sm-3" data-ng-repeat="environment in environments| pagination: curPage * pageSize | limitTo: pageSize">
+                                <div class="form-group col-sm-12"> 
+                                    <div class="col-sm-4">
+                                        <label class="control-label">Name</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" ng-model="environment.name" name="name" value="{{environment.name}}"  placeholder="Name..." required uppercased>
+                                    </div>
+                                </div>
+                                <div class="form-group col-sm-12"> 
+                                    <div class="col-sm-4">
+                                        <label class="control-label">Description</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" ng-model="environment.description" name="description" value="{{environment.description}}" placeholder="Description..." required>
+                                    </div>
+                                </div>
+                                <div class="form-group col-sm-12"> 
+                                    <div class="col-sm-4">
+                                        <label class="control-label">Label</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" ng-model="environment.label" name="label" value="{{environment.label}}" placeholder="Label..." required>
+                                    </div>
+                                </div>
+                                <div class="form-group col-sm-12"> 
+                                    <button class=" btn btn-danger" ng-click="removeEnv($index)">Remove Environment</button>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <button class="btn addfields" ng-click="addNewEnv()">New Environment</button>
+                                <button class="btn btn-success" ng-click="savesetting()" ng-disabled="EnvForm.name.$error.required || EnvForm.description.$error.required || EnvForm.label.$error.required">Save Environments</button>
+
+                                <span style="color: red;" ng-show="EnvForm.name.$error.required || EnvForm.description.$error.required || EnvForm.label.$error.required"> Values for </span>
+
+                                <span style="color: red;" ng-show="EnvForm.name.$error.required">Name, </span>
+                                <span style="color: red;" ng-show="EnvForm.description.$error.required">Description, </span>
+                                <span style="color: red;" ng-show="EnvForm.label.$error.required">Label, </span>
+                                <span style="color: red;" ng-show="EnvForm.name.$error.required || EnvForm.description.$error.required || EnvForm.label.$error.required"> <strong>required</strong> </span>
+                                <div class="pagination pagination_env pagination-centered" ng-show="environments">
+                                    <ul class="pagination-controle pagination">
+                                        <li>
+                                            <button type="button" class="btn btn-primary" ng-disabled="curPage == 0"ng-click="curPage = curPage - 1"> &lt; PREV</button>
+                                        </li>
+                                        <li>
+                                            <span>Page {{curPage + 1}} of {{ numberOfPagesEnv()}}</span>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="btn btn-primary" ng-disabled="curPage >= environments.length / pageSize - 1" ng-click="curPage = curPage + 1">NEXT &gt;</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- third accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12" data-toggle="collapse" data-target="#immidate"  data-parent="#accordion" aria-controls="immidate">Immidate Notification</button>
+                    </h4>
+                </div>
+                <div id="immidate" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form name="FreqForm" role="form" class="form-inline">
+                                    <div class="form-group bordertab col-sm-3">                                       
+                                        <div class="col-sm-12">
+                                            <label class="control-label">Items per page :</label>
+                                            <select class="form-control" ng-model='selectedNumber'  ng-options='number for number in numbers'></select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group bordertab col-sm-8">                                       
+                                        <div class="col-sm-2">
+                                            <label class="control-label">Frequency:</label>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <input type="text" class="form-control" name="immDuration" value="{{notifications.immidate.frequency.duration}}" ng-model="notifications.immidate.frequency.duration" placeholder="Frequency" required>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <label class="control-label">Unit:</label>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <select class="form-control"  name="immUnit" ng-options='unit for unit in units' ng-model="notifications.immidate.frequency.unit" required>
+                                                <option value="" disabled selected style='display:none;'>{{notifications.immidate.frequency.unit}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="row">
+                                <form name="ImmiForm" role="form" class="form-inline">
+                                    <div id="tableContainer" class="container-fluid"> 
+                                        <table class="table table-striped table-bordered table-hover" id="table">
+                                            <thead id="tableHeader">
+                                                <tr>
+                                                    <th>Environment</th>
+                                                    <th>Severity</th>
+                                                    <th>Application</th>
+                                                    <th>Interfaces</th>
+                                                    <th>Email</th>
+                                                    <th>Template</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tdbody>
+                                                <tr data-toggle="collapse" class="immidateinfo" data-ng-repeat="notification in notifications.immidate.notification| pagination: curPageImmi * pageSizeImmi | limitTo: pageSizeImmi">
+                                                    <td>
+                                                        <select class="form-control inputable"   name="envid" ng-options='name.name as name.name for name in envDropdown' ng-model="notification.envid" required>
+                                                            <option value="" selected style='display:none;'>{{notification.envid}}</option>
+                                                        </select>
+                                                    </td>    
+                                                    <td col-sm-1>
+                                                        <input type="text" class="form-control inputable" id="immi_severity"  name="severity" ng-model="notification.severity" value="{{notification.severity}}" placeholder="Severity" required>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control inputable" id="immi_application" name="name" ng-model="notification.application.name" value="{{notification.application.name}}" placeholder="Application" required>
+                                                    </td>
+                                                    <td style="white-space: nowrap; overflow:hidden;" id="interfaceimmi" class="hideinterfacebtn">
+                                                        <div class="entry input-group" data-ng-repeat="interface in notification.application.interfaces track by $index">
+                                                            <input type="text" class="form-control inputable"  name="interface" ng-model="notification.application.interfaces[$index]" value="{{interface}}" placeholder="Interfaces" required>
+                                                            <span class="input-group-btn"><button class="btn btn-remove btn-danger" ng-click="removeImmidateInterface($parent.$index, $index)">-</button></span>
+                                                            <button class="btn btn-success btn-add col-sm-11" ng-show="$last" ng-click="addImmidateInterface($parent.$index, $index)">+</button>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <input type="email" class="form-control inputable" id="immi_email" name="email" ng-model="notification.email" value="{{notification.email}}" placeholder="Email" required> 
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control inputable" name="template" ng-model="notification.template" value="{{notification.template}}" placeholder="Template" required> 
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-danger" ng-click="removeImmidate($index)">Remove</button>
+                                                    </td>
+                                                </tr>
+                                            </tdbody>
+                                        </table>
+                                    </div>
+                                </form>
+                            </div>
+                            <button class="btn addfields" ng-click="addNewImmidate()">New Notification</button>
+                            <button class="btn btn-success" ng-click="savesetting()" ng-disabled="ImmiForm.envid.$error.required || ImmiForm.template.$error.required || ImmiForm.interface.$error.required || ImmiForm.name.$error.required || ImmiForm.email.$error.required || ImmiForm.email.$error.email || ImmiForm.severity.$error.required || FreqForm.immDuration.$error.required || FreqForm.immUnit.$error.required">Save Notifications</button>
+                            <div class="pagination pagination-centered" ng-show="notifications.immidate.notification"><!-- Pagination -->
+                                <ul class="pagination-controle pagination">
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageImmi == 0"ng-click="curPageImmi = curPageImmi - 1"> &lt; PREV</button>
+                                    </li>
+                                    <li>
+                                        <span>Page {{curPageImmi + 1}} of {{ numberOfPagesImmi()}}</span>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageImmi >= notifications.immidate.notification.length / pageSizeImmi - 1" ng-click="curPageImmi = curPageImmi + 1">NEXT &gt;</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Forth accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12" data-toggle="collapse" data-target="#reports" data-parent="#accordion" aria-controls="immidate">Reports</button>
+                    </h4>
+                </div>
+                <div id="reports" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form class="form-inline">
+                                    <div class="form-group bordertab col-sm-3">                                       
+                                        <div class="col-sm-12">
+                                            <label class="control-label">Items per page :</label>
+                                            <select class="form-control" ng-model='selectedNumberAggri'  ng-options='number for number in numbers'></select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group  col-sm-8">
+                                        <div class="col-sm-9"></div>
+                                    </div> 
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div id="tableContainer" class="container-fluid"> 
+                                    <table class="table table-striped table-bordered table-hover" id="table">
+                                        <thead id="tableHeader">
+                                            <tr>
+                                                <th>Environment</th>
+                                                <th>Application</th>
+                                                <th>Interface</th>
+                                                <th>Error Type</th>
+                                                <th>Start Time</th>
+                                                <th>Duration</th>
+                                                <th>Unit</th>
+                                                <th>Email Address</th>
+                                                <th>Template<th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tr data-toggle="collapse" id="{{$index}}" class="immidateinfo" data-ng-repeat="report in reports| pagination: curPageAggri * pageSizeAggri | limitTo: pageSizeAggri">                               
+                                            <td class="col-md-1">
+                                                <select class="form-control inputable"   name="envid" ng-options='name.name as name.name for name in envDropdown' ng-model="report.report.envid" >
+                                                    <option value="" selected style='display:none;'>{{report.report.envid}}</option>
+                                                </select>
+                                                <!--<input type="text" class="form-control inputable" ng-model="report.report.environment" value="{{report.report.environment}}" placeholder="Environment" required>-->
+                                            </td>
+                                            <td class="col-md-1">
+                                                <input type="text" class="form-control inputable" ng-model="report.report.application" value="{{report.report.application}}" placeholder="App" required>
+                                            </td>
+                                            <td class="col-md-1">
+                                                <input type="text" class="form-control inputable" ng-model="report.report.interface1" value="{{report.report.interface1}}"  placeholder="Interface" required>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable" ng-model="report.report.errorType" value="{{report.report.errorType}}" placeholder="ErrorType" required>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable datetimepicker" ng-model="report.report.frequency.starttime" value="{{report.report.frequency.starttime}}" placeholder="Start Time">
+                                            </td>
+                                            <td class="col-md-1">
+                                                <input type="text" class="form-control inputable" value="{{report.report.frequency.duration}}" ng-model="report.report.frequency.duration" placeholder="Duration" required>
+                                            </td>
+                                            <td class="col-md-1">
+                                                <select class="form-control inputable"   ng-options='unit for unit in units' ng-model="report.report.frequency.unit" required>
+                                                    <option value="" disabled selected style='display:none;'>{{report.report.frequency.unit}}</option>
+                                                </select>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable" value="{{report.report.email}}" ng-model="report.report.email" placeholder="Email" required>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable" value="{{report.report.template}}" ng-model="report.report.template" placeholder="Template" required>
+                                            </td>
+                                            <td class="col-md-1">
+                                                <button type="submit" class="btn btn-success" ng-click="saveAggrigated($index)">Save</button>
+                                                <button class="btn btn-danger pull-right"  confirmation-needed="Sure you want to delete this report?" ng-click="removeAggrigated($index)">Remove</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <button class="btn addfields" ng-click="addNewAggrigated()">New Report</button>
+                            <div class="pagination pagination-centered" ng-show="reports"> <!-- Pagination Aggrigated -->
+                                <ul class="pagination-controle pagination">
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageAggri == 0"ng-click="curPageAggri = curPageAggri - 1"> &lt; PREV</button>
+                                    </li>
+                                    <li>
+                                        <span>Page {{curPageAggri + 1}} of {{ numberOfPagesAggri()}}</span>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageAggri >= reports.length / pageSizeAggri - 1" ng-click="curPageAggri = curPageAggri + 1">NEXT &gt;</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- fifth accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12" data-toggle="collapse" data-target="#scheduler" data-parent="#accordion" aria-controls="immidate">Scheduler</button>
+                    </h4>
+                </div>
+                <div id="scheduler" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form class="form-inline">
+                                    <div class="form-group bordertab col-sm-12">                                       
+                                        <div class="col-sm-12 text-center">
+                                            <button type="button" class="btn btn-primary" ng-click="startscheduler()">Start</button>
+                                            <button type="button" class="btn btn-primary" ng-click="stopscheduler()">Stop</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Panel group general -->  
+    </div> <!-- col general -->
+    <div class="modal fade" id="validaterror" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title ng-binding"><b><span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span> Error</b></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <p class="help-block">Environment, Application, Interface, Error Type, Duration, Unit and Email are required.</p>
+                        <p class="help-block">Please check the inputs and try again</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="" data-dismiss="modal"  role="button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="savefail" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title ng-binding"><b><span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Error</b></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <p class="help-block">Error while saving the information, please try again or contact your support team</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="" data-dismiss="modal"  role="button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="savesuccess" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title ng-binding"><b><span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Saved</b></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <p class="help-block">Information has been saved correctly</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="" data-dismiss="modal"  role="button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deletesuccess" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title ng-binding"><b><span class="glyphicon glyphicon-ok" aria-hidden="true"></span> Saved</b></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <p class="help-block">Information has been deleted correctly</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="" data-dismiss="modal"  role="button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deletefail" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title ng-binding"><b><span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Error</b></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <p class="help-block">Error while deleting the information, please try again or contact your support team</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="" data-dismiss="modal"  role="button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!--Controller -->

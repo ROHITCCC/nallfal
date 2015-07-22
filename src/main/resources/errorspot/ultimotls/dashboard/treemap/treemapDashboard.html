@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+
+<div class="container-fluid">
+    <div id="row1" class="row">
+        <div class="container-fluid col-lg-12 col-md-12">
+            <div  class="col-lg-3 col-md-4 col-sm-4" style="margin-left:55px">
+                <div id="dropdownTimeSelection" class="dropdown">
+<!--                    <div class="row">-->
+                        <div class="dropdown-toggle" data-toggle="dropdown" ng-model="timeSelected">
+                            <span class="dropdown-text" onclick='data-toogle'><b>Last </b></span>
+                            <a id="currentTimeSelect">{{timeSelected.description}}</a><span class="caret" style="margin-left: -15px; vertical-align: bottom;"></span>
+                        </div>
+                        <ul  id="timedropdown" class="dropdown-menu" ng-model="timeOptions" style="min-width: 100px; left: 30px;">
+                            <li ng-repeat="time in timeOptions">
+                                <a ng-click="fromDateChange(time)"><p>{{time.description}}</p></a>
+                            </li>
+                        </ul>
+                    <!--</div>-->
+                </div>
+            </div>
+            <div  class="row col-lg-5 col-md-6 col-sm-7 treemapTools">
+                <div id="legendDropDown" class="col-lg-3 col-md-3 col-sm-2"></div> 
+                <button type="button" id="zoomIn" class="btn btn-default pull-right col-lg-4 col-md-4 col-sm-5" style=" opacity: 0"><span class="glyphicon glyphicon-zoom-in"></span>Zoom In</button>            
+                <button type="button" id="zoomOut" class="btn btn-default pull-right col-lg-4 col-md-4 col-sm-5" style=" opacity: 0"><span class="glyphicon glyphicon-zoom-out"></span>Zoom Out</button>            
+            </div>
+        </div>
+    </div>
+    <div id="row2" class="row col-sm-12">
+        <div id="treemapDiv" class="col-lg-9 col-md-12">
+            <treemap-zoom id="treemapZoom"></treemap-zoom>
+        </div>
+        <div class="columnDiv col-lg-3 col-md-12 sideBarChartContainer">
+            <div id="severityPieChartDiv" class="col-lg-12 col-md-4">
+                <severity-pie-chart id="severityPieChart"></severity-pie-chart>
+            </div>
+            <div id="errorTypePieChartDiv" class="col-lg-12 col-md-4">
+                <error-pie-chart id="errorTypePieChart"></error-pie-chart>
+            </div>
+            <div id="transactionTypeBarChartDiv" class="col-lg-12 col-md-4 scrollableBarChart">
+                <transaction-type-bar-chart id="transactionTypeBarChart"></transaction-type-bar-chart>
+            </div>
+        </div>
+    </div>  
+</div>
+<div id="calendarPage" class="modal fade" role="dialog" style="top: 20%">
+    <div class="modal-dialog" style="width: 70%">
+      <!-- Modal content-->
+        <div class="modal-content" >
+            <div class="modal-header">
+                <div class="container-fluid">
+                    <h4 class="modal-title">Calendar</h4>
+                    <div>
+                        <button style="float: right" type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div id="sliderWindow">
+                    <div class="list-group container-fluid">
+                        <div class="form-group"> 
+                            <label class="control-label col-sm-1 col-sm-offset-1">
+                                From
+                            </label>
+                            <div class="col-sm-2" id="optionField">
+                                <input ng-model="calender.from" type="date" name="fromdate">
+                            </div>
+                            <label class="control-label col-sm-offset-1 col-sm-1">
+                                To 
+                            </label>
+                            <div class="col-sm-2" id="optionField">
+                                <input ng-model="calender.to" type="date" name="todate">
+                            </div>
+                            <div class="col-sm-4">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" ng-click="customDate(calender.from, calender.to)">Submit</button>
+            </div>
+      </div>
+    </div>
+</div>

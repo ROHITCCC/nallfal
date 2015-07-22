@@ -73,6 +73,16 @@ static-resources-mounts:
       welcome-file: browser.html
       secured: false
       embedded: true
+    - what: errorspot
+      where: /errorspot
+      welcome-file: index.html
+      secured: false
+      embedded: true
+    - what: jwatch
+      where: /jwatch
+      welcome-file: index.jspf
+      secured: false
+      embedded: true
 
 #### application logic
 
@@ -97,25 +107,25 @@ application-logic-mounts:
       args:
           url: /_logic/roles
     - what: com.ultimo.AggregateService
-      where: /ES/ErrorSpotActual/aggregate
+      where: /AggregateService
       secured: false
       args:
-          url: /_logic/ES/ErrorSpotActual/aggregate
+          url: /_logic/AggregateService
     - what: com.ultimo.InsertService
-      where: /ES/ErrorSpotActual/InsertService
+      where: /InsertService
       secured: false
       args:
-          url: /_logic/ES/ErrorSpotActual/InsertService
+          url: /_logic/InsertService
     - what: com.ultimo.ReplayService
-      where: /ES/ErrorSpotActual/replay
+      where: /ReplayService
       secured: false
       args:
-          url: /_logic/ES/ErrorSpotActual/replay
+          url: /_logic/ReplayService
     - what: com.ultimo.PayloadService
-      where: /ES/payloadCollection/PayloadService
+      where: /PayloadService
       secured: false
       args:
-          url: /_logic/ES/payloadCollection/PayloadService
+          url: /_logic/PayloadService
     - what: com.ultimo.LoginService
       where: /LoginService
       secured: false
@@ -127,11 +137,15 @@ application-logic-mounts:
       args:
           url: /_logic/SearchService
     - what: com.ultimo.SettingService
-      where: /ES/ErrorSpotSetting/SettingService
+      where: /SettingService
       secured: false
       args:
-          url: /_logic/ES/ErrorSpotSetting/SettingService
-
+          url: /_logic/SettingService
+    - what: com.ultimo.SchedulerService
+      where: /SchedulerService
+      secured: false
+      args:
+          url: /_logic/SchedulerService
 
   
 ### metadata named singletons
@@ -255,18 +269,20 @@ error-spot-configs:
       where: ErrorSpotActual
     - what: u-setting-collection
       where: ErrorSpotSetting
+    - what: u-batch-replay-collection
+      where: ErrorSpotBatchReplay
     - what: u-smtp-server
       where: securesmtp.xo.com
     - what: u-smtp-port
-      where: 25
+      where: 1025
     - what: u-default-to-email-address
       where: tyco96@gmail.com
     - what: u-default-from-email-address
-      where: errorspot@ultimosoft.com
+      where: errorspot1@ultimosoft.com
     - what: u-email-username
-      where: errorspot@ultimosoft.com
+      where: errorspot1@ultimosoft.com
     - what: u-email-password
-      where: Manager2860!
+      where: Ultimo2860!
     - what: u-template-location
-      where: C:\Users\Smita\EmailTest
+      where: C:\mongodb\RestHeart\emailTemplates
  
