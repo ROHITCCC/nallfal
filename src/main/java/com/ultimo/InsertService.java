@@ -40,7 +40,7 @@ import org.apache.commons.fileupload.MultipartStream;
 
 public class InsertService extends ApplicationLogicHandler implements IAuthToken {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
+	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 	
 	public InsertService(PipedHttpHandler next, Map<String, Object> args) {
 		super(next, args);
