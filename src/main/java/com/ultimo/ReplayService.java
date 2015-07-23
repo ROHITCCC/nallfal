@@ -101,7 +101,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
  
   }
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
+	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 	
 
 	public void handleRequest(HttpServerExchange exchange,RequestContext context) throws Exception {

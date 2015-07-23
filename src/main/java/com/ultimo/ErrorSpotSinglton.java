@@ -49,7 +49,7 @@ public class ErrorSpotSinglton implements IAuthToken{
 
     private MongoClient mongoClient;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ErrorSpotSinglton.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 
     private ErrorSpotSinglton() {
         if (!initialized) {

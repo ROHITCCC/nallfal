@@ -36,7 +36,7 @@ import com.mongodb.util.JSONParseException;
 
 public class PayloadService extends ApplicationLogicHandler implements IAuthToken{
 
-	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
+	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 	
 	public PayloadService(PipedHttpHandler next, Map<String, Object> args) {
 		super(next, args);
