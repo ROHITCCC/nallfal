@@ -1,5 +1,9 @@
 package com.ultimo;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 import org.bson.BSONObject;
@@ -54,7 +58,7 @@ public class BatchReplayJob implements Job{
 	        LOGGER.info("processing document: "+document.get("_id").toString());
 	        LOGGER.trace("docuemnt: "+document.toString());
 	        
-	        //change status to processed
+	        //change status to processing
 			DBObject processingDocument = (DBObject)JSON.parse(document.toString());
 			processingDocument.removeField("status");
 			processingDocument.put("status", "processing");
@@ -65,6 +69,12 @@ public class BatchReplayJob implements Job{
 			try {
 				failedAuditsMap = BatchReplayService.BatchHandleRequest(new JSONObject(document.toString()));
 			} catch (Exception e) {
+				
+				//change status to failed
+				DBObject failedDocument = (DBObject)JSON.parse(document.toString());
+				failedDocument.removeField("status");
+				failedDocument.put("status", "failed");
+				collection.update(processingDocument,failedDocument);
 				LOGGER.error("unspecified error with BatchReplayService's BatchHandleRequest/handleBatch");
 				LOGGER.error("the error: ",e);
 			}
@@ -102,9 +112,17 @@ public class BatchReplayJob implements Job{
 			processedDocuemnt.removeField("status");
 			processedDocuemnt.put("status", "processed");
 			processedDocuemnt.removeField("batchProcessedTimestamp");
-			processedDocuemnt.put("batchProcessedTimestamp", context.getFireTime());
+			String date= DateFormat.getDateInstance().format(context.getFireTime());
+			Date currentDate=null;
+			try {
+				 currentDate= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(date);
+			} catch (ParseException e) {
+				LOGGER.error("problem with the date format");
+				LOGGER.error("",e);
+			}
+			processedDocuemnt.put("batchProcessedTimestamp", currentDate);
 			collection.update(processingDocument,processedDocuemnt);
-			LOGGER.info("the batchProcessedTimestamp: "+context.getFireTime());
+			LOGGER.info("the batchProcessedTimestamp: "+currentDate);
 			LOGGER.trace("the processed doument: "+processedDocuemnt.toString());
 		}
 	}
