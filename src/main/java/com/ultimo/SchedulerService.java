@@ -1,6 +1,9 @@
 package com.ultimo;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -37,6 +40,8 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
+import com.mongodb.util.JSON;
+import com.mongodb.util.JSONParseException;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
@@ -84,7 +89,8 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				//schedule the existing reports
 				scheduleReport(new JSONObject(cursor.next().toString()));
 			}
-		} catch (SchedulerException e) {
+		} 
+		catch (SchedulerException e) {
 			LOGGER.error(e.getMessage());
 			LOGGER.error("the error: ",e);
 			throw e;
@@ -142,8 +148,9 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 		LOGGER.info("created new job with job key: "+jobKeyName);
 		
+		JSONObject frequency = report.getJSONObject("report").getJSONObject("frequency");
 		//Create Trigger
-		Trigger trigger = getSechduleTrigger(report, jobKeyName);
+		Trigger trigger = getSechduleTrigger(frequency, jobKeyName);
 		
 		LOGGER.info("created new trigger");
 		Date startDateTime = scheduler.scheduleJob(job, trigger);
@@ -155,15 +162,15 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 	}
 
-	private static Trigger getSechduleTrigger(JSONObject report, String triggerName) throws JSONException, java.text.ParseException {
+	private static Trigger getSechduleTrigger(JSONObject frequency, String triggerName) throws JSONException, java.text.ParseException {
 		LOGGER.trace("trigger name: "+triggerName);
 		//JSONObject report = new JSONObject(payload);
 		
-		JSONObject frequency; 
+		//JSONObject frequency; 
 		int duration; 
 		String unit;
 		try{
-			frequency = report.getJSONObject("report").getJSONObject("frequency");
+			//frequency = report.getJSONObject("report").getJSONObject("frequency");
 			duration = frequency.getInt("duration");
 			unit = frequency.getString("unit");
 		}
@@ -324,46 +331,72 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
         }
 		else if(context.getMethod() == METHOD.POST){
 			LOGGER.info("Starting the post in SchedulerService");
-			Map<String, Deque<String>> queryParams= exchange.getQueryParameters();
-			LOGGER.trace("Query Parameters: "+queryParams.toString());
-			if(!queryParams.containsKey("server")){
-				LOGGER.error("No server field was specified. Server Status must be specified preceded by: \"server= \"");
-				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Server Status must be specified preceded by: \"server= \"");
-				return;
+			//Map<String, Deque<String>> queryParams= exchange.getQueryParameters();
+			//LOGGER.trace("Query Parameters: "+queryParams.toString());
+			
+			InputStream input = exchange.getInputStream();
+            BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
+            //gets payload
+            String line = null;
+            String payload = "";
+            while((line = inputReader.readLine())!=null){
+            	payload += line;
+            }
+            JSONObject requestInfo=null; 
+            try{
+				requestInfo= new JSONObject(payload);
 			}
-			if(queryParams.get("server").size()!=1){
-				LOGGER.error("Multiple calls to server are being specified. only one server must be specified preceded by: \"server= \"");
-				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Multiple calls to server are being specified. only one server must be specified.");
-				return;
+			catch (JSONParseException e){
+				LOGGER.error("the error: ", e);
 			}
-			String serverRequest=queryParams.get("server").getFirst();
-			LOGGER.trace("the server request: "+serverRequest);
-			Deque<String> propertiesFile=queryParams.get("propertiesFile");
-			if(serverRequest.equals("start")){
-				LOGGER.info("strating scheduler");
-				if(queryParams.get("propertiesFile")!=null){
-					LOGGER.info("starting scheduler with properties file: "+propertiesFile.getFirst());
-					File file =new File(propertiesFile.getFirst());
+			String requestType= requestInfo.getString("requestType");
+			switch (requestType){
+			case "startScheduler":
+				String propertiesFile= "";
+			    try{
+					propertiesFile=requestInfo.getString("propertiesFile");
+			    }
+				catch(JSONException e){
+				}
+				if(!propertiesFile.equals("")){
+					LOGGER.info("starting scheduler with properties file: "+propertiesFile);
+					File file =new File(propertiesFile);
 					if(!file.exists()){
 						LOGGER.error("The given properties file does not exist");
 						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The given properties file does not exist");
 						return;
 					}
-					startScheduler(propertiesFile.getFirst());
+					try{
+						startScheduler(propertiesFile);
+					}
+					catch(SchedulerException e){
+						
+					}
 				}
 				else{
-					startScheduler();
+					try{
+						startScheduler();
+					}
+					catch(SchedulerException e){
+						
+					}
 				}
 				LOGGER.info("successfully started scheudler "+scheduler.getSchedulerName());
 				exchange.getResponseSender().send("Started scheduler: "+scheduler.getSchedulerName());
-			}
-			else if(serverRequest.equals("stop")){
+				break;
+			
+			case "stopScheduler":
 				LOGGER.info("stopping scheudler");
 				stopScheduler();
-			}
-			else{
-				LOGGER.error("server request can only be start or stop and passed in value is: "+serverRequest);
-				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "the passed server request: "+serverRequest+" is invalid. It can be only start or stop");
+				break;
+			case "startJob":
+				startJob(requestInfo);
+				break;
+			case "stopJob":
+				stopJob(requestInfo);
+				break;
+			default:
+				break;
 			}
 		}
 		else 
@@ -372,4 +405,52 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
         	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
         }
 	}
+	
+	public static Date startJob(JSONObject requestInfo) throws SchedulerException, ClassNotFoundException, JSONException, ParseException{
+		LOGGER.info("scheduling passed report");
+		LOGGER.trace("job request: "+requestInfo.toString());
+		String jobKeyName = requestInfo.getString("jobName");
+		LOGGER.trace("jobKey= "+jobKeyName);
+		if(scheduler==null || !scheduler.isStarted()){
+			LOGGER.error("the scheduler is not started, so the job: "+jobKeyName+" will not be scheduled");
+			return null;
+		}
+		JobKey jobKey = new JobKey(jobKeyName);
+		JobDetail job;
+		try{
+				job = scheduler.getJobDetail(jobKey);
+				
+				//remove old job if exists
+				scheduler.deleteJob(jobKey);
+				
+		} catch(SchedulerException e){
+			LOGGER.info("Job with JobKey " + jobKeyName + " does not exits. Createing new Job");
+
+		}
+		
+		//create  job
+		Class jobClass = Class.forName("com.ultimo."+requestInfo.getString("jobClass"));
+		job = JobBuilder.newJob(jobClass).withIdentity(jobKey).build();
+
+		
+		job.getJobDataMap().put("requestInfo", requestInfo.toString());
+		
+		LOGGER.info("created new job with job key: "+jobKeyName);
+		
+		JSONObject frequency = requestInfo.getJSONObject("frequency");
+		//Create Trigger
+		Trigger trigger = getSechduleTrigger(frequency, jobKeyName);
+		
+		LOGGER.info("created new trigger");
+		Date startDateTime = scheduler.scheduleJob(job, trigger);
+		LOGGER.info("Job " + jobKeyName + " is scheduled to start at " + startDateTime.toString() + " and will run every " 
+		+ requestInfo.getJSONObject("frequency").getString("duration") + " " 
+				+ requestInfo.getJSONObject("frequency").getString("unit"));
+		
+		return startDateTime;
+	}
+	public static void stopJob(JSONObject requestInfo) throws JSONException, SchedulerException{
+		scheduler.pauseJob(new JobKey(requestInfo.getString("jobName")));
+	}
+	
 }

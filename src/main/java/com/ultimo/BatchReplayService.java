@@ -31,7 +31,7 @@ import com.mongodb.MongoClient;
 
 public class BatchReplayService extends ApplicationLogicHandler implements IAuthToken {
 
-	static MongoClient mongoClient;
+	static MongoClient mongoClient= getMongoConnection();
 	public BatchReplayService(PipedHttpHandler next, Map<String, Object> args) 
 	{
 		super(next, args);
@@ -41,7 +41,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 	public void handleRequest(HttpServerExchange exchange, RequestContext context) throws Exception 
 	
 	{
-		mongoClient = getMongoConnection(exchange, context);
+		
 		String payload= "";
 		InputStream inputS = exchange.getInputStream();
 		BufferedReader payloadReader = new BufferedReader(new InputStreamReader(inputS));
@@ -66,7 +66,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 	public static Map<String,String> BatchHandleRequest(JSONObject input) throws Exception
 	{
 		ArrayList<ObjectId> objectIDs = new ArrayList<ObjectId>();
-		
+		System.out.println("batch replay service:"+input.toString());
 		String auditID = input.get("auditID").toString();
 		auditID = auditID.replace("[", "").replace("]", "").replace("\"", "");
 		String[] objectIDStrings = auditID.split(",");
@@ -477,7 +477,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		
 	}
 	
-	private static MongoClient getMongoConnection(HttpServerExchange exchange,RequestContext context) {
+	private static MongoClient getMongoConnection() {
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();   
 		return client;
 			}
