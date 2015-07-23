@@ -38,6 +38,7 @@ import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Deque;
 import java.util.Map;
 
 
@@ -53,6 +54,7 @@ import org.reficio.ws.builder.SoapBuilder;
 import org.reficio.ws.builder.SoapOperation;
 import org.reficio.ws.builder.core.Wsdl;
 import org.reficio.ws.client.core.SoapClient;
+import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.hal.Representation;
 import org.restheart.handlers.PipedHttpHandler;
 import org.restheart.handlers.RequestContext;
@@ -86,7 +88,9 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientException;
+import com.mongodb.WriteResult;
 import com.mongodb.util.JSON;
+import com.mongodb.util.JSONParseException;
 
 /*
  * 	Watch  out for the $match and the other important changes that could happen with the new version of MongoDB when it is released.  
@@ -120,6 +124,22 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
             while((line = inputReader.readLine())!=null){
             	payload += line;
             }
+            
+            //if the thing is a JSON and query is batch, insert it
+            Map<?,?> queryParams=exchange.getQueryParameters();
+            if(queryParams.containsKey("batch") && ((Deque<String>) queryParams.get("batch")).getFirst().equals("true")){
+            	try{
+                	BasicDBObject batchObject=(BasicDBObject)JSON.parse(payload);
+                	insertBatch(batchObject);
+                	exchange.getResponseSender().send("batch sucessfully inserted");
+                }
+                catch(JSONParseException e){
+                	LOGGER.error("the error: ", e);
+            		ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "batch was unable to be inserted");
+                }
+            	return;
+            }
+            
             String[] inputString = new String[5];
             //separates payload into variables split on ~,
             inputString = payload.split("~,");
@@ -180,7 +200,20 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 
      }
 	
-		public static String[] handleREST(String[] inputString) throws Exception{
+	public void insertBatch(DBObject batchObject){
+		LOGGER.info("excecuting BatchReplayJob");
+		//connect to appropriate cdb and collection
+		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
+        DB database = client.getDB(dbname);
+        DBCollection collection = database.getCollection(collectionName);
+        LOGGER.trace("connected to db: "+dbname);
+        LOGGER.info("connected to collection: "+collectionName);
+        WriteResult result = collection.insert(batchObject);
+	}	
+
+	public static String[] handleREST(String[] inputString) throws Exception{
 			//Uses Java Rest API
 			LOGGER.info("Starting REST Service");
 			
