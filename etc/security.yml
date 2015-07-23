@@ -36,7 +36,7 @@ dbim:
 permissions:
 # users with role 'admins' can do anything
     - role: admins
-      predicate: path-prefix[path="/"] and equals[%{q,env}, "PROD"]
+      predicate: path-prefix[path="/"]
 
 # not authenticated user can only GET any resource under the /publicdb URI
     - role: $unauthenticated
