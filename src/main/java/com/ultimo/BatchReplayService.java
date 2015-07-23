@@ -9,6 +9,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
@@ -61,14 +63,14 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 
 	}
 	
-	public static void BatchHandleRequest(JSONObject input)
+	public static Map<String,String> BatchHandleRequest(JSONObject input) throws Exception
 	{
 		ArrayList<ObjectId> objectIDs = new ArrayList<ObjectId>();
 		
 		String auditID = input.get("auditID").toString();
 		auditID = auditID.replace("[", "").replace("]", "").replace("\"", "");
 		String[] objectIDStrings = auditID.split(",");
-		
+
 		for (String id : objectIDStrings)
 		{
 			ObjectId object = new ObjectId(id);
@@ -76,8 +78,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		}
 		
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
-System.out.println(replayDestinationInfo.get("type").toString());
-		String result = "";
+		System.out.println(replayDestinationInfo.get("type").toString());
+		Map<String,String> result = null;
 		if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("REST"))
 		{
 			// Call Method Handling Rest Request
@@ -96,23 +98,30 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		{
 			result = handleFTPBatch(input, objectIDs);
 		}
+		Iterator iterator = result.entrySet().iterator();
+		while(iterator.hasNext())
+		{
+	        Map.Entry pair = (Map.Entry)iterator.next();
+	        System.out.println("Key " + pair.getKey());
+	        System.out.println("Value " + pair.getValue());
+		}
+		
+		return result;
+		
 	}
 	
-	public static String handleRestBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
+	private static Map<String,String> handleRestBatch(JSONObject input, ArrayList<ObjectId> objectIDs) throws Exception
 	{
 		//Declare and Extract all Necessary Information
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
 		String restMethod = replayDestinationInfo.getString("method");
 		String restEndpoint = replayDestinationInfo.getString("endpoint");
 		String contentType = replayDestinationInfo.getString("contentType");			
-		String replaySavedTimestamp = input.getString("replaySavedTimestamp");
 		String restHeaders = "[" + input.get("restHeaders").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
-		String replayedBy = input.getString("replayedBy");
-		String batchProcessedTimestamp = input.getString("batchProcessedTimestamp");
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
-		
+		Map<String,String> output = new HashMap<String,String>();
 		
 		//Create MongoDB Connection
 		DB db = mongoClient.getDB(mongoDatabase);
@@ -127,15 +136,20 @@ System.out.println(replayDestinationInfo.get("type").toString());
 
 		DBCursor auditsResult = auditCollection.find(auditSearchClause);
 		ArrayList<ObjectId> dataLocations = new ArrayList<ObjectId>();
+		ArrayList<DBObject> auditList = new ArrayList<DBObject>();
+		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
+
 
 		while (auditsResult.hasNext())
 		{
 			DBObject audit = auditsResult.next();
 			if (audit.containsField("dataLocation"))
 			{
+				auditList.add(audit);
 				String ObjectID = audit.get("dataLocation").toString();
-				//System.out.println(ObjectID);
 				dataLocations.add(new ObjectId(ObjectID));
+				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
+				
 			}
 
 		}
@@ -148,42 +162,50 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		while (payloadQueryResult.hasNext())
 		{
 			DBObject payload = payloadQueryResult.next();
+			String payloadID = payload.get("_id").toString();
 			String convertedPayload = PayloadService.jsonToPayload(payload);
 			String [] restRequestInput = new String[6];
 			restRequestInput[0] = restEndpoint;
 			restRequestInput[1] = restEndpoint;
 			restRequestInput[2] = restMethod;
 			restRequestInput[3] = contentType;
-			restRequestInput[4] = restMethod;
+			restRequestInput[4] = convertedPayload;
 			restRequestInput[5] = restHeaders;
-			
-			try {
-				ReplayService.handleREST(restRequestInput);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
+			String auditID = payloadAndAuditId.get(payloadID);
+			try
+			{
+			String[] handleResult = ReplayService.handleREST(restRequestInput);
+
+			if (handleResult[1] !=null)
+			{
+			output.put(auditID, handleResult[1]);
+			}
+			}
+			catch(Exception e)
+			{
+				output.put(auditID, "Undefined ErrorSpot Error");
 				e.printStackTrace();
 			}
 		}
-		return "Success";
+			
+		return output;
 		
 	}
 	
-	public static String handleWSBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
+	private static Map<String,String> handleWSBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 		{
 		//Declare and Extract all Necessary Information
-		String replaySavedTimestamp = input.getString("replaySavedTimestamp");
-		String replayedBy = input.getString("replayedBy");
-		String batchProcessedTimestamp = input.getString("batchProcessedTimestamp");
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
-		String endpoint = replayDestinationInfo.getString("endpoint");
 		String wsSoapAction= replayDestinationInfo.getString("soapaction");
 		String wsdl = replayDestinationInfo.getString("wsdl");
 		String wsBinding = replayDestinationInfo.getString("binding");
 		String wsOperation = replayDestinationInfo.getString("operation");
-		
+		Map<String,String> output = new HashMap<String,String>();
+		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
+
 		
 		
 		
@@ -210,6 +232,8 @@ System.out.println(replayDestinationInfo.get("type").toString());
 				String ObjectID = audit.get("dataLocation").toString();
 				System.out.println(ObjectID);
 				dataLocations.add(new ObjectId(ObjectID));
+				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
+
 			}
 
 		}
@@ -222,6 +246,9 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		while (payloadQueryResult.hasNext())
 		{
 			DBObject payload = payloadQueryResult.next();
+			String payloadID = payload.get("_id").toString();
+			String auditID = payloadAndAuditId.get(payloadID);
+
 			String convertedPayload = PayloadService.jsonToPayload(payload);
 			System.out.println(convertedPayload);
 			String [] wsRequestInput = new String[6];
@@ -234,19 +261,30 @@ System.out.println(replayDestinationInfo.get("type").toString());
 
 			try 
 			{
-				ReplayService.handleWS(wsRequestInput);
-			} 
-			catch (Exception e) 
-			{
-			
-				e.printStackTrace();
-			}
-		}
-		return "Success";
+				String[] handleResult = ReplayService.handleWS(wsRequestInput);
+				if (handleResult[1] !=null)
+				{
+				output.put(auditID, handleResult[1]);
+				}
+				}
+				catch(Exception e)
+				{
+					if (e.getMessage() != null)
+					{
+						output.put(auditID, e.getMessage());
+
+					}
+					else
+					{
+					output.put(auditID, "Undefined ErrorSpot Error");
+					e.printStackTrace();
+					}
+				}					}
+		return output;
 		
 	}
 	
-	public static String handleFileBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
+	private static Map<String,String> handleFileBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 	{
 		//Declare and Extract all Necessary Information
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
@@ -255,11 +293,10 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		String fileName =fileLocation.split("\\.")[0];
 		String fileType = fileLocation.split("\\.")[1];
 		System.out.println(fileLocation + "BYEAH");
-		String replayedBy = input.getString("replayedBy");
-		String batchProcessedTimestamp = input.getString("batchProcessedTimestamp");
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		Map<String,String> output = new HashMap<String,String>();
 		
 		
 		//Create MongoDB Connection
@@ -272,6 +309,7 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		objectIds.addAll(objectIDs);
 		BasicDBObject auditSearchInClause = new BasicDBObject("$in",objectIds); 
 		BasicDBObject auditSearchClause = new BasicDBObject("_id",auditSearchInClause); 
+		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
 
 		DBCursor auditsResult = auditCollection.find(auditSearchClause);
 		ArrayList<ObjectId> dataLocations = new ArrayList<ObjectId>();
@@ -282,8 +320,9 @@ System.out.println(replayDestinationInfo.get("type").toString());
 			if (audit.containsField("dataLocation"))
 			{
 				String ObjectID = audit.get("dataLocation").toString();
-				//System.out.println(ObjectID);
 				dataLocations.add(new ObjectId(ObjectID));
+				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
+				
 			}
 
 		}
@@ -293,10 +332,12 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		DBObject inClause = new BasicDBObject("$in",payloadIds);
 		DBObject payloadQuery = new BasicDBObject("_id" , inClause);
 		DBCursor payloadQueryResult = payloadCollection.find(payloadQuery);
-		int i = 1;
 		while (payloadQueryResult.hasNext())
 		{
 			DBObject payload = payloadQueryResult.next();
+			String payloadID = payload.get("_id").toString();
+			String auditID = payloadAndAuditId.get(payloadID);
+
 			String id = payload.get("_id").toString();
 			System.out.println(payload.toString());
 			String convertedPayload = PayloadService.jsonToPayload(payload);
@@ -307,19 +348,32 @@ System.out.println(replayDestinationInfo.get("type").toString());
 			// Payload ID to Track them. 
 			fileInput[1] = fileName +"_"+ sysDate + id +  "."+ fileType;
 			fileInput[2] = convertedPayload;
-			System.out.println(fileInput[1]);
 			try {
-				ReplayService.handleFILE(fileInput);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			i++;
+				String[] handleResult = ReplayService.handleFILE(fileInput);
+				if (handleResult[1] !=null)
+				{
+				output.put(auditID, handleResult[1]);
+				}
+				}
+				catch(Exception e)
+				{
+					if (e.getMessage() != null)
+					{
+						output.put(auditID, e.getMessage());
+
+					}
+					else
+					{
+					output.put(auditID, "Undefined ErrorSpot Error");
+					e.printStackTrace();
+					}
+				}			
 		}
-		return "Success";
+		return output;
 		
 	}
 
-	public static String handleFTPBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
+	private static Map<String,String> handleFTPBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 	{
 		//Declare and Extract all Necessary Information
 		
@@ -330,18 +384,18 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		String password = replayDestinationInfo.getString("password");
 		String fileType = replayDestinationInfo.getString("filetype");
 		String fileName = replayDestinationInfo.getString("filename");
-		String replayedBy = input.getString("replayedBy");
-		String batchProcessedTimestamp = input.getString("batchProcessedTimestamp");
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
-		
+		Map<String,String> output = new HashMap<String,String>();
+
 		
 		//Create MongoDB Connection
 		DB db = mongoClient.getDB(mongoDatabase);
 		DBCollection auditCollection = db.getCollection(auditCollectionName);
 		DBCollection payloadCollection = db.getCollection(payloadCollectionName);
-		
+		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
+
 		// Get DataLocations
 		BasicDBList objectIds = new BasicDBList();
 		objectIds.addAll(objectIDs);
@@ -359,6 +413,8 @@ System.out.println(replayDestinationInfo.get("type").toString());
 				String ObjectID = audit.get("dataLocation").toString();
 				//System.out.println(ObjectID);
 				dataLocations.add(new ObjectId(ObjectID));
+				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
+
 			}
 
 		}
@@ -368,10 +424,12 @@ System.out.println(replayDestinationInfo.get("type").toString());
 		DBObject inClause = new BasicDBObject("$in",payloadIds);
 		DBObject payloadQuery = new BasicDBObject("_id" , inClause);
 		DBCursor payloadQueryResult = payloadCollection.find(payloadQuery);
-		int i = 1;
 		while (payloadQueryResult.hasNext())
 		{
 			DBObject payload = payloadQueryResult.next();
+			String payloadID = payload.get("_id").toString();
+			String auditID = payloadAndAuditId.get(payloadID);
+
 			String id = payload.get("_id").toString();
 			System.out.println(payload.toString());
 			String convertedPayload = PayloadService.jsonToPayload(payload);
@@ -395,17 +453,35 @@ System.out.println(replayDestinationInfo.get("type").toString());
 			
 			System.out.println(FTPInput[1]);
 			try {
-				ReplayService.handleFTP(FTPInput);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			i++;
+				String[] handleResult = ReplayService.handleFTP(FTPInput);				
+				if (handleResult[1] !=null)
+				{
+				output.put(auditID, handleResult[1]);
+				}
+				}
+				catch(Exception e)
+				{
+					if (e.getMessage() != null)
+					{
+						output.put(auditID, e.getMessage());
+
+					}
+					else
+					{
+					output.put(auditID, "Undefined ErrorSpot Error");
+					e.printStackTrace();
+					}
+				}	
 		}
-		return "Success";
+		return output;
 		
 	}
+	
 	private static MongoClient getMongoConnection(HttpServerExchange exchange,RequestContext context) {
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();   
 		return client;
 			}
+
+
+
 }
