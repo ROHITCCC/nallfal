@@ -23,6 +23,7 @@ import io.undertow.util.HttpString;
 
 
 
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -36,6 +37,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Deque;
@@ -130,6 +132,13 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
             if(queryParams.containsKey("batch") && ((Deque<String>) queryParams.get("batch")).getFirst().equals("true")){
             	try{
                 	BasicDBObject batchObject=(BasicDBObject)JSON.parse(payload);
+                	
+   		            String replaySavedTimestamp =  batchObject.get("replaySavedTimestamp").toString();
+   		 	        Date gtDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(replaySavedTimestamp);
+   		 	        
+   		 	        batchObject.removeField("replaySavedTimestamp");
+   		 	        batchObject.put("replaySavedTimestamp",gtDate);
+                	
                 	insertBatch(batchObject);
                 	exchange.getResponseSender().send("batch sucessfully inserted");
                 }
