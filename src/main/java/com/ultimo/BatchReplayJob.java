@@ -98,6 +98,7 @@ public class BatchReplayJob implements Job{
 	 			//get the failed ID's in a list to pass as an array
 	 			BasicDBList failedAuditList = new BasicDBList();
 	 			for(String key: failedAuditsMap.keySet()){
+	 				LOGGER.info("the auditID: "+key+" failed due to "+failedAuditsMap.get(key));
 	 				LOGGER.info("adding failed auditID: "+key);
 	 				failedAuditList.add(key);
 	 			}
