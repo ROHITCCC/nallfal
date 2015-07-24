@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.bson.BSONObject;
 import org.json.JSONObject;
@@ -112,17 +113,9 @@ public class BatchReplayJob implements Job{
 			processedDocuemnt.removeField("status");
 			processedDocuemnt.put("status", "processed");
 			processedDocuemnt.removeField("batchProcessedTimestamp");
-			String date= DateFormat.getDateInstance().format(context.getFireTime());
-			Date currentDate=null;
-			try {
-				 currentDate= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(date);
-			} catch (ParseException e) {
-				LOGGER.error("problem with the date format");
-				LOGGER.error("",e);
-			}
-			processedDocuemnt.put("batchProcessedTimestamp", currentDate);
+			processedDocuemnt.put("batchProcessedTimestamp", new Date());
 			collection.update(processingDocument,processedDocuemnt);
-			LOGGER.info("the batchProcessedTimestamp: "+currentDate);
+			LOGGER.info("the batchProcessedTimestamp: "+context.getFireTime());
 			LOGGER.trace("the processed doument: "+processedDocuemnt.toString());
 		}
 	}
