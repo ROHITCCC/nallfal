@@ -78,6 +78,7 @@ public class BatchReplayJob implements Job{
 				collection.update(processingDocument,failedDocument);
 				LOGGER.error("unspecified error with BatchReplayService's BatchHandleRequest/handleBatch");
 				LOGGER.error("the error: ",e);
+				continue;
 			}
 			LOGGER.info(failedAuditsMap.size()+" audits failed");
 			

@@ -342,16 +342,19 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
             while((line = inputReader.readLine())!=null){
             	payload += line;
             }
+            LOGGER.trace(payload);
             JSONObject requestInfo=null; 
             try{
 				requestInfo= new JSONObject(payload);
 			}
 			catch (JSONParseException e){
 				LOGGER.error("the error: ", e);
+				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The past payload must be a JSON");
 			}
 			String requestType= requestInfo.getString("requestType");
 			switch (requestType){
 			case "startScheduler":
+				LOGGER.info("The payload recieved is meant to start the scheduler");
 				String propertiesFile= "";
 			    try{
 					propertiesFile=requestInfo.getString("propertiesFile");
@@ -386,11 +389,22 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				break;
 			
 			case "stopScheduler":
-				LOGGER.info("stopping scheudler");
-				stopScheduler();
+				try{
+					LOGGER.info("stopping scheudler");
+					stopScheduler();
+					LOGGER.info("successfully stopped scheudler");
+					exchange.getResponseSender().send("Stopped scheduler");
+				}
+				catch(SchedulerException e){
+					LOGGER.error("the ");
+				}
 				break;
 			case "startJob":
-				startJob(requestInfo);
+				Date jobStartDate=startJob(requestInfo);
+				if(jobStartDate==null){
+					LOGGER.error("invaild http option");
+		        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_SERVICE_UNAVAILABLE, "The scheduler is not started");
+				}
 				break;
 			case "stopJob":
 				stopJob(requestInfo);
@@ -401,13 +415,13 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		}
 		else 
         {
-			LOGGER.info("invaild http option");
+			LOGGER.error("invaild http option");
         	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
         }
 	}
 	
 	public static Date startJob(JSONObject requestInfo) throws SchedulerException, ClassNotFoundException, JSONException, ParseException{
-		LOGGER.info("scheduling passed report");
+		LOGGER.info("starting and scheduleing a new Job");
 		LOGGER.trace("job request: "+requestInfo.toString());
 		String jobKeyName = requestInfo.getString("jobName");
 		LOGGER.trace("jobKey= "+jobKeyName);
