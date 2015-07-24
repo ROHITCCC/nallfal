@@ -91,8 +91,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			}
 		} 
 		catch (SchedulerException e) {
-			LOGGER.error(e.getMessage());
-			LOGGER.error("the error: ",e);
 			throw e;
 		} 
 		//shouldn't ever be in these catch blocks
@@ -355,12 +353,13 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			switch (requestType){
 			case "startScheduler":
 				LOGGER.info("The payload recieved is meant to start the scheduler");
-				String propertiesFile= "";
-			    try{
-					propertiesFile=requestInfo.getString("propertiesFile");
-			    }
-				catch(JSONException e){
+				if(scheduler !=null && scheduler.isStarted()){
+					LOGGER.info("the scheduler is already started");
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler is already started");
+					return;
 				}
+				String propertiesFile= "";
+				propertiesFile=requestInfo.getString("propertiesFile");
 				if(!propertiesFile.equals("")){
 					LOGGER.info("starting scheduler with properties file: "+propertiesFile);
 					File file =new File(propertiesFile);
@@ -371,17 +370,26 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 					}
 					try{
 						startScheduler(propertiesFile);
+						exchange.getResponseSender().send("Sheduler is started");
 					}
 					catch(SchedulerException e){
-						
+						LOGGER.error("the error", e);
+						LOGGER.error("The scheduler couldn't be started");
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_SERVICE_UNAVAILABLE, "The scheduler failed to start");
+						return;
 					}
 				}
 				else{
+					LOGGER.info("no properties file detected, starting the scheduler with the default properties file");
 					try{
 						startScheduler();
+						exchange.getResponseSender().send("Sheduler is started");
 					}
 					catch(SchedulerException e){
-						
+						LOGGER.error("The scheduler couldn't be started");
+						LOGGER.error("the error",e);
+						ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_SERVICE_UNAVAILABLE, "The scheduler failed to start");
+						return;
 					}
 				}
 				LOGGER.info("successfully started scheudler "+scheduler.getSchedulerName());
@@ -389,6 +397,11 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				break;
 			
 			case "stopScheduler":
+				if(scheduler==null || scheduler.isShutdown()){
+					LOGGER.info("the scheduler is already stopped");
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The scheduler is already shutdown");
+					return;
+				}
 				try{
 					LOGGER.info("stopping scheudler");
 					stopScheduler();
@@ -396,20 +409,70 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 					exchange.getResponseSender().send("Stopped scheduler");
 				}
 				catch(SchedulerException e){
-					LOGGER.error("the ");
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_SERVICE_UNAVAILABLE, "Could not stop the scheduler");
+					return;
 				}
 				break;
 			case "startJob":
-				Date jobStartDate=startJob(requestInfo);
+				Date jobStartDate=null;
+				try{
+					jobStartDate=startJob(requestInfo);
+				}
+				catch(ClassNotFoundException e){
+					LOGGER.error("the job class that is passed in the payload does not exist or is invalid");
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_GATEWAY, "the job class that is passed is invalid");
+					return;
+				}
+				catch(ParseException e){
+					LOGGER.error("the jobName or jobClass fields don't exist or are invalid");
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_GATEWAY, "the jobName or jobClass fields don't exist or are invalid");
+					return;
+				}
+				catch(JSONException e){
+					LOGGER.error("the jobName or jobClass fields don't exist or are invalid");
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_GATEWAY, "the jobName or jobClass fields don't exist or are invalid");
+					return;
+				}
+				catch(SchedulerException e){
+					LOGGER.error("the ");
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_GATEWAY, "the jobName or jobClass fields don't exist or are invalid");
+					return;
+				}
 				if(jobStartDate==null){
-					LOGGER.error("invaild http option");
+					LOGGER.error("scheduler is not started");
 		        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_SERVICE_UNAVAILABLE, "The scheduler is not started");
+		        	return;
 				}
 				break;
 			case "stopJob":
-				stopJob(requestInfo);
+				if(scheduler ==null || scheduler.isShutdown()){
+					LOGGER.info("the scheduler is shutdown");
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler is not started");
+					return;
+				}
+				try{
+					stopJob(requestInfo);
+				}
+				catch(JSONException e){
+					LOGGER.error("the jobName or jobClass fields don't exist or are invalid");
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_GATEWAY, "the jobName or jobClass fields don't exist or are invalid");
+					return;
+				}
+				catch(SchedulerException e){
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler could not stop the job");
+					return;
+				}
 				break;
 			default:
+				LOGGER.info("the requestType is invlaid");
+				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "the requestType is invlaid");
 				break;
 			}
 		}
