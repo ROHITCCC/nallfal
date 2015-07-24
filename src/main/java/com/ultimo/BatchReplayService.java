@@ -117,7 +117,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		String restMethod = replayDestinationInfo.getString("method");
 		String restEndpoint = replayDestinationInfo.getString("endpoint");
 		String contentType = replayDestinationInfo.getString("contentType");			
-		String restHeaders = "[" + input.get("restHeaders").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
+		String restHeaders = "[" + input.get("headers").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
