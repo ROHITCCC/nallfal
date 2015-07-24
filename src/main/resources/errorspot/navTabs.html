@@ -1,0 +1,16 @@
+<section>
+    <ul class="nav navbar-nav" >
+        <li ng-class="tabClass(tab)" class="titlemenu" ng-repeat="tab in tabs" tab="tab">
+                    <a href="{{tab.link}}" ng-click="setSelectedTab(tab)"><h4 id="{{tab.label}}" class="menutitle">{{tab.label}}</h4></a>
+        </li>
+    </ul>
+    <!-- For Dashboard Panel-->
+    <!--<div ng-show="tab.isSet(1)" ng-include="'partials/appDashboard.html'"></div>-->
+
+    <!-- For Search Panel -->
+    <!--<div ng-show="tab.isSet(2)" ng-include="'ultimotls/audit/searchApp.html'"></div>-->
+    
+    <!-- For Sunburst Panel -->
+    <!--<div ng-show="tab.isSet(3)" ng-include="'ultimotls/dashboard/sunburst/sunburstDashboard.html'"></div>-->
+
+</section>

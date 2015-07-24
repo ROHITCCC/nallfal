@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<div id="mainBody" class="container-fluid">
+    <div id="header" class="container-fluid bordertab">
+        <center> 
+            <div ng-class="searchBox" ng-hide="toggle" class="container-fluid">     
+                <form class="form-horizontal" role="form">
+                    <div id="searchBar" class="form-group">
+                        <div class="col-sm-offset-1 col-sm-5 col-lg-offset-2 col-lg-5">
+                            <input ng-model="searchCriteria" type="text"
+                                   class="form-control" id="myInput" onkeypress="clearError()" placeholder="Search..."/>
+                        </div>
+                        <div class="col-sm-4 col-lg-3 form-group">
+                            <div>
+                                <button ng-click="basicSearchButton(searchCriteria,'audit')" type="button" class="btn btn-primary" style="min-width: 110px; min-height: 34px; font-size: 11px;">
+                                    Audit Search
+                                </button>
+                                <button ng-click="basicSearchButton(searchCriteria,'payload')" type="button" class="btn btn-primary" style="min-width: 110px; min-height: 34px; font-size: 11px;">
+                                    Payload Search
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-sm-2 col-lg-2 control-label" style="text-align: center;">
+                            <a id="advanceSearch" ng-click="toggle = !toggle;
+                                        searchOn(false)">Advanced Search</a>
+                        </div>
+                        <div class="col-sm-offset-2 col-sm-8">
+                            <p ng-model="inputError">{{inputError}}</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <!--<div id="advSearchBox" class="container-fluid">-->
+            <div id="advSearchDiv" ng-class="advSearchBox" ng-show="toggle" class="container-fluid">
+                <div class="[ col-xs-12 col-sm-offset-1 col-sm-10 ]"> <!-- both div container -->
+                    <div class="[ panel panel-default ] panel-google-plus"> <!-- Panel todo -->
+                        <div class="panel-heading">
+                            <h4>Advanced Search</h4>
+                        </div>
+                        <div class="panel-body">
+                            <form class="form-horizontal" role="form">
+                                <div class="form-group col-sm-12">
+                                    <div class="col-sm-12 bordertab">  
+                                        <div class="row">
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Application</label>
+                                                <input ng-model="advanceSearch.application" class="form-control input-sm" 
+                                                       type="text" placeholder="Application..."  />
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Interface</label>
+                                                <input ng-model="advanceSearch.interface" class="form-control input-sm" 
+                                                       type="text" placeholder="Interface...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Hostname</label>
+                                                <input ng-model="advanceSearch.hostname" class="form-control input-sm" 
+                                                       type="text" placeholder="Hostname...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Transaction Domain</label>
+                                                <input ng-model="advanceSearch.txDomain" class="form-control input-sm" 
+                                                       type="text" placeholder="Transaction Domain...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Transaction Type</label>
+                                                <input ng-model="advanceSearch.txType" class="form-control input-sm" 
+                                                       type="text" placeholder="Transaction Type...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Transaction ID</label>
+                                                <input ng-model="advanceSearch.txID" class="form-control input-sm" 
+                                                       type="text" placeholder="Transaction ID...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Severity</label>
+                                                <input ng-model="advanceSearch.severity" class="form-control input-sm" 
+                                                       type="text" placeholder="Severity...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Error Type</label>
+                                                <input ng-model="advanceSearch.errorType" class="form-control input-sm" 
+                                                       type="text" placeholder="Error Type...">
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Keyword</label>
+                                                <input ng-model="advanceSearch.keyword" class="form-control input-sm" 
+                                                       type="text" placeholder="Keyword...">
+                                            </div>
+                                            <div class="col-md-12 col-sm-12"></div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Custom Field</label>
+                                                <div class="customField" >
+                                                    <div class="container-fluid" data-ng-repeat="custom in customField"> 
+                                                        <div>
+                                                            <input type="text" class="form-control input-sm" ng-model="custom.name" placeholder="Name...">
+                                                        </div>
+                                                        <div>
+                                                            <input type="text" class="form-control input-sm" ng-model="custom.value" placeholder="Value...">
+                                                        </div>
+                                                        <div>
+                                                            <button class="btn addfields" ng-click="addNewCustom()">+</button>
+                                                            <button class="btn btn-danger" ng-click="removeCustom($index)">-</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 form-inline text-right">
+                                                <label class="control-label">Name Value Field</label>
+                                                <div class="customField" >
+                                                    <div class="container-fluid" data-ng-repeat="nameValue in nameValueField"> 
+                                                        <div>
+                                                            <input type="text" class="form-control input-sm" ng-model="nameValue.name" placeholder="Name...">
+                                                        </div>
+                                                        <div>
+                                                            <input type="text" class="form-control input-sm" ng-model="nameValue.value" placeholder="Value...">
+                                                        </div>
+                                                        <div>
+                                                            <button class="btn addfields" ng-click="addNewNameValue()">+</button>
+                                                            <button class="btn btn-danger" ng-click="removeNameValue($index)">-</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div  class="row form-group col-sm-12"> 
+                                            <label class="control-label col-sm-1 col-lg-1">
+                                                From
+                                            </label>
+                                            <div class="col-sm-3 col-lg-3" id="optionField">
+                                                <input  ng-model="calender.from" type="text" name="fromdate" class="form-control input-sm datetimepicker2" placeholder="mm/dd/yyyy">
+                                            </div>
+                                            <label class="control-label col-sm-1 col-lg-1 label-centered">
+                                                to 
+                                            </label>
+                                            <div class="col-sm-3 col-lg-3" id="optionField">
+                                                <input  ng-model="calender.to" type="text" name="todate" class="form-control input-sm datetimepicker2" placeholder="mm/dd/yyyy">
+                                            </div>
+                                            <div class="col-sm-4 col-lg-4 form-group" style="bottom: 2px;">
+                                                <button ng-click="doAdvanceSearch(calender.to, calender.from, 'audit')" type="submit" class="btn btn-default" style="min-width: 110px; min-height: 30px; font-size: 11px;">
+                                                    Audit Search
+                                                </button>
+                                                <button ng-click="doAdvanceSearch(calender.to, calender.from, 'payload')" type="submit" class="btn btn-default" style="min-width: 110px; min-height: 30px; font-size: 11px;">
+                                                    Payload Search
+                                                </button>
+                                            </div>  
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-sm-12" id="optionField">
+                                            <br>
+                                            <button class="btn addfields" ng-click="toggle = !toggle;
+                                                        searchOn(true)">Close Advanced Search
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="col-sm-12">
+                                            <p ng-model="errorWarning">{{errorWarning}}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form> 
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </center>
+    </div>
+    <div id="pagination" class="container-fluid">
+        <div id="paginationNav" class="col-sm-10">
+            <label style="float: left; padding-right: 20px"><input id="replaySelectAll" ng-click="checkAll(this)" type="checkbox"> Select All</label>
+            <button id="replayButton" ng-click="changeReplay()" style="float: left; opacity: .5" data-toggle="modal" data-target="#replayPage" disabled>Replay</button>
+            <span ng-if="data['_size'] !== undefined" style="font-size:10px; position: absolute;right: 0px;
+                  padding-right: 225px; padding-top: 8px;">Total audits: {{data['_size']}}</span>
+            <ul class="pagination">
+                <li ng-if="data._links.first != null || data._links.first != undefined">
+                    <a ng-click="goToFirst()"> First </a>
+                </li>
+                <li ng-if="data._links.first == null || data._links.first == undefined" class="disabled">
+                    <a ng-click="goToFirst()"> First </a>
+                </li>
+                <li  ng-if="data._links.previous != null || data._links.previous != undefined">
+                    <a ng-click="goToPrevious()"> Previous </a>
+                </li>
+                <li  ng-if="data._links.previous == null || data._links.previous == undefined" class="disabled">
+                    <a ng-click="goToPrevious()"> Previous </a>
+                </li>
+                <li   ng-if="data._links.next != null || data._links.next != undefined">
+                    <a ng-click="goToNext()"> Next </a>
+                </li>
+                <li ng-if="data._links.next == null || data._links.next == undefined" class="disabled">
+                    <a ng-click="goToNext()"> Next </a>
+                </li>
+                <li ng-if="data._links.last != null || data._links.last != undefined">
+                    <a ng-click="goToLast()" > Last </a>
+                </li>
+                <li ng-if="data._links.last == null || data._links.last == undefined" class="disabled">
+                    <a ng-click="goToLast()" > Last </a>
+                </li>
+            </ul>
+        </div>
+            <div id="paginationTitle" class="col-sm-1 form-horizontal">
+                <h5 class="pull-right">Rows:</h5>
+            </div>
+            <div id="paginationDropDown" class="col-sm-1 form-horizontal" style="float: left">
+                <label class="control-label" style="padding-top: 0px">
+                    <select ng-model="rowNumber" id="rowsOptions" class="form-control input-sm"
+                            data-ng-options="p as p.rows for p in rowsOptions"
+                            ng-change="rowSelected(calender.to, calender.from)">
+                    </select>
+                </label>
+            </div>
+        </div>
+    <div id="tableContainer" class="container-fluid"> 
+        <table id="table" class="table table-striped table-bordered table-hover">
+            <thead id="tableHeader">
+                <tr> 
+                    <th>
+<!--                        <a href="" ng-click="reverse = !reverse; predicate='timestamp.$date'">-->
+                            <span></span> Replay
+                            
+<!--                        </a>-->
+                    </th> 
+                    <th>
+                        <a href="" ng-click="reverse = !reverse; predicate='timestamp.$date'">
+                            <span class="caret"></span> Timestamp
+                        </a>
+                    </th> 
+                    <th>
+                        <a href="" ng-click="predicate = 'transactionDomain';
+                                    reverse = !reverse">
+                            <span class="caret"></span> Transaction Domain
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" ng-click="predicate = 'transactionType';
+                                    reverse = !reverse">
+                            <span class="caret"></span> Transaction Type
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" ng-click="predicate = 'transactionId';
+                                    reverse = !reverse">
+                            <span class="caret"></span> Transaction ID
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" ng-click="predicate = 'application';
+                                    reverse = !reverse">
+                            <span class="caret"></span> Application
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" ng-click="predicate = 'interface1';
+                                    reverse = !reverse">
+                            <span class="caret"></span> Interface
+                        </a>
+                    </th>
+                    <th>
+                        <a href="" ng-click="predicate = 'exceptionFlag';
+                                    reverse = !reverse">
+                            <span class="caret"></span> Error/Audit
+                        </a>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="d in data._embedded['rh:doc']| orderBy:predicate:reverse" ng-click="rowClick(d)" data-toggle="modal" data-target="#dataBasePage">
+                    <td ng-click="$event.stopPropagation()"><input type="checkbox" ng-checked="replayButtonChecker()" name="auditCheckbox" class="checkbox1" ></td>
+                    <td>{{d.timestamp.$date| date:'EEE MMM dd, yyyy hh:mm:ss'}}</td>
+                    <td>{{d.transactionDomain}}</td>
+                    <td>{{d.transactionType}}</td>
+                    <td>{{d.transactionId}}</td>
+                    <td>{{d.application}}</td>
+                    <td>{{d.interface1}}</td>
+                    <td>
+                        <span ng-if="d.exceptionFlag == 0" id="iconSymbol" class="glyphicon glyphicon-ok-sign" style="color: green"></span>
+                        <span ng-if="d.exceptionFlag == 1" id="iconSymbol" class="glyphicon glyphicon-remove-sign" style="color: red"></span>
+                    </td>
+
+                </tr>
+            </tbody> 
+        </table>
+    </div> 
+</div> 
+<!-- Modal -->
+<div id="dataBasePage" class="modal fade col-sm-6" role="dialog">
+    <div class="modal-dialog col-sm-6" style="width: 100%">
+        <!-- Modal content-->
+        <div class="modal-content mainmodal" ng-model="sliderWindowData">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><b>Audit Detail</b></h4>
+            </div>
+            <div class="modal-body" style="overflow: scroll;
+                 overflow-x: hidden;
+                 overflow-y: auto;
+                 height: 100%;">
+                <div id="sliderWindow">
+                    <div class="list-group container-fluid">
+                        <ul class="list-group">
+                            <li class="list-group-item" ng-if="sliderWindowData.envid">
+                                <b>Environment ID:</b> {{sliderWindowData.envid}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.application">
+                                <b>Application:</b> {{sliderWindowData.application}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.interface1">
+                                <b>Interface:</b> {{sliderWindowData.interface1}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.hostname">
+                                <b>Hostname:</b> {{sliderWindowData.hostname}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.transactionDomain">
+                                <b>Transaction Domain:</b> {{sliderWindowData.transactionDomain}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.transactionType">
+                                <b>Transaction Type:</b> {{sliderWindowData.transactionType}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.transactionId">
+                                <b>Transaction ID</b> {{sliderWindowData.transactionId}}
+                                <button style="float: right" ng-click="relatedTransaction(sliderWindowData.transactionId)" 
+                                        data-toggle="modal" data-target="#transactionPage">
+                                    Related Search
+                                </button>
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.severity">
+                                <b>Severity:</b> {{sliderWindowData.severity}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.errorType">
+                                <b>Error Type:</b> {{sliderWindowData.errorType}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.category">
+                                <b>Category:</b> {{sliderWindowData.category}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.timestamp.$date">
+                                <b>Timestamp:</b> {{sliderWindowData.timestamp.$date| date:'EEE MMM dd, yyyy hh:mm:ss'}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.activityName">
+                                <b>Activity Name:</b> {{sliderWindowData.activityName}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.processId">
+                                <b>Process ID:</b> {{sliderWindowData.processId}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.engineName">
+                                <b>Engine Name:</b> {{sliderWindowData.engineName}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.trackingInfo">
+                                <b>Tracking Info:</b> {{sliderWindowData.trackingInfo}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.stackTrace">
+                                <b>Stack Trace:</b> {{sliderWindowData.stackTrace}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.msgCode">
+                                <b>Message Code:</b> {{sliderWindowData.msgCode}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.msg">
+                                <b>Message:</b> {{sliderWindowData.msg}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.class">
+                                <b>Class:</b> {{sliderWindowData.class}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.processStack">
+                                <b>Process Stack:</b> {{sliderWindowData.processStack}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.interfaceData">
+                                <b>Interface Data:</b> {{sliderWindowData.interfaceData}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.notification">
+                                <b>Notification:</b> {{sliderWindowData.notification}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.status">
+                                <b>Status:</b> {{sliderWindowData.status}}
+                            </li>
+                            <li class="list-group-item" ng-if="sliderWindowData.exceptionFlag">
+                                <b>Exception Flag:</b> {{sliderWindowData.exceptionFlag}}
+                            </li>
+                            <li class="list-group-item" ng-repeat="(key,value) in sliderWindowData.customFields">
+                                <b>{{key}}:</b> {{value}}
+                            </li>
+                        </ul>
+                        <button style="float: left" ng-click="callPayload(sliderWindowData.dataLocation)" 
+                                data-toggle="modal" data-target="#payloadPage">
+                            Payload
+                        </button>
+                        <button type="button" style="float: right" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                
+            </div>
+<!--            <div class="modal-footer">
+                <button style="float: left" ng-click="callPayload(sliderWindowData.dataLocation)" 
+                        data-toggle="modal" data-target="#payloadPage">
+                    Payload
+                </button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>-->
+        </div>
+    </div>    
+</div>
+<div id="transactionPage" class="modal fade col-sm-offset-6 col-sm-6" role="dialog" 
+     style="height: 100%;">
+    <div class="modal-dialog col-sm-offset-6 col-sm-6" style="width: 100%">
+        <!-- Modal content-->
+        <div class="modal-content" ng-model="relatedTransactionData">
+            <div class="modal-header">
+                <div class="container-fluid">
+                    <h4 class="modal-title col-sm-6">Related Transactions for - {{relatedTransactionData[0].transactionId}}</h4> 
+                    <div class="col-sm-6">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div id="paginationNav" style="float: right">
+                        <ul class="pagination">
+                            <li ng-if="data._links.first != null || data._links.first != undefined">
+                                <a ng-click="goToFirst()"> First </a>
+                            </li>
+                            <li ng-if="data._links.first == null || data._links.first == undefined" class="disabled">
+                                <a ng-click="goToFirst()"> First </a>
+                            </li>
+                            <li  ng-if="data._links.previous != null || data._links.previous != undefined">
+                                <a ng-click="goToPrevious()"> Previous </a>
+                            </li>
+                            <li  ng-if="data._links.previous == null || data._links.previous == undefined" class="disabled">
+                                <a ng-click="goToPrevious()"> Previous </a>
+                            </li>
+                            <li   ng-if="data._links.next != null || data._links.next != undefined">
+                                <a ng-click="goToNext()"> Next </a>
+                            </li>
+                            <li ng-if="data._links.next == null || data._links.next == undefined" class="disabled">
+                                <a ng-click="goToNext()"> Next </a>
+                            </li>
+                            <li ng-if="data._links.last != null || data._links.last != undefined">
+                                <a ng-click="goToLast()" > Last </a>
+                            </li>
+                            <li ng-if="data._links.last == null || data._links.last == undefined" class="disabled">
+                                <a ng-click="goToLast()" > Last </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="tableContainer" class="container-fluid"> 
+                    <table id="table" class="table table-striped table-bordered table-hover">
+                        <thead id="tableHeader">
+                            <tr> 
+                                <th>
+                                    <a href="" ng-click="reverse = !reverse; predicate='timestamp.$date'">
+                                        <span class="caret"></span> Timestamp
+                                    </a>
+                                </th> 
+                                <th>
+                                    <a href="" ng-click="predicate = 'transactionDomain';
+                                                reverse = !reverse">
+                                        <span class="caret"></span> Transaction Domain
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="" ng-click="predicate = 'transactionType';
+                                                reverse = !reverse">
+                                        <span class="caret"></span> Transaction Type
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="" ng-click="predicate = 'application';
+                                                reverse = !reverse">
+                                        <span class="caret"></span> Application
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="" ng-click="predicate = 'interface1';
+                                                reverse = !reverse">
+                                        <span class="caret"></span> Interface
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="" ng-click="predicate = 'exceptionFlag';
+                                                reverse = !reverse">
+                                        <span class="caret"></span> Error/Audit
+                                    </a>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="d in relatedTransactionData| orderBy:predicate:reverse" ng-click="relatedSearch(d)" data-toggle="modal" data-target="#relatedSearchPage">
+
+                                <td>{{d.timestamp.$date| date:'EEE MMM dd, yyyy hh:mm:ss'}}</td>
+                                <td>{{d.transactionDomain}}</td>
+                                <td>{{d.transactionType}}</td>
+                                <td>{{d.application}}</td>
+                                <td>{{d.interface1}}</td>
+                                <td>
+                                    <span ng-if="d.exceptionFlag == 0" id="iconSymbol" class="glyphicon glyphicon-ok-sign" style="color: green"></span>
+                                    <span ng-if="d.exceptionFlag == 1" id="iconSymbol" class="glyphicon glyphicon-remove-sign" style="color: red"></span>
+                                </td>
+
+                            </tr>
+                        </tbody> 
+                    </table>
+                </div> 
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="relatedSearchPage" class="modal fade col-sm-6" role="dialog">
+    <div class="modal-dialog col-sm-6" style="width: 100%">
+        <!-- Modal content-->
+        <div class="modal-content" ng-model="relatedSearchData">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><b>Audit Detail</b></h4>
+            </div>
+            <div class="modal-body" style="overflow: scroll;
+                 overflow-x: hidden;
+                 overflow-y: auto;
+                 height: 100%;">
+                <div id="sliderWindow">
+                    <div class="list-group container-fluid">
+                        <ul class="list-group">
+                            <li class="list-group-item" ng-if="relatedSearchData.envid">
+                                <b>Environment ID:</b> {{relatedSearchData.envid}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.application">
+                                <b>Application:</b> {{relatedSearchData.application}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.interface1">
+                                <b>Interface:</b> {{relatedSearchData.interface1}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.hostname">
+                                <b>Hostname:</b> {{relatedSearchData.hostname}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.transactionDomain">
+                                <b>Transaction Domain:</b> {{relatedSearchData.transactionDomain}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.transactionType">
+                                <b>Transaction Type:</b> {{relatedSearchData.transactionType}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.transactionId">
+                                <b>Transaction ID:</b> {{relatedSearchData.transactionId}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.severity">
+                                <b>Severity:</b> {{relatedSearchData.severity}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.errorType">
+                                <b>Error Type:</b> {{relatedSearchData.errorType}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.category">
+                                <b>Category:</b> {{relatedSearchData.category}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.timestamp.$date">
+                                <b>Timestamp:</b> {{relatedSearchData.timestamp.$date| date:'EEE MMM dd, yyyy hh:mm:ss'}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.activityName">
+                                <b>Activity Name:</b> {{relatedSearchData.activityName}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.processId">
+                                <b>Process ID:</b> {{relatedSearchData.processId}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.engineName">
+                                <b>Engine Name:</b> {{relatedSearchData.engineName}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.trackingInfo">
+                                <b>Tracking Info:</b> {{relatedSearchData.trackingInfo}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.stackTrace">
+                                <b>Stack Trace:</b> {{relatedSearchData.stackTrace}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.msgCode">
+                                <b>Message Code:</b> {{relatedSearchData.msgCode}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.msg">
+                                <b>Message:</b> {{relatedSearchData.msg}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.class">
+                                <b>Class:</b> {{relatedSearchData.class}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.processStack">
+                                <b>Process Stack:</b> {{relatedSearchData.processStack}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.interfaceData">
+                                <b>Interface Data:</b> {{relatedSearchData.interfaceData}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.notification">
+                                <b>Notification:</b> {{relatedSearchData.notification}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.status">
+                                <b>Status:</b> {{relatedSearchData.status}}
+                            </li>
+                            <li class="list-group-item" ng-if="relatedSearchData.exceptionFlag">
+                                <b>Exception Flag:</b> {{relatedSearchData.exceptionFlag}}
+                            </li>
+                            <li class="list-group-item" ng-repeat="(key,value) in relatedSearchData.customFields">
+                                <b>{{key}}:</b> {{value}}
+                            </li>
+                        </ul>
+                        <button style="float: left" ng-click="callPayload(relatedSearchData.dataLocation)" 
+                        data-toggle="modal" data-target="#payloadPage">
+                            Payload
+                        </button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+<!--            <div class="modal-footer">
+                <button style="float: left" ng-click="callPayload(relatedSearchData.dataLocation)" 
+                        data-toggle="modal" data-target="#payloadPage">
+                    Payload
+                </button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>-->
+        </div>
+    </div>    
+</div>
+<div id="payloadPage" class="modal fade col-sm-offset-6 col-sm-6" role="dialog" 
+     style="height: 50%;">
+    <div class="modal-dialog col-sm-offset-6 col-sm-6" style="width: 100%">
+        <!-- Modal content-->
+        <div class="modal-content" >
+            <div class="modal-header">
+                <div class="container-fluid">
+                    <h4 class="modal-title col-sm-6">Payload</h4>
+                    <div class="col-sm-6">
+                        <button style="float: right" data-toggle="modal" data-target="#replayPage">Replay</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body" ng-model="payloadPageData">
+                <div id="sliderWindow">
+                    <div class="list-group container-fluid">
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <b>Payload:</b> 
+                                <pre>{{payloadPageData}}</pre>
+                            </li>
+                        </ul>
+                        <button type="button" style="float: right" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+<!--            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>-->
+        </div>
+    </div>
+</div>
+<div id="replayPage" class="modal fade col-sm-offset-6 col-sm-6" role="dialog" style="top: 50%">
+    <div class="modal-dialog col-sm-offset-6 col-sm-6" style="width: 100%">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="container-fluid">
+                    <div class="container-fluid col-sm-6">
+                        <h4 class="modal-title">Replay</h4>
+                        <label class="control-label">
+                            <select ng-model="replayType" id="replayOptions"
+                                    data-ng-options="p as p.type for p in replayOptions">
+                            </select>
+                        </label>
+                    </div>
+                    <div class="container-fluid col-sm-offset-4 col-sm-2">
+                        <button type="button" class="close" ng-click="changeReplayBack()" data-dismiss="modal">&times;</button>
+                    </div>
+                </div> 
+            </div>
+            <div class="modal-body">
+                <div id="replayBodyPage">
+                    <div class="list-group container-fluid">
+                        <ul class="list-group">
+                            <li class="list-group-item" ng-if="replayType.type == 'REST'">
+                                <div class="container-fluid">
+                                    <form class="form-horizontal" role="form">
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="endpoinrUrl" class="control-label col-sm-2"><b>Endpoint: </b></label>
+                                                <input ng-model="restReplay.endpointUrl" type="text" class="form-control col-sm-10" 
+                                                       id="endpoinrUrl" placeholder="Endpoint" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="contentType" class="control-label col-sm-2"><b>Content-Type: </b></label>
+                                                <select class="replayDropDown" ng-click="checkSelected()" id="replayDropDownApplication" style="width: 135px;">
+                                                    <option value="select" style="display: none">Select...</option>
+                                                    <option value="application/json">application/json</option>
+                                                    <option value="application/xml">application/xml</option>
+                                                    <option value="text/html">text/html</option>
+                                                    <option value="text/plain">text/plain</option>
+                                                    <option value="other">other</option>
+                                                </select>
+                                                <input ng-model="restReplay.contentType" type="text" class="form-control" 
+                                                       id="contentType" placeholder="application/json" style="width: 30%;float: none; display:none">
+                                                
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="header" class="control-label col-sm-2"><b>Header: </b></label>
+                                            <div id="restHeaderDiv" class="form-inline">
+                                                
+                                                <input ng-model="restReplay.header.type" type="text" class="form-control col-sm-6" 
+                                                       id="headerType" placeholder="Header Type" style="width: 35%; ">
+                                                <input ng-model="restReplay.header.value" type="text" class="form-control col-sm-offset-1 col-sm-5" 
+                                                       id="headerValue" placeholder="Header Value" style="width: 35%">
+                                            </div>
+                                            <button ng-click="addHeaders()">+</button>
+                                            <!--<button id="deleteHeader" style="display:none" ng-click="deleteHeaders()">-</button>-->
+                                            
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="header" class="control-label col-sm-2"><b>Method: </b></label>
+                                                <select class="replayDropDown" ng-click="checkSelected()" id="replayDropDownMethod" style="width: 135px">
+                                                    <option value="select" style="display: none">Select...</option>
+                                                    <option value="GET">GET</option>
+                                                    <option value="POST">POST</option>
+                                                    <option value="PUT">PUT</option>
+                                                    <option value="DELETE">DELETE</option>
+                                                    <option value="HEAD">HEAD</option>
+                                                    <option value="OPTIONS">OPTIONS</option>
+                                                    <option value="other">other</option>
+                                                </select>
+                                                <!--get multiple headers going-->
+                                                <input ng-model="restReplay.currentMethod.types" type="text" class="form-control " 
+                                                       id="methodValue" placeholder="Method" style="width: 30%; float:none; display:none">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">        
+                                                <!--                                                <label class="control-label">
+                                                                                                    <select ng-model="methodTypes" id="methodOptions"
+                                                                                                        data-ng-options="p as p.types for p in methodOptions"
+                                                                                                        ng-change="setMethodType()">
+                                                                                                    </select>
+                                                                                                </label>-->
+                                                <!--                                                perform Rest service, come up with a better name-->
+                                            <button ng-click="runRestService()" class="btn btn-default pull-right">Submit</button>
+                                            <button type="button" class="btn btn-default pull-right" ng-click="changeReplayBack()" data-dismiss="modal">Close</button>
+                                        </div><span id="replayResponseRest"></span>
+                                    </form>
+                                </div>
+                            </li>
+                            <li class="list-group-item" ng-if="replayType.type == 'FILE'">
+                                <div class="container-fluid">
+                                    <form class="form-horizontal" role="form">
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="fileLocation" class="control-label"><b>File Location: </b></label>
+                                                <input ng-model="fileReplay.location" type="text" class="form-control" 
+                                                       id="fileLocation" placeholder="File Location" style="width: 75%">
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <button ng-click="runFileService()" class="btn btn-default pull-right">Submit</button>
+                                            <button type="button" class="btn btn-default pull-right" ng-click="changeReplayBack()" data-dismiss="modal">Close</button>
+                                        </div><span id="replayResponseFile"></span>
+                                    </form>
+                                </div>
+                            </li>
+                            <li class="list-group-item" ng-if="replayType.type == 'WS'">
+                                <div class="container-fluid">
+                                    <form class="form-horizontal" role="form">
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="wsdl" class="control-label col-sm-2"><b>WSDL: </b></label>
+                                                <input ng-model="webServiceReplay.wsdl" type="text" class="form-control col-sm-10" 
+                                                       id="wsdl" placeholder="Web Serive Definition Language" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="operation" class="control-label col-sm-2"><b>Operation: </b></label>
+                                                <input ng-model="webServiceReplay.operation" type="text" class="form-control col-sm-10" 
+                                                       id="operation" placeholder="Operation" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="soapAction" class="control-label col-sm-2"><b>SoapAction: </b></label>
+                                                <input ng-model="webServiceReplay.soapAction" type="text" class="form-control col-sm-10" 
+                                                       id="soapAction" placeholder="Soapaction" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="binding" class="control-label col-sm-2"><b>Binding: </b></label>
+                                                <input ng-model="webServiceReplay.binding" type="text" class="form-control col-sm-10" 
+                                                       id="binding" placeholder="Binding" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group"> 
+                                            <button ng-click="runWebService()" class="btn btn-default pull-right">Submit</button>
+                                            <button type="button" class="btn btn-default pull-right" ng-click="changeReplayBack()" data-dismiss="modal">Close</button>
+                                        </div><span id="replayResponseWs"></span>
+                                    </form>
+                                </div>
+                            </li>
+                            <li class="list-group-item" ng-if="replayType.type == 'FTP'">
+                                <div class="container-fluid">
+                                    <form class="form-horizontal" role="form">
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="host" class="control-label col-sm-2"><b>Host: </b></label>
+                                                <input ng-model="ftpServiceReplay.host" type="text" class="form-control col-sm-10" 
+                                                       id="wsdl" placeholder="Host" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="username" class="control-label col-sm-2"><b>Username: </b></label>
+                                                <input ng-model="ftpServiceReplay.username" type="text" class="form-control col-sm-10" 
+                                                       id="operation" placeholder="Username" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="password" class="control-label col-sm-2"><b>Password: </b></label>
+                                                <input ng-model="ftpServiceReplay.password" type="password" class="form-control col-sm-10" 
+                                                       id="soapAction" placeholder="Password" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="location" class="control-label col-sm-2"><b>Location: </b></label>
+                                                <input ng-model="ftpServiceReplay.location" type="text" class="form-control col-sm-10" 
+                                                       id="binding" placeholder="Location" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="fileType" class="control-label col-sm-2"><b>File Type: </b></label>
+                                                <input ng-model="ftpServiceReplay.fileType" type="text" class="form-control col-sm-10" 
+                                                       id="binding" placeholder="File Type" style="width: 80%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="header" class="control-label col-sm-2"><b>Header: </b></label>
+                                                <input ng-model="ftpServiceReplay.headerType" type="text" class="form-control col-sm-6" 
+                                                       id="headerType" placeholder="Header Type" style="width: 35%">
+                                                <input ng-model="ftpServiceReplay.headerValue" type="text" class="form-control col-sm-offset-1 col-sm-5" 
+                                                       id="headerValue" placeholder="Header Value" style="width: 35%">
+                                            </div>
+                                        </div>
+                                        <div class="form-group"> 
+                                            <button ng-click="runFTPService()" class="btn btn-default pull-right">Submit</button>
+                                            <button type="button" class="btn btn-default pull-right" ng-click="changeReplayBack()" data-dismiss="modal">Close</button>
+                                        </div><span id="replayResponseFTP"></span>
+                                    </form>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div> 
+        </div>
+    </div>
+</div>
