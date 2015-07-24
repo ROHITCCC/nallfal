@@ -112,6 +112,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		else{
 			LOGGER.info("shutting down the scheduler "+scheduler.getSchedulerName());
 			scheduler.shutdown();
+			scheduler=null;
 		}
 	}
 	
