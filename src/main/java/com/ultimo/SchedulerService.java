@@ -360,7 +360,12 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 					return;
 				}
 				String propertiesFile= "";
-				propertiesFile=requestInfo.getString("propertiesFile");
+				try{
+					propertiesFile=requestInfo.getString("propertiesFile");
+				}
+				catch(JSONException e){
+					LOGGER.warn("no properties file provided");
+				}
 				if(!propertiesFile.equals("")){
 					LOGGER.info("starting scheduler with properties file: "+propertiesFile);
 					File file =new File(propertiesFile);
