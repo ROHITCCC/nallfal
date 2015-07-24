@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
@@ -116,8 +117,14 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
 		String restMethod = replayDestinationInfo.getString("method");
 		String restEndpoint = replayDestinationInfo.getString("endpoint");
-		String contentType = replayDestinationInfo.getString("contentType");			
-		String restHeaders = "[" + input.get("headers").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
+		String contentType = replayDestinationInfo.getString("contentType");
+		String restHeaders="";
+		try{
+		restHeaders = "[" + input.get("headers").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
+		} catch(JSONException e){
+			//if header don't exist we move on
+		}
+		
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
