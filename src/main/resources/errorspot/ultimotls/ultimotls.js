@@ -55,6 +55,7 @@ ultimotls.controller('loginControllerModule', ['$scope', '$http', '$q', '$base64
                 var auth_token = header()['auth-token']; //pulling our auth-token
                 var auth_token_valid_until = header()['auth-token-valid-until'];
                 credentials = $base64.encode($scope.cred.username + ":" + auth_token);
+                treemapSaver.username = $scope.cred.username;
                 localStorageService.cookie.add('name', $scope.cred.username);
                 if (!angular.isUndefined(data) && data !== null && !angular.isUndefined(data.authenticated) && data.authenticated) {
                     $scope.loginError = "";
@@ -104,6 +105,7 @@ ultimotls.controller("indexControllerModule", ['$scope','$http','$location','loc
         function($scope,$http,$location,localStorageService,treemapSaver,queryEnv){
         $scope.treemapSaver = treemapSaver;
         $scope.treemapSaver.showNav = localStorageService.cookie.get('showNav');
+        $scope.treemapSaver.nameSaver = localStorageService.cookie.get('name');
         $scope.$on("performedLogin", function(){
             $scope.treemapSaver.showNav = true;
             queryEnv.getEnvOptions().then(function(response){
@@ -116,6 +118,7 @@ ultimotls.controller("indexControllerModule", ['$scope','$http','$location','loc
                 };
                 localStorageService.cookie.add('envOptions',$scope.envOptions);
                 localStorageService.cookie.add('envid', $scope.envSelected);
+                localStorageService.cookie.add('name', treemapSaver.username);
             });
         });
         
