@@ -41,8 +41,8 @@ public class ErrorSpotSinglton implements IAuthToken{
 
     private static transient JSONObject frequency;
     private static transient JSONArray notifications;
-    private static transient Map<String, JSONObject> notificationsMap;
-    private static transient Map<String, Date> lastNotificationsTime;
+    private static transient Map<String, JSONObject> notificationsMap =  new HashMap<String, JSONObject>(); 
+    private static transient Map<String, Date> lastNotificationsTime = new HashMap<String, Date>();;
     
 
     
@@ -104,7 +104,7 @@ public class ErrorSpotSinglton implements IAuthToken{
         			String key = envid.toUpperCase() + "." +application.toUpperCase() + "." + interfaceName.trim().toUpperCase() + "." + severity.toUpperCase();
         			
         			
-        			notificationsMap = new HashMap<String, JSONObject>();
+        			
         			notificationsMap.put(key, currentNotification);
         			
         		}
@@ -112,7 +112,7 @@ public class ErrorSpotSinglton implements IAuthToken{
 				
 			}
         	
-        	lastNotificationsTime = new HashMap<String, Date>();
+        	//lastNotificationsTime = new HashMap<String, Date>();
         	
         	initialized = true;
         	LOGGER.debug("ErrorSpotSinglton has been initialized.");
