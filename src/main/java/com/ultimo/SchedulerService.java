@@ -149,7 +149,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 		JSONObject frequency = report.getJSONObject("report").getJSONObject("frequency");
 		//Create Trigger
-		Trigger trigger = getSechduleTrigger(frequency, jobKeyName);
+		Trigger trigger = getScheduleTrigger(frequency, jobKeyName);
 		
 		LOGGER.info("created new trigger");
 		Date startDateTime = scheduler.scheduleJob(job, trigger);
@@ -161,7 +161,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 	}
 
-	private static Trigger getSechduleTrigger(JSONObject frequency, String triggerName) throws JSONException, java.text.ParseException {
+	private static Trigger getScheduleTrigger(JSONObject frequency, String triggerName) throws JSONException, java.text.ParseException {
 		LOGGER.trace("trigger name: "+triggerName);
 		//JSONObject report = new JSONObject(payload);
 		
@@ -522,7 +522,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 		JSONObject frequency = requestInfo.getJSONObject("frequency");
 		//Create Trigger
-		Trigger trigger = getSechduleTrigger(frequency, jobKeyName);
+		Trigger trigger = getScheduleTrigger(frequency, jobKeyName);
 		
 		LOGGER.info("created new trigger");
 		Date startDateTime = scheduler.scheduleJob(job, trigger);
