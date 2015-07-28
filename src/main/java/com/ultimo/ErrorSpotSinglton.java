@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,34 +89,48 @@ public class ErrorSpotSinglton implements IAuthToken{
         	LOGGER.debug("Frequency is " + frequency.toString());
         	
         	//convert JSONArray into map for faster access.
-        	for (int i = 0; i < notifications.length(); i++) {
-        		
-        		JSONObject currentNotification = notifications.optJSONObject(i);
-        		JSONArray interfaces = currentNotification.optJSONObject("application").optJSONArray("interfaces");
-
-        		
-        		for(int j = 0; j < interfaces.length(); j++){
-        			
-        			String application = currentNotification.optJSONObject("application").getString("name");
-        			String interfaceName = interfaces.getString(j);
-        			String severity = currentNotification.getString("severity");
-        			String envid = currentNotification.getString("envid");
-        			
-        			String key = envid.toUpperCase() + "." +application.toUpperCase() + "." + interfaceName.trim().toUpperCase() + "." + severity.toUpperCase();
-        			
-        			
-        			
-        			notificationsMap.put(key, currentNotification);
-        			
-        		}
-        		
-				
-			}
+        	boolean isImmidateNotificationExists = false;
+        	try{
+        	String firstAppName = notifications.optJSONObject(0).optJSONObject("application").getString("name");
+        	if(firstAppName.length() > 0)
+        		isImmidateNotificationExists = true;
         	
-        	//lastNotificationsTime = new HashMap<String, Date>();
+        	} catch (JSONException e){
+        		
+        	}
         	
-        	initialized = true;
-        	LOGGER.debug("ErrorSpotSinglton has been initialized.");
+        	if(notifications.length() >= 1 && isImmidateNotificationExists){
+        		
+	        	
+	        	for (int i = 0; i < notifications.length(); i++) {
+	        		
+	        		JSONObject currentNotification = notifications.optJSONObject(i);
+	        		JSONArray interfaces = currentNotification.optJSONObject("application").optJSONArray("interfaces");
+	
+	        		
+	        		for(int j = 0; j < interfaces.length(); j++){
+	        			String application = currentNotification.optJSONObject("application").getString("name");
+	        			
+	        			String interfaceName = interfaces.getString(j);
+	        			String severity = currentNotification.getString("severity");
+	        			String envid = currentNotification.getString("envid");
+	        			
+	        			String key = envid.toUpperCase() + "." +application.toUpperCase() + "." + interfaceName.trim().toUpperCase() + "." + severity.toUpperCase();
+	        			
+	        			
+	        			
+	        			notificationsMap.put(key, currentNotification);
+	        			
+	        		}
+	        		
+					
+				}
+	        	
+	        	//lastNotificationsTime = new HashMap<String, Date>();
+	        	
+	        	initialized = true;
+	        	LOGGER.debug("ErrorSpotSinglton has been initialized.");
+        	}
         }
         
 
