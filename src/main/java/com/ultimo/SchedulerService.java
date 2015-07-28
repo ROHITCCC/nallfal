@@ -76,7 +76,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				}
 			}
 			else{
-				schedulerFactory.initialize("etc/quartz.properties");
+				schedulerFactory.initialize("config/quartz.properties");
 			}
 			scheduler = schedulerFactory.getScheduler();
 			scheduler.start();
