@@ -95,7 +95,7 @@ public class ErrorSpotSinglton implements IAuthToken{
         	if(firstAppName.length() > 0)
         		isImmidateNotificationExists = true;
         	
-        	} catch (JSONException e){
+        	} catch (Exception e){
         		
         	}
         	
