@@ -89,7 +89,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		}
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("WS"))
 		{
-			result = handleWSBatch(input, objectIDs);
+			//result = handleWSBatch(input, objectIDs);
 		}
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("FILE"))
 		{
@@ -97,7 +97,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		}
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("FTP"))
 		{
-			result = handleFTPBatch(input, objectIDs);
+			//result = handleFTPBatch(input, objectIDs);
 		}
 		Iterator iterator = result.entrySet().iterator();
 		while(iterator.hasNext())
@@ -119,6 +119,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		String restEndpoint = replayDestinationInfo.getString("endpoint");
 		String contentType = replayDestinationInfo.getString("contentType");
 		String restHeaders="";
+		
 		try{
 		restHeaders = "[" + input.get("headers").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
 		} catch(JSONException e){
@@ -166,6 +167,16 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		DBObject inClause = new BasicDBObject("$in",payloadIds);
 		DBObject payloadQuery = new BasicDBObject("_id" , inClause);
 		DBCursor payloadQueryResult = payloadCollection.find(payloadQuery);
+		JSONObject replayInput = input.getJSONObject("replayDestinationInfo");
+		replayInput.put("restHeaders", input.getJSONArray("restHeaders"));
+		replayInput.put("replaySavedTimestamp", input.getString("replaySavedTimestamp"));
+		replayInput.put("replayedBy", input.getString("replayedBy"));
+		replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
+		replayInput.put("content-type", replayDestinationInfo.getString("contentType"));
+		replayInput.remove("contentType");
+
+		System.out.print("HELLLO SIR" + replayInput);
+
 		while (payloadQueryResult.hasNext())
 		{
 			DBObject payload = payloadQueryResult.next();
@@ -181,11 +192,11 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			String auditID = payloadAndAuditId.get(payloadID);
 			try
 			{
-			String[] handleResult = ReplayService.handleREST(restRequestInput);
-
-			if (handleResult[1] !=null)
+			String handleResult = ReplayService.handleRest(replayInput , convertedPayload);
+			
+			if (handleResult !=null)
 			{
-			output.put(auditID, handleResult[1]);
+			output.put(auditID, handleResult);
 			}
 			}
 			catch(Exception e)
@@ -198,7 +209,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		return output;
 		
 	}
-	
+/*	
 	private static Map<String,String> handleWSBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 		{
 		//Declare and Extract all Necessary Information
@@ -290,7 +301,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		return output;
 		
 	}
-	
+	*/
 	private static Map<String,String> handleFileBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 	{
 		//Declare and Extract all Necessary Information
@@ -355,11 +366,16 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			// Payload ID to Track them. 
 			fileInput[1] = fileName +"_"+ sysDate + id +  "."+ fileType;
 			fileInput[2] = convertedPayload;
+			JSONObject replayInput = input.getJSONObject("replayDestinationInfo");
+			replayInput.put("replaySavedTimestamp", input.getString("replaySavedTimestamp"));
+			replayInput.put("replayedBy", input.getString("replayedBy"));
+			replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
+
 			try {
-				String[] handleResult = ReplayService.handleFILE(fileInput);
-				if (handleResult[1] !=null)
+				String handleResult = ReplayService.handleFile(replayInput, convertedPayload);
+				if (handleResult!=null)
 				{
-				output.put(auditID, handleResult[1]);
+				output.put(auditID, handleResult);
 				}
 				}
 				catch(Exception e)
@@ -379,7 +395,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		return output;
 		
 	}
-
+	
+	/*
 	private static Map<String,String> handleFTPBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 	{
 		//Declare and Extract all Necessary Information
@@ -483,7 +500,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		return output;
 		
 	}
-	
+	*/
 	private static MongoClient getMongoConnection() {
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();   
 		return client;

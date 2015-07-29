@@ -107,12 +107,11 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		{
 			result = handleFile(request, payload);
 		}
-		
 		System.out.println(result);
 		
 	}
 	
-	public String handleRest(JSONObject connectionDetails , String payload)
+	public static String handleRest(JSONObject connectionDetails , String payload)
 	{
 		try 
 		{
@@ -183,24 +182,19 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			
 			if (e.getMessage().contains("not found"))
 			{
-				LOGGER.error(e.getMessage().split("\\[")[1].split("\\]")[0] + "was not found in the request. Please enter a valid value and resubmit the request");
-				return e.getMessage().split("\\[")[1].split("\\]")[0] + "was not found in the request. Please enter a valid value and resubmit the request"; 
+				LOGGER.error(e.getMessage().split("\\[")[1].split("\\]")[0] + " was not found in the request. Please enter a valid value and resubmit the request");
+				return e.getMessage().split("\\[")[1].split("\\]")[0] + " was not found in the request. Please enter a valid value and resubmit the request"; 
 			}
 			e.printStackTrace();
 			
 			return e.getMessage();
 		}
 
-
-
-	
-
-		
 		return "Successfully Completed Replay";
 		
 	}
 
-	public String handleFile(JSONObject connectionDetails, String payload)
+	public static String handleFile(JSONObject connectionDetails, String payload)
 	{
 		String fileLocation = connectionDetails.getString("fileLocation");
 		File file = new File(fileLocation);
