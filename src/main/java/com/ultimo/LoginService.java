@@ -69,8 +69,9 @@ public class LoginService extends ApplicationLogicHandler {
         } else if (context.getMethod() == METHOD.GET) {
             if ((exchange.getSecurityContext() == null
                     || exchange.getSecurityContext().getAuthenticatedAccount() == null
-                    || exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal() == null)
-                    || !(context.getUnmappedRequestUri().equals(URLUtils.removeTrailingSlashes(url) + "/" + exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal().getName()))) {
+                    || exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal() == null)){
+                    
+                    //|| !(context.getUnmappedRequestUri().equals(URLUtils.removeTrailingSlashes(url) + "/" + exchange.getSecurityContext().getAuthenticatedAccount().getPrincipal().getName()))) {
 
                 {
                     exchange.setResponseCode(HttpStatus.SC_FORBIDDEN);

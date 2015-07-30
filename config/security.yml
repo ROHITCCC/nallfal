@@ -1,0 +1,44 @@
+## RESTHeart simple security configuration file.
+
+---
+## configuration for file based Identity Manager
+users:
+    - userid: devadmin
+      password: devadmin
+      roles: [dev]
+      
+    - userid: operator
+      password: operator
+      roles: [operator]
+
+    - userid: admin
+      password: admin
+      roles: [admins]
+
+      
+## configuration for db based Identity Manager
+dbim:
+    - db: userbase
+      coll: accounts
+      cache-enabled: false
+      cache-size: 1000
+      cache-ttl: 60000
+      cache-expire-policy: AFTER_WRITE
+
+## configuration for file based Access Manager
+
+## look at undertow documentation for information about predictates syntax 
+## http://undertow.io/documentation/core/predicates-attributes-handlers.html
+## the special role $unauthenticated allows to give permissions without requiring authentication
+permissions:
+    - role: admins
+      predicate: path-prefix[path="/"]
+      
+# users with role 'dev' can perform basic functionality but not replay, can't see setting 
+    - role: dev
+      predicate: contains[value=%U, search={"/_logic/LoginService", "/_logic/SearchService", "/_logic/AggregateService", "/_logic/InsertService", "/_logic/PayloadService"}] and equals[%{i,Env-ID}, "DEV"]
+
+# users with role 'operator' can perform basic functionality and can see setting services 
+    - role: operator
+      predicate: contains[value=%U, search={"/_logic/LoginService", "/_logic/SearchService", "/_logic/AggregateService", "/_logic/InsertService", "/_logic/PayloadService", "/_logic/SettingService", "/_logic/SchedulerService", /_logic/ReplayService}] and equals[%{i,Env-ID}, {"DEV", "QA", "PROD"}]
+            

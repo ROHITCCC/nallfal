@@ -1,0 +1,43 @@
+## RESTHeart simple security configuration file.
+
+---
+## configuration for file based Identity Manager
+users:
+    - userid: admin
+      password: admin
+      roles: [admins]
+    
+    - userid: anteneh
+      password: kito
+      roles: [operators]
+
+
+      
+## configuration for db based Identity Manager
+dbim:
+    - db: userbase
+      coll: accounts
+      cache-enabled: false
+      cache-size: 1000
+      cache-ttl: 60000
+      cache-expire-policy: AFTER_WRITE
+
+## configuration for file based Access Manager
+
+## look at undertow documentation for information about predictates syntax 
+## http://undertow.io/documentation/core/predicates-attributes-handlers.html
+## the special role $unauthenticated allows to give permissions without requiring authentication
+permissions:
+# users with role 'admins' can do anything
+    - role: admins
+      predicate: path-prefix[path="/"]
+    
+#users with role operator have access to urls
+    - role: operators
+      predicate: path-template[value="/_logic/*"] or path-template[value="/ES/*"]    
+ 
+
+# same than previous one, but using regex predicate
+# users with role 'users' can do anything on documents of the collection /publicdb/{username}
+#    - role: users
+#      predicate: regex[pattern="/publicdb/(.*?)/.*", value="%R", full-match=true] and equals[%u, "${1}"]
