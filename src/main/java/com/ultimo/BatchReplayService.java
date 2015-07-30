@@ -9,10 +9,16 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.http.HttpStatus;
+import org.apache.http.ParseException;
 import org.bson.types.ObjectId;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,6 +27,7 @@ import org.restheart.handlers.PipedHttpHandler;
 import org.restheart.handlers.RequestContext;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.restheart.security.handlers.IAuthToken;
+import org.restheart.utils.ResponseHelper;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -29,6 +36,9 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.WriteResult;
+import com.mongodb.util.JSON;
+import com.mongodb.util.JSONParseException;
 
 public class BatchReplayService extends ApplicationLogicHandler implements IAuthToken {
 
@@ -37,6 +47,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 	{
 		super(next, args);
 	}
+	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
 
 	@Override
 	public void handleRequest(HttpServerExchange exchange, RequestContext context) throws Exception 
@@ -60,6 +71,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		}
 		
 		JSONObject input = new JSONObject(payload);
+		handleBatchCalls(exchange, context, input.toString());
 		BatchHandleRequest(input);
 
 	}
@@ -97,7 +109,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		}
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("FTP"))
 		{
-			//result = handleFTPBatch(input, objectIDs);
+			result = handleFTPBatch(input, objectIDs);
 		}
 		Iterator iterator = result.entrySet().iterator();
 		while(iterator.hasNext())
@@ -174,6 +186,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
 		replayInput.put("content-type", replayDestinationInfo.getString("contentType"));
 		replayInput.remove("contentType");
+		replayInput.put("type", "REST");
+
 
 		System.out.print("HELLLO SIR" + replayInput);
 
@@ -182,17 +196,12 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			DBObject payload = payloadQueryResult.next();
 			String payloadID = payload.get("_id").toString();
 			String convertedPayload = PayloadService.jsonToPayload(payload);
-			String [] restRequestInput = new String[6];
-			restRequestInput[0] = restEndpoint;
-			restRequestInput[1] = restEndpoint;
-			restRequestInput[2] = restMethod;
-			restRequestInput[3] = contentType;
-			restRequestInput[4] = convertedPayload;
-			restRequestInput[5] = restHeaders;
 			String auditID = payloadAndAuditId.get(payloadID);
+			replayInput.put("auditID", auditID);
+
 			try
 			{
-			String handleResult = ReplayService.handleRest(replayInput , convertedPayload);
+			String handleResult = ReplayService.handleReplays(replayInput , convertedPayload);
 			
 			if (handleResult !=null)
 			{
@@ -364,15 +373,16 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			DateFormat dateFormat = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss_");
 			String sysDate = dateFormat.format(cal.getTime());
 			// Payload ID to Track them. 
-			fileInput[1] = fileName +"_"+ sysDate + id +  "."+ fileType;
-			fileInput[2] = convertedPayload;
 			JSONObject replayInput = input.getJSONObject("replayDestinationInfo");
 			replayInput.put("replaySavedTimestamp", input.getString("replaySavedTimestamp"));
 			replayInput.put("replayedBy", input.getString("replayedBy"));
 			replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
+			replayInput.put("type", "File");
+			replayInput.put("auditID", auditID);
+			replayInput.put("fileLocation",fileName +"_"+ sysDate + id +  "."+ fileType);
 
 			try {
-				String handleResult = ReplayService.handleFile(replayInput, convertedPayload);
+				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);
 				if (handleResult!=null)
 				{
 				output.put(auditID, handleResult);
@@ -396,7 +406,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		
 	}
 	
-	/*
+	
 	private static Map<String,String> handleFTPBatch(JSONObject input, ArrayList<ObjectId> objectIDs)
 	{
 		//Declare and Extract all Necessary Information
@@ -408,6 +418,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		String password = replayDestinationInfo.getString("password");
 		String fileType = replayDestinationInfo.getString("filetype");
 		String fileName = replayDestinationInfo.getString("filename");
+		String replayedBy = input.getString("replayedBy");
+
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
@@ -462,25 +474,28 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			DateFormat dateFormat = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss_");
 			String sysDate = dateFormat.format(cal.getTime());
 			// Payload ID to Track them. 
+			
+			
+			JSONObject replayInput = new JSONObject();
+			replayInput.put("host", hostname);
+			replayInput.put("username", username);
+			replayInput.put("password", password);
+			replayInput.put("location", location);
+			replayInput.put("fileName", fileName +"_"+ sysDate + id);
+			replayInput.put("fileType", fileType);
+			replayInput.put("type", "FTP");
+			replayInput.put("replayedBy", replayedBy);
+			replayInput.put("auditID", auditID);
 
 			
-			FTPInput[1] = hostname;
-			FTPInput[2] = username;
-			FTPInput[3] = password;
-			FTPInput[4] = location;
-			FTPInput[5] = fileName +"_"+ sysDate + id;
-			FTPInput[6] = fileType;
-			FTPInput[7] = convertedPayload;
-			FTPInput[8] = "";
-
+			
 
 			
-			System.out.println(FTPInput[1]);
 			try {
-				String[] handleResult = ReplayService.handleFTP(FTPInput);				
-				if (handleResult[1] !=null)
+				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);				
+				if (handleResult !=null)
 				{
-				output.put(auditID, handleResult[1]);
+				output.put(auditID, handleResult);
 				}
 				}
 				catch(Exception e)
@@ -500,11 +515,48 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		return output;
 		
 	}
-	*/
+	
 	private static MongoClient getMongoConnection() {
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();   
 		return client;
 			}
+	
+	public static void handleBatchCalls(HttpServerExchange exchange,RequestContext context, String payload) throws java.text.ParseException{
+	      //if the thing is a JSON and query is batch, insert it
+      Map<?,?> queryParams=exchange.getQueryParameters();
+      	try{
+          	BasicDBObject batchObject=(BasicDBObject)JSON.parse(payload);
+          	
+		            String replaySavedTimestamp =  batchObject.get("replaySavedTimestamp").toString();
+			        Date gtDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(replaySavedTimestamp);
+		 	        
+			        batchObject.removeField("replaySavedTimestamp");
+			        batchObject.put("replaySavedTimestamp",gtDate);
+          	
+          	insertBatch(batchObject);
+          	exchange.getResponseSender().send("batch sucessfully inserted");
+          }
+          catch(JSONParseException e){
+          	LOGGER.error("the error: ", e);
+      		ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "batch was unable to be inserted");
+          }
+      	return;
+      }
+	
+	
+	public static void insertBatch(DBObject batchObject){
+		LOGGER.info("excecuting BatchReplayJob");
+		//connect to appropriate cdb and collection
+		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
+      DB database = client.getDB(dbname);
+      DBCollection collection = database.getCollection(collectionName);
+      LOGGER.trace("connected to db: "+dbname);
+      LOGGER.info("connected to collection: "+collectionName);
+      WriteResult result = collection.insert(batchObject);
+	}
+
 
 
 

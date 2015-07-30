@@ -1,6 +1,7 @@
 package com.ultimo;
 
 import io.undertow.server.HttpServerExchange;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -14,20 +15,40 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
+
 import org.apache.commons.fileupload.MultipartStream;
+import org.apache.commons.net.ftp.FTPClient;
+import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
 import org.restheart.handlers.RequestContext;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.restheart.security.handlers.IAuthToken;
+import org.restheart.utils.ResponseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
 
-public class ReplayService extends ApplicationLogicHandler implements IAuthToken {
+
+public class ReplayService extends ApplicationLogicHandler implements IAuthToken 
+{
 
 	public ReplayService(PipedHttpHandler next, Map<String, Object> args) 
 	{
@@ -98,17 +119,29 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		        m++;
 			}
 		}
-        String result = "";
-		if (request.getString("type").equalsIgnoreCase("REST"))
-		{
-			result = handleRest(request, payload);
-		}
-		else if (request.getString("type").equalsIgnoreCase("file"))
-		{
-			result = handleFile(request, payload);
-		}
-		System.out.println(result);
-		
+		handleReplays(request, payload);
+       
+	}
+	public static String handleReplays(JSONObject input, String payload) throws Exception
+	{
+		 String result = "";
+			if (input.getString("type").equalsIgnoreCase("REST"))
+			{
+				result = handleRest(input, payload);
+			}
+			else if (input.getString("type").equalsIgnoreCase("file"))
+			{
+				result = handleFile(input, payload);
+			}
+			else if (input.getString("type").equalsIgnoreCase("FTP"))
+			{
+				result = handleFTP(input, payload);
+			}
+			System.out.println(result);
+			
+			updateAudit(input,result);
+			
+			return result;
 	}
 	
 	public static String handleRest(JSONObject connectionDetails , String payload)
@@ -124,10 +157,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			LOGGER.trace("Replay Request Content Type: " + contentType);
 			LOGGER.trace("Replay Request Headers: " + headers);
 			LOGGER.trace("Replay Request Payload: " + payload);
-
 			
 	    	URL url;
-			
 	    	url = new URL(endpoint);
 		    HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
 	        httpCon.setDoInput(true);
@@ -189,8 +220,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			
 			return e.getMessage();
 		}
-
-		return "Successfully Completed Replay";
+		
+		return "Success";
 		
 	}
 
@@ -198,6 +229,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	{
 		String fileLocation = connectionDetails.getString("fileLocation");
 		File file = new File(fileLocation);
+		String output = "Success";
 		try 
 		{
 			if (file.exists()) 
@@ -215,7 +247,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				bWriter.close();
 				fWriter.close();
 				LOGGER.info("Writing to file : " + fileLocation);
-				return "Replay Successfull";
+				return output;
 		}
 		catch (IOException e) 
 		{
@@ -224,4 +256,215 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				return e.getMessage();
 		}
 	}
+	
+	public static String handleFTP(JSONObject input, String payload) throws Exception{
+		LOGGER.info("Starting FTP service");
+		FTPClient ftp= new FTPClient();
+		
+		
+		// break input string to its contents
+		String hostname= input.getString("host");
+		String username= input.getString("username");
+		String password= input.getString("password");
+		String location= input.getString("location");
+		String output = "";
+		String file="";
+		String fileType="";
+		String ftpPayload="";
+		
+		//filename parameter passed
+		if(input.has("fileName")){
+			LOGGER.info("file passed");
+			file= input.getString("fileName");
+			fileType=input.getString("fileType");
+			ftpPayload=payload;
+		}
+		//filename parameter not passed in
+		else{
+			LOGGER.info("no file parameter passed");
+			fileType=input.getString("fileType");
+			ftpPayload=payload;
+		}
+		
+		//if file is not passed in or is blank
+		if(file.equals("")){
+			LOGGER.info("no file detected, so creating default with timestamp");
+			Calendar calender = Calendar.getInstance();
+			Date date=calender.getTime();
+			Timestamp ts= new Timestamp(date.getTime());
+			String st= ts.toString();
+			st=st.replaceAll(":", "_");
+			st=st.replaceAll("-", "_");
+			st=st.replace('.', '_');
+			st=st.replaceAll(" ", "_");
+			file=st;
+		}
+		
+		//file validation
+		boolean valid=true;
+		for(int i=0;i<file.length();i++){
+			char ch=file.charAt(i);
+			if(!Character.isLetterOrDigit(ch) && ch!='_'){
+				valid=false;
+			}
+		}
+		if(valid){
+			LOGGER.info("filename has valid characters");
+		}
+		else{
+			LOGGER.error("incorrect file name");
+        	return "File name contains incorrect character: only aphanumaeric and underscore allowed";
+		}
+		
+		String filename=location+file+fileType;
+		
+		//logging trace messages
+		LOGGER.trace("host: "+hostname);
+		LOGGER.trace("username: "+username);
+		LOGGER.trace("password: "+password);
+		LOGGER.trace("filename: "+filename);
+		LOGGER.trace("payload: "+ftpPayload);
+		
+		//step checks
+		boolean connected=false;
+		boolean loggedIn=false;
+		
+		//connect to server
+		try {
+			LOGGER.info("connecting to server: "+hostname);
+			ftp.connect(hostname, 21);
+			LOGGER.info("successfully connected to server: "+hostname);
+			connected=true;
+		} catch (IOException e) {
+			LOGGER.error("incorrect host: "+hostname);
+			output = "Host is invalid";
+		}
+		
+		//login to server with given credentials
+		if(connected){
+			try {
+				LOGGER.info("logging in");
+				LOGGER.trace("logging in with username: "+username+" and password: "+password);
+				ftp.login(username, password);
+				loggedIn=true;
+				LOGGER.info("login successful");
+			} catch (IOException e) {
+				LOGGER.error("login failed");
+				output = "Username or password is incorrect";
+			}
+		}
+		
+		//add payload to file on the server
+		if(loggedIn){
+			
+				LOGGER.info("Payload format correct");
+				//convert payload string to inputStream
+				InputStream ftpPayloadInput = new ByteArrayInputStream(ftpPayload.getBytes(Charset.forName("UTF-8")));
+				try{
+					LOGGER.info("storing payload into file");
+					LOGGER.warn("if file already exists in directory, new information will overwrite the exisiting");
+					boolean stored = ftp.storeFile(filename,ftpPayloadInput);
+					if(stored){
+						LOGGER.info("successfully stored payload into file");
+						output =  "Payload successfully stored on file on server";
+					}
+					else{
+						//if you are trying to input to a nonexsisting direcotry
+						LOGGER.info("creating new directories");
+						String [] directories = filename.split("/");
+						for(int i=0;i<(directories.length-1);i++){
+							boolean dirExists = ftp.changeWorkingDirectory(directories[i]);
+							if(!dirExists){
+								LOGGER.trace("creating new directory: "+directories[i]);
+								ftp.makeDirectory(directories[i]);
+								ftp.changeWorkingDirectory(directories[i]);
+							}
+						}
+						boolean storedNewDir=ftp.storeFile(directories[directories.length-1],ftpPayloadInput);
+						if(storedNewDir){
+							LOGGER.trace("payload stored in direcotry: "+directories[directories.length-2]);
+							LOGGER.info("successfully stored payload into file");
+							output =  "Payload successfully stored on file on server";
+						}
+						else{
+							LOGGER.error("storing file failed: incorrect filepath");
+							output =  "Incorrect file path";
+						}
+					}
+				}
+				catch (IOException e){
+					LOGGER.error("login failed: incorrect filepath");
+					output =  "Incorrect file path";
+				}
+			
+		}
+		
+		//logout of server
+		if(loggedIn){
+			LOGGER.trace("attempting to log out of server: "+hostname);
+			ftp.logout();
+			LOGGER.info("logout successful");
+		}
+		
+		//disconnect from server
+		if(connected){
+			LOGGER.trace("attempting to disconnect form server: "+hostname);
+			ftp.disconnect();
+			LOGGER.info("disconnected successfully");
+		}
+		
+		return output;
+		
+	}
+
+	public static void updateAudit(JSONObject input, String status) throws ParseException
+	{
+		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+		DB database = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+		DBCollection auditCollection = database.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
+		ObjectId auditID = new ObjectId(input.getString("auditID"));
+		DBObject audit = auditCollection.findOne(auditID);
+		System.out.println(audit.toString());
+		BasicDBList replayInformation;
+		if (audit.containsField("replayInfo"))
+		{
+			replayInformation =  (BasicDBList) audit.get("replayInfo");	
+			BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
+			replayInfo.put("status",status);
+			Calendar cal = Calendar.getInstance();
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+			String sysDate = dateFormat.format(cal.getTime());
+	        Date gtDate = dateFormat.parse(sysDate); 
+			replayInfo.put("replayTimestamp",gtDate);
+			System.out.println(replayInfo.toString());
+			replayInformation.add(replayInfo);
+		}
+		else
+		{
+			replayInformation =  new BasicDBList();
+			BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
+			replayInfo.put("status",status);
+			Calendar cal = Calendar.getInstance();
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+			String sysDate = dateFormat.format(cal.getTime());
+	        Date gtDate = dateFormat.parse(sysDate); 
+			replayInfo.put("replayTimestamp",gtDate);
+			System.out.println(replayInfo.toString());
+			replayInformation.add(replayInfo);
+			System.out.println("YESSS" + replayInformation);
+		}
+		BasicDBObject query = new BasicDBObject("_id", auditID );
+		BasicDBObject updateCriteria = new BasicDBObject("replayInfo",replayInformation);
+		BasicDBObject setCritera = new BasicDBObject("$set", updateCriteria);
+		auditCollection.update(query, setCritera);
+		
+	}
+
+
 }
+
+
+
+
+
+
