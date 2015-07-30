@@ -13,6 +13,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.quartz.JobBuilder;
@@ -22,8 +23,10 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
+import org.quartz.Trigger.TriggerState;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
+import org.quartz.impl.matchers.GroupMatcher;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
 import org.restheart.handlers.RequestContext;
@@ -34,6 +37,7 @@ import org.restheart.utils.HttpStatus;
 import org.restheart.utils.ResponseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -76,7 +80,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				}
 			}
 			else{
-				schedulerFactory.initialize("config/quartz.properties");
+				schedulerFactory.initialize("etc/quartz.properties");
 			}
 			scheduler = schedulerFactory.getScheduler();
 			scheduler.start();
@@ -454,6 +458,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_SERVICE_UNAVAILABLE, "The scheduler is not started");
 		        	return;
 				}
+				exchange.getResponseSender().send("Started Job");
 				break;
 			case "stopJob":
 				if(scheduler ==null || scheduler.isShutdown()){
@@ -473,6 +478,62 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				catch(SchedulerException e){
 					LOGGER.error("the error",e);
 					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler could not stop the job");
+					return;
+				}
+				exchange.getResponseSender().send("Stoped Job");
+				break;
+			case "getAllJobs":
+				JSONArray jobArray= null;
+				try{
+					jobArray = getAllJobs();
+				}
+				catch (SchedulerException e){
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler could not get the jobs");
+					return;
+				}
+				if(jobArray==null){
+					LOGGER.info("the scheduler is shutdown");
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler is not started");
+					return;
+				}
+				exchange.getResponseSender().send(jobArray.toString());
+				break;
+			case "suspendJob":
+				boolean suspended = false;
+				try{
+					suspended = suspendJob(requestInfo);
+				}
+				catch(SchedulerException e){
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler could not suspend the job");
+					return;
+				}
+				if(suspended){
+					exchange.getResponseSender().send("suspended Job");
+				}
+				else{
+					LOGGER.info("the job could not be suspended");
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The job could not be suspended");
+					return;
+				}
+				break;
+			case "resumeJob":
+				boolean resumed = false;
+				try{
+					resumed = resumeJob(requestInfo);
+				}
+				catch(SchedulerException e){
+					LOGGER.error("the error",e);
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler could not resume the job");
+					return;
+				}
+				if(resumed){
+					exchange.getResponseSender().send("resumed Job");
+				}
+				else{
+					LOGGER.info("the job could not be resumed");
+					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The job could not be resumed");
 					return;
 				}
 				break;
@@ -535,5 +596,85 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	public static void stopJob(JSONObject requestInfo) throws JSONException, SchedulerException{
 		scheduler.pauseJob(new JobKey(requestInfo.getString("jobName")));
 	}
-	
+	public static JSONArray getAllJobs() throws SchedulerException{
+		LOGGER.info("getting all jobs");
+		//return if the scheduler isn't started
+		if(scheduler==null || !scheduler.isStarted()){
+			LOGGER.info("the scheduler hasn't been started yet");
+			return null;
+		}
+		List<String> groupNames = scheduler.getJobGroupNames();
+		JSONArray jobArray = new JSONArray();
+		for(String groupName: groupNames){
+			LOGGER.trace("job group: "+ groupName);
+			for (JobKey jobKey : scheduler.getJobKeys(GroupMatcher.jobGroupEquals(groupName))){
+				
+				//get job's trigger
+				Trigger trigger = (Trigger) scheduler.getTriggersOfJob(jobKey).get(0);
+				Date nextFireTime = trigger.getNextFireTime(); 
+				TriggerState status = scheduler.getTriggerState(trigger.getKey());
+				
+				LOGGER.trace("Job key: "+jobKey.toString() +" Job next fire time: "+nextFireTime.toString()+" Job status: "+status.toString());
+				//add the jobKey, nextFireTime, and status to a json object
+				JSONObject jobInfo = new JSONObject();
+				jobInfo.put("jobKey", jobKey.getName());
+				jobInfo.put("nextFireTime", nextFireTime.toString());
+				jobInfo.put("status", status.toString());
+				
+				//add the Json object to the array
+				jobArray.put(jobInfo);
+			}
+		}
+		return jobArray;
+	}
+	public boolean suspendJob(JSONObject requestInfo) throws SchedulerException{
+		LOGGER.info("attempting to pause job");
+		if(scheduler==null || !scheduler.isStarted()){
+			LOGGER.info("the scheduler hasn't been started yet");
+			return false;
+		}
+		if(requestInfo.getString("jobKey")==null){
+			LOGGER.error("no jobKey field was given. Aa jobKey must be given");
+			return false;
+		}
+		LOGGER.info("attempting to pause job with job id: "+requestInfo.getString("jobKey"));
+		JobKey jobKey=new JobKey(requestInfo.getString("jobKey"));
+		if(!scheduler.checkExists(jobKey)){
+			LOGGER.error("no job is associated with the passed jobKey: "+requestInfo.getString("jobKey"));
+			return false;
+		}
+		Trigger trigger = (Trigger) scheduler.getTriggersOfJob(jobKey).get(0);
+		if(scheduler.getTriggerState(trigger.getKey()).equals(Trigger.TriggerState.PAUSED)){
+			LOGGER.error("the Job is already paused");
+			return true;
+		}
+		scheduler.pauseJob(new JobKey(requestInfo.getString("jobKey")));
+		LOGGER.info("paused Job: "+jobKey.toString());
+		return true;
+	}
+	public boolean resumeJob(JSONObject requestInfo) throws SchedulerException{
+		LOGGER.info("attempting to resume job");
+		if(scheduler==null || !scheduler.isStarted()){
+			LOGGER.info("the scheduler hasn't been started yet");
+			return false;
+		}
+		if(requestInfo.getString("jobKey")==null){
+			LOGGER.error("no jobKey field was given. Aa jobKey must be given");
+			return false;
+		}
+		LOGGER.info("attempting to resume job with job id: "+requestInfo.getString("jobKey"));
+		JobKey jobKey=new JobKey(requestInfo.getString("jobKey"));
+		if(!scheduler.checkExists(jobKey)){
+			LOGGER.error("no job is associated with the passed jobKey: "+requestInfo.getString("jobKey"));
+			return false;
+		}
+		Trigger trigger = (Trigger) scheduler.getTriggersOfJob(jobKey).get(0);
+		if(!scheduler.getTriggerState(trigger.getKey()).equals(Trigger.TriggerState.PAUSED)){
+			LOGGER.error("the Job is not currently paused for it tto be resumed");
+			return true;
+		}
+		scheduler.resumeJob(new JobKey(requestInfo.getString("jobKey")));
+		LOGGER.info("resumed Job: "+jobKey.toString());
+		return true;
+	}
 }
