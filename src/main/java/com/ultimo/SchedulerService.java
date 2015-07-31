@@ -537,6 +537,16 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 					return;
 				}
 				break;
+			case "getSchedulerStatus":
+				if(scheduler==null || !scheduler.isStarted()){
+					LOGGER.info("scheduler is stopped");
+					exchange.getResponseSender().send("scheduler is stopped");
+				}
+				else{
+					LOGGER.info("scheduler is started");
+					exchange.getResponseSender().send("scheduler is started");
+				}
+				break;
 			default:
 				LOGGER.info("the requestType is invlaid");
 				ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "the requestType is invlaid");
