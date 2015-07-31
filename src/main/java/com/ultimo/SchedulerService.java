@@ -251,40 +251,8 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	} 
 
 	public static String getJobName(JSONObject report){
-		LOGGER.info("getting the name of the job");
-		LOGGER.trace("getting the job name for the job: "+report.toString());
-	
-		String envName = report.getJSONObject("report").getString("envid");
-		
-		String applicationName = report.getJSONObject("report").getString("application");
-		
-		String jobKeyName=envName+"."+applicationName;
-		
-		//Interface and error type are optional fields
-		try{
-			String interfaceName = report.getJSONObject("report").getString("interface1");
-			
-			if(!interfaceName.isEmpty())
-				jobKeyName = jobKeyName + "." + interfaceName;
-			
-		} catch (JSONException e){
-			LOGGER.warn(e.getMessage());
-		}
-		
-		try{
-			
-			String errorType = report.getJSONObject("report").getString("errorType");
-			
-			if(!errorType.isEmpty())
-				jobKeyName = jobKeyName + "." + errorType;
-			
-		} catch (JSONException e){
-			LOGGER.warn(e.getMessage());
-			
-		}
-		
-		LOGGER.info("Job Key name " + jobKeyName);
-		
+		BasicDBObject reportDoc= (BasicDBObject) JSON.parse(report.toString());
+		String jobKeyName = reportDoc.get("_id").toString();
 		return jobKeyName;
 	}
 	
@@ -579,7 +547,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				
 		} catch(SchedulerException e){
 			LOGGER.info("Job with JobKey " + jobKeyName + " does not exits. Createing new Job");
-
+			
 		}
 		
 		//create  job
@@ -630,6 +598,14 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				jobInfo.put("jobKey", jobKey.getName());
 				jobInfo.put("nextFireTime", nextFireTime.toString());
 				jobInfo.put("status", status.toString());
+				
+				//check if it is a BatchReplayJob and if so, display frequency
+				if(jobKey.getName().equals("BatchReplayJob")){
+					long frequency = trigger.getFireTimeAfter(trigger.getNextFireTime()).getTime()-trigger.getNextFireTime().getTime();
+					//convert frequncy to seconds from milliseconds
+					frequency=frequency/1000;
+					jobInfo.put("frequency", frequency);
+				}
 				
 				//add the Json object to the array
 				jobArray.put(jobInfo);
