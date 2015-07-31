@@ -572,7 +572,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		return startDateTime;
 	}
 	public static void stopJob(JSONObject requestInfo) throws JSONException, SchedulerException{
-		scheduler.pauseJob(new JobKey(requestInfo.getString("jobName")));
+		scheduler.deleteJob(new JobKey(requestInfo.getString("jobName")));
 	}
 	public static JSONArray getAllJobs() throws SchedulerException{
 		LOGGER.info("getting all jobs");
