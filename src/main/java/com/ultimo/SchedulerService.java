@@ -508,11 +508,11 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			case "getSchedulerStatus":
 				if(scheduler==null || !scheduler.isStarted()){
 					LOGGER.info("scheduler is stopped");
-					exchange.getResponseSender().send("scheduler is stopped");
+					exchange.getResponseSender().send("stopped");
 				}
 				else{
 					LOGGER.info("scheduler is started");
-					exchange.getResponseSender().send("scheduler is started");
+					exchange.getResponseSender().send("started");
 				}
 				break;
 			default:
