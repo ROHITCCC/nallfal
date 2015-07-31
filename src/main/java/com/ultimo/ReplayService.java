@@ -119,12 +119,20 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		        m++;
 			}
 		}
-		handleReplays(request, payload);
-       
+		String result = handleReplays(request, payload);
+		if (result.equals("Success"))
+		{
+			ResponseHelper.endExchangeWithMessage(exchange, 200, result);
+		}
+		else 
+		{
+			ResponseHelper.endExchangeWithMessage(exchange, 500, result);
+		}
 	}
 	public static String handleReplays(JSONObject input, String payload) throws Exception
 	{
 		 String result = "";
+		 String handleAble = "";
 			if (input.getString("type").equalsIgnoreCase("REST"))
 			{
 				result = handleRest(input, payload);
@@ -140,7 +148,6 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			System.out.println(result);
 			
 			updateAudit(input,result);
-			
 			return result;
 	}
 	
@@ -151,7 +158,11 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			String endpoint = connectionDetails.getString("endpoint");
 			String restMethod = connectionDetails.getString("method");
 			String contentType = connectionDetails.getString("content-type");
-			JSONArray headers = connectionDetails.getJSONArray("restHeaders");
+			JSONArray headers = new JSONArray();
+			if (connectionDetails.has("restHeaders"))
+			{
+			 headers = connectionDetails.getJSONArray("restHeaders");
+			}
 			LOGGER.trace("Replay Request Endpoint: " + endpoint);
 			LOGGER.trace("Replay Request Method: " + restMethod);
 			LOGGER.trace("Replay Request Content Type: " + contentType);
@@ -165,11 +176,14 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	        httpCon.setDoOutput(true);
 	        httpCon.setRequestMethod(restMethod);
 	        httpCon.setRequestProperty("Content-Type", contentType);
-	          
-	        for (int iterator = 0; iterator < headers.length();iterator++)
+	        System.out.println("VINAYYYYYY" + headers.toString());  
+	        if (!headers.toString().equals("[]"));
 	        {
-	         	JSONObject s = headers.getJSONObject(iterator);
-	          	httpCon.setRequestProperty(s.getString("type"), s.getString("value"));
+		        for (int iterator = 0; iterator < headers.length();iterator++)
+		        {
+		         	JSONObject s = headers.getJSONObject(iterator);
+		          	httpCon.setRequestProperty(s.getString("type"), s.getString("value"));
+		        }
 	        }
 	        OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream(), "UTF-8");
 	        out.write(payload);
@@ -227,34 +241,66 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 
 	public static String handleFile(JSONObject connectionDetails, String payload)
 	{
-		String fileLocation = connectionDetails.getString("fileLocation");
-		File file = new File(fileLocation);
-		String output = "Success";
-		try 
+		String filePath = "";
+		if (!connectionDetails.has("fileType"))
 		{
-			if (file.exists()) 
-			{
-				LOGGER.warn("Duplicate file name found at: " + fileLocation + ". + Contents in File are overwritten");
-			}
-			else
-			{
-				file.createNewFile();
-			}
-				FileWriter fWriter = new FileWriter(file.getAbsoluteFile(), false);
-				BufferedWriter bWriter = new BufferedWriter(fWriter);
-				bWriter.write(payload);											
-				LOGGER.info("Payload has been written");
-				bWriter.close();
-				fWriter.close();
-				LOGGER.info("Writing to file : " + fileLocation);
-				return output;
+			return "No File Type Present";
 		}
-		catch (IOException e) 
+		else if (!connectionDetails.has("fileLocation"))
 		{
-			 LOGGER.error(e.getMessage());
-				e.printStackTrace();
-				return e.getMessage();
+			return "No File Location Present";
 		}
+		
+			String fileType = connectionDetails.getString("fileType");
+			String fileLocation = connectionDetails.getString("fileLocation");
+			if (!fileLocation.endsWith("/"))
+			{
+				fileLocation = fileLocation + "/";
+			}
+			String fileName =""; 
+			if (connectionDetails.has("fileName"))
+			{
+				fileName = connectionDetails.getString("fileName");
+	
+				filePath  = fileLocation + fileName + fileType;
+			}
+			else 
+			{
+				String id = connectionDetails.getString("auditID");
+				Calendar cal = Calendar.getInstance();
+				DateFormat dateFormat = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss_ms_");
+				String sysDate = dateFormat.format(cal.getTime());
+				filePath = fileLocation +  sysDate + id + fileType  ;
+			}
+			
+			File file = new File(filePath);
+			System.out.println(file.toString());
+			String output = "Success";
+			try 
+			{
+				if (file.exists()) 
+				{
+					LOGGER.warn("Duplicate file name found at: " + fileLocation + ". + Contents in File are overwritten");
+				}
+				else
+				{
+					file.createNewFile();
+				}
+					FileWriter fWriter = new FileWriter(file.getAbsoluteFile(), false);
+					BufferedWriter bWriter = new BufferedWriter(fWriter);
+					bWriter.write(payload);											
+					LOGGER.info("Payload has been written");
+					bWriter.close();
+					fWriter.close();
+					LOGGER.info("Writing to file : " + fileLocation);
+					return output;
+			}
+			catch (IOException e) 
+			{
+				 LOGGER.error(e.getMessage());
+					e.printStackTrace();
+					return e.getMessage();
+			}
 	}
 	
 	public static String handleFTP(JSONObject input, String payload) throws Exception{
@@ -267,23 +313,24 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		String username= input.getString("username");
 		String password= input.getString("password");
 		String location= input.getString("location");
+		if (!location.endsWith("/"))
+		{
+			location = location + "/";
+		}
+		String auditID = input.getString("auditID");
 		String output = "";
 		String file="";
-		String fileType="";
-		String ftpPayload="";
+		String fileType=input.getString("fileType");
+		String ftpPayload=payload;
 		
 		//filename parameter passed
 		if(input.has("fileName")){
 			LOGGER.info("file passed");
 			file= input.getString("fileName");
-			fileType=input.getString("fileType");
-			ftpPayload=payload;
 		}
 		//filename parameter not passed in
 		else{
 			LOGGER.info("no file parameter passed");
-			fileType=input.getString("fileType");
-			ftpPayload=payload;
 		}
 		
 		//if file is not passed in or is blank
@@ -291,13 +338,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			LOGGER.info("no file detected, so creating default with timestamp");
 			Calendar calender = Calendar.getInstance();
 			Date date=calender.getTime();
-			Timestamp ts= new Timestamp(date.getTime());
-			String st= ts.toString();
-			st=st.replaceAll(":", "_");
-			st=st.replaceAll("-", "_");
-			st=st.replace('.', '_');
-			st=st.replaceAll(" ", "_");
-			file=st;
+			String dt = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_").format(date);
+			file=dt +auditID;
 		}
 		
 		//file validation
@@ -366,7 +408,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 					boolean stored = ftp.storeFile(filename,ftpPayloadInput);
 					if(stored){
 						LOGGER.info("successfully stored payload into file");
-						output =  "Payload successfully stored on file on server";
+						output =  "Success";
 					}
 					else{
 						//if you are trying to input to a nonexsisting direcotry
@@ -384,7 +426,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 						if(storedNewDir){
 							LOGGER.trace("payload stored in direcotry: "+directories[directories.length-2]);
 							LOGGER.info("successfully stored payload into file");
-							output =  "Payload successfully stored on file on server";
+							output =  "Success";
 						}
 						else{
 							LOGGER.error("storing file failed: incorrect filepath");
@@ -419,52 +461,48 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 
 	public static void updateAudit(JSONObject input, String status) throws ParseException
 	{
-		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
-		DB database = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
-		DBCollection auditCollection = database.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
-		ObjectId auditID = new ObjectId(input.getString("auditID"));
-		DBObject audit = auditCollection.findOne(auditID);
-		System.out.println(audit.toString());
-		BasicDBList replayInformation;
-		if (audit.containsField("replayInfo"))
-		{
-			replayInformation =  (BasicDBList) audit.get("replayInfo");	
-			BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-			replayInfo.put("status",status);
-			Calendar cal = Calendar.getInstance();
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-			String sysDate = dateFormat.format(cal.getTime());
-	        Date gtDate = dateFormat.parse(sysDate); 
-			replayInfo.put("replayTimestamp",gtDate);
-			System.out.println(replayInfo.toString());
-			replayInformation.add(replayInfo);
-		}
-		else
-		{
-			replayInformation =  new BasicDBList();
-			BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-			replayInfo.put("status",status);
-			Calendar cal = Calendar.getInstance();
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-			String sysDate = dateFormat.format(cal.getTime());
-	        Date gtDate = dateFormat.parse(sysDate); 
-			replayInfo.put("replayTimestamp",gtDate);
-			System.out.println(replayInfo.toString());
-			replayInformation.add(replayInfo);
-			System.out.println("YESSS" + replayInformation);
-		}
-		BasicDBObject query = new BasicDBObject("_id", auditID );
-		BasicDBObject updateCriteria = new BasicDBObject("replayInfo",replayInformation);
-		BasicDBObject setCritera = new BasicDBObject("$set", updateCriteria);
-		auditCollection.update(query, setCritera);
 		
+			MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+			DB database = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
+			DBCollection auditCollection = database.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
+			ObjectId auditID = new ObjectId(input.getString("auditID"));
+			DBObject audit = auditCollection.findOne(auditID);
+			System.out.println(audit.toString());
+			BasicDBList replayInformation;
+			
+			if (audit.containsField("replayInfo"))
+			{
+				replayInformation =  (BasicDBList) audit.get("replayInfo");	
+				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
+				replayInfo.put("status",status);
+				Calendar cal = Calendar.getInstance();
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+				String sysDate = dateFormat.format(cal.getTime());
+		        Date gtDate = dateFormat.parse(sysDate); 
+				replayInfo.put("replayTimestamp",gtDate);
+				System.out.println(replayInfo.toString());
+				replayInformation.add(replayInfo);
+			}
+			else
+			{
+				replayInformation =  new BasicDBList();
+				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
+				replayInfo.put("status",status);
+				Calendar cal = Calendar.getInstance();
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+				String sysDate = dateFormat.format(cal.getTime());
+		        Date gtDate = dateFormat.parse(sysDate); 
+				replayInfo.put("replayTimestamp",gtDate);
+				System.out.println(replayInfo.toString());
+				replayInformation.add(replayInfo);
+				System.out.println("YESSS" + replayInformation);
+			}
+			BasicDBObject query = new BasicDBObject("_id", auditID );
+			BasicDBObject updateCriteria = new BasicDBObject("replayInfo",replayInformation);
+			BasicDBObject setCritera = new BasicDBObject("$set", updateCriteria);
+			auditCollection.update(query, setCritera);
+			
 	}
 
 
 }
-
-
-
-
-
-

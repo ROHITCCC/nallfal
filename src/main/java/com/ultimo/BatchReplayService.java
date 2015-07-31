@@ -73,13 +73,13 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		JSONObject input = new JSONObject(payload);
 		handleBatchCalls(exchange, context, input.toString());
 		BatchHandleRequest(input);
+		
 
 	}
 	
 	public static Map<String,String> BatchHandleRequest(JSONObject input) throws Exception
 	{
 		ArrayList<ObjectId> objectIDs = new ArrayList<ObjectId>();
-		System.out.println("batch replay service:"+input.toString());
 		String auditID = input.get("auditID").toString();
 		auditID = auditID.replace("[", "").replace("]", "").replace("\"", "");
 		String[] objectIDStrings = auditID.split(",");
@@ -316,10 +316,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		//Declare and Extract all Necessary Information
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
 		String fileLocation = replayDestinationInfo.getString("fileLocation");
-		System.out.println(fileLocation);
 		String fileName =fileLocation.split("\\.")[0];
 		String fileType = fileLocation.split("\\.")[1];
-		System.out.println(fileLocation + "BYEAH");
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
 		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
@@ -450,9 +448,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 				//System.out.println(ObjectID);
 				dataLocations.add(new ObjectId(ObjectID));
 				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
-
 			}
-
 		}
 		
 		BasicDBList payloadIds = new BasicDBList();
@@ -487,10 +483,6 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			replayInput.put("replayedBy", replayedBy);
 			replayInput.put("auditID", auditID);
 
-			
-			
-
-			
 			try {
 				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);				
 				if (handleResult !=null)
