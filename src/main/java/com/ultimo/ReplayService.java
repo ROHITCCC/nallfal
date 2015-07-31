@@ -459,6 +459,15 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		
 	}
 
+	public static String handleWS(JSONObject input, String payload)
+	{
+		
+		
+		return "Success";
+		
+	}
+	
+	
 	public static void updateAudit(JSONObject input, String status) throws ParseException
 	{
 		try
@@ -482,6 +491,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		        Date gtDate = dateFormat.parse(sysDate); 
 				replayInfo.put("replayTimestamp",gtDate);
 				System.out.println(replayInfo.toString());
+				replayInfo.put("type", input.getString("type"));
 				replayInformation.add(replayInfo);
 			}
 			else
@@ -494,8 +504,10 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				String sysDate = dateFormat.format(cal.getTime());
 		        Date gtDate = dateFormat.parse(sysDate); 
 				replayInfo.put("replayTimestamp",gtDate);
+				replayInfo.put("type", input.getString("type"));
 				replayInformation.add(replayInfo);
 			}
+			
 			BasicDBObject query = new BasicDBObject("_id", auditID );
 			BasicDBObject updateCriteria = new BasicDBObject("replayInfo",replayInformation);
 			BasicDBObject setCritera = new BasicDBObject("$set", updateCriteria);
