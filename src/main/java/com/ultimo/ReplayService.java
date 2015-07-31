@@ -45,6 +45,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.util.JSON;
 
 
 public class ReplayService extends ApplicationLogicHandler implements IAuthToken 
@@ -478,21 +479,24 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			ObjectId auditID = new ObjectId(input.getString("auditID"));
 			DBObject audit = auditCollection.findOne(auditID);
 			System.out.println(audit.toString());
+			System.out.println("Jennifer" + input.toString());
+			
+			DBObject replayInput;
 			BasicDBList replayInformation;
 			
 			if (audit.containsField("replayInfo"))
 			{
 				replayInformation =  (BasicDBList) audit.get("replayInfo");	
 				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-				replayInfo.put("status",status);
+				replayInfo.put("Status",status);
 				Calendar cal = Calendar.getInstance();
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String sysDate = dateFormat.format(cal.getTime());
 		        Date gtDate = dateFormat.parse(sysDate); 
-				replayInfo.put("replayTimestamp",gtDate);
-				System.out.println(replayInfo.toString());
-				replayInfo.put("type", input.getString("type"));
-				replayInformation.add(replayInfo);
+				replayInput = (DBObject) JSON.parse(input.toString());	
+				replayInput.put("replayTime",gtDate);				
+
+				replayInformation.add(replayInput);
 			}
 			else
 			{
@@ -503,9 +507,10 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String sysDate = dateFormat.format(cal.getTime());
 		        Date gtDate = dateFormat.parse(sysDate); 
-				replayInfo.put("replayTimestamp",gtDate);
-				replayInfo.put("type", input.getString("type"));
-				replayInformation.add(replayInfo);
+				replayInput = (DBObject) JSON.parse(input.toString());
+				replayInput.put("replayTime",gtDate);				
+
+				replayInformation.add(replayInput);
 			}
 			
 			BasicDBObject query = new BasicDBObject("_id", auditID );
