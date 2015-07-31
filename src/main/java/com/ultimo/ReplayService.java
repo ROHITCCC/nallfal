@@ -461,7 +461,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 
 	public static void updateAudit(JSONObject input, String status) throws ParseException
 	{
-		
+		try
+		{
 			MongoClient client = MongoDBClientSingleton.getInstance().getClient();
 			DB database = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
 			DBCollection auditCollection = database.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
@@ -493,16 +494,17 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				String sysDate = dateFormat.format(cal.getTime());
 		        Date gtDate = dateFormat.parse(sysDate); 
 				replayInfo.put("replayTimestamp",gtDate);
-				System.out.println(replayInfo.toString());
 				replayInformation.add(replayInfo);
-				System.out.println("YESSS" + replayInformation);
 			}
 			BasicDBObject query = new BasicDBObject("_id", auditID );
 			BasicDBObject updateCriteria = new BasicDBObject("replayInfo",replayInformation);
 			BasicDBObject setCritera = new BasicDBObject("$set", updateCriteria);
 			auditCollection.update(query, setCritera);
-			
+		}
+		catch( Exception e)
+		{
+			LOGGER.error(e.getMessage());
+		}
 	}
-
 
 }

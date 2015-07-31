@@ -159,7 +159,6 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		ArrayList<DBObject> auditList = new ArrayList<DBObject>();
 		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
 
-
 		while (auditsResult.hasNext())
 		{
 			DBObject audit = auditsResult.next();
@@ -169,9 +168,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 				String ObjectID = audit.get("dataLocation").toString();
 				dataLocations.add(new ObjectId(ObjectID));
 				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
-				
 			}
-
 		}
 		
 		BasicDBList payloadIds = new BasicDBList();
@@ -187,9 +184,6 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		replayInput.put("content-type", replayDestinationInfo.getString("contentType"));
 		replayInput.remove("contentType");
 		replayInput.put("type", "REST");
-
-
-		System.out.print("HELLLO SIR" + replayInput);
 
 		while (payloadQueryResult.hasNext())
 		{
