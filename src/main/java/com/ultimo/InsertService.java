@@ -343,10 +343,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			    	 LOGGER.debug("Audit interface: " + auditInterface);
 			     }
 			     
-			     //Initializes ErrorSpotSinglton
-			     if (!ErrorSpotSinglton.isInitialized())
-			    	 ErrorSpotSinglton.init();
-			     
+
+			     if(!ErrorSpotSinglton.isInitialized()){
 			     LOGGER.debug("Retrieving information from config...");
 			     
 			     JSONObject config = null;
@@ -370,6 +368,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     else
 			     {
 			    	 LOGGER.debug("Duration of previous notification has not yet expired. No notification sent.");
+			     }
+			     
 			     }
 			     
 	    	}

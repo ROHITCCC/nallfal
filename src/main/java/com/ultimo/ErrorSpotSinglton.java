@@ -64,6 +64,8 @@ public class ErrorSpotSinglton implements IAuthToken{
      * @param conf
      */
     public static void init() {
+    	
+        notificationsMap =  new HashMap<String, JSONObject>(); 
 
         DbsDAO dbs = new DbsDAO();
         String dbName = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
@@ -152,7 +154,14 @@ public class ErrorSpotSinglton implements IAuthToken{
     	return match;
     }
     
-    public static JSONObject getExpiredNotificationDetail(String envid, String application, String interfaceName, String severity){
+    /**
+	 * @return the notificationsMap
+	 */
+	public static final Map<String, JSONObject> getNotificationsMap() {
+		return notificationsMap;
+	}
+
+	public static JSONObject getExpiredNotificationDetail(String envid, String application, String interfaceName, String severity){
     	JSONObject configuredNotification = null;
     	boolean notificationExists = isNotificationConfigured(envid, application,interfaceName, severity);
     	
