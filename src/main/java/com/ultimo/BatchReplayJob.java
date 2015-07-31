@@ -68,7 +68,7 @@ public class BatchReplayJob implements Job{
 			//make the batch call with it
 			Map<String, String> failedAuditsMap=null;
 			try {
-				failedAuditsMap = BatchReplayService.BatchHandleRequest(new JSONObject(document.toString()));
+				failedAuditsMap = BatchReplayService.batchHandleRequest(new JSONObject(document.toString()));
 			} catch (Exception e) {
 				
 				//change status to failed

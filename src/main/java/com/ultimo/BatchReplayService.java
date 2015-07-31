@@ -72,12 +72,12 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		
 		JSONObject input = new JSONObject(payload);
 		handleBatchCalls(exchange, context, input.toString());
-		BatchHandleRequest(input);
+		
 		
 
 	}
 	
-	public static Map<String,String> BatchHandleRequest(JSONObject input) throws Exception
+	public static Map<String,String> batchHandleRequest(JSONObject input) throws Exception
 	{
 		ArrayList<ObjectId> objectIDs = new ArrayList<ObjectId>();
 		String auditID = input.get("auditID").toString();
