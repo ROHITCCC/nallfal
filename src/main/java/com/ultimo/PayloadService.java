@@ -75,7 +75,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 			ObjectId queryObjectId = new ObjectId(objectID);
 			DBObject resultDocument = collection.findOne(new BasicDBObject("_id",queryObjectId));
 			LOGGER.debug("Query Executed");
-			if (resultDocument.toString().isEmpty())
+			if ((resultDocument == null) || (resultDocument.toString().isEmpty()))
 			{
 		        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NO_CONTENT, "No Document Was Returned");
 
