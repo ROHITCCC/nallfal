@@ -73,7 +73,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		MongoClient db = MongoDBClientSingleton.getInstance().getClient();
         DB database = db.getDB(dbname);
         DBCollection collection = database.getCollection(collectionName);
-        BasicDBObject object =  (BasicDBObject) collection.findOne(new BasicDBObject("_id", new ObjectId("55bfa2b7231a0f3ac56c62c9")));
+        BasicDBObject object =  (BasicDBObject) collection.findOne(new BasicDBObject("_id", new ObjectId("55bfaebb231a6071ccdb43f9")));
         batchHandleRequest(new JSONObject(object.toString()));
         */
 		handleBatchCalls(exchange, context, input.toString());
@@ -168,9 +168,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		{
 		replayInput.put("restHeaders", replayDestinationInfo.getJSONArray("restHeaders"));
 		}
-		replayInput.put("replaySavedTimestamp", input.get("replaySavedTimestamp"));
 		replayInput.put("replayedBy", input.getString("replayedBy"));
-		replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
 		replayInput.put("content-type", replayDestinationInfo.getString("content-type"));
 		replayInput.put("type", "REST");
 
@@ -185,8 +183,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			try
 			{
 			String handleResult = ReplayService.handleReplays(replayInput , convertedPayload);
-			
-			if (handleResult !=null)
+			if (handleResult !=null & !handleResult.equals("Success"))
 			{
 			output.put(auditID, handleResult);
 			}
@@ -197,7 +194,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 				e.printStackTrace();
 			}
 		}
-			
+			System.out.println(output.size());
 		return output;
 		
 	}
@@ -354,16 +351,14 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			String sysDate = dateFormat.format(cal.getTime());
 			// Payload ID to Track them. 
 			JSONObject replayInput = input.getJSONObject("replayDestinationInfo");
-			replayInput.put("replaySavedTimestamp", input.getString("replaySavedTimestamp"));
 			replayInput.put("replayedBy", input.getString("replayedBy"));
-			replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
 			replayInput.put("type", "File");
 			replayInput.put("auditID", auditID);
 			replayInput.put("fileLocation",fileName +"_"+ sysDate + id +  "."+ fileType);
 
 			try {
 				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);
-				if (handleResult!=null)
+				if (handleResult !=null & !handleResult.equals("Success"))
 				{
 				output.put(auditID, handleResult);
 				}
@@ -465,7 +460,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 
 			try {
 				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);				
-				if (handleResult !=null)
+				if (handleResult !=null & !handleResult.equals("Success"))
 				{
 				output.put(auditID, handleResult);
 				}
