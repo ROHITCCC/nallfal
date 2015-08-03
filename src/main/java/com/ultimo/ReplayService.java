@@ -474,31 +474,37 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			DBCollection auditCollection = database.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
 			ObjectId auditID = new ObjectId(input.getString("auditID"));
 			DBObject audit = auditCollection.findOne(auditID);
-			System.out.println(audit.toString());
-			System.out.println("Jennifer" + input.toString());
-			
 			DBObject replayInput;
 			BasicDBList replayInformation;
 			
 			if (audit.containsField("replayInfo"))
 			{
 				replayInformation =  (BasicDBList) audit.get("replayInfo");	
-				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-				replayInfo.put("Status",status);
+				String description = "";
 				Calendar cal = Calendar.getInstance();
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String sysDate = dateFormat.format(cal.getTime());
 		        Date gtDate = dateFormat.parse(sysDate); 
 				replayInput = (DBObject) JSON.parse(input.toString());	
 				replayInput.put("replayTime",gtDate);				
-
+				if (status.equalsIgnoreCase("Success"))
+				{
+					status = "Success";
+					description = "Audit Inserted Successfully";
+				}
+				else 
+				{
+					description = status;
+					status = "Failed";
+				}
+				replayInput.put("status",status);
+				replayInput.put("description",description);
 				replayInformation.add(replayInput);
 			}
 			else
 			{
 				replayInformation =  new BasicDBList();
-				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-				replayInfo.put("status",status);
+				String description = "";				
 				Calendar cal = Calendar.getInstance();
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String sysDate = dateFormat.format(cal.getTime());
@@ -506,6 +512,18 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				replayInput = (DBObject) JSON.parse(input.toString());
 				replayInput.put("replayTime",gtDate);				
 
+				if (status.equalsIgnoreCase("Success"))
+				{
+					status = "Success";
+					description = "Audit Inserted Successfully";
+				}
+				else 
+				{
+					description = status;
+					status = "Failed";
+				}
+				replayInput.put("status",status);
+				replayInput.put("description",description);
 				replayInformation.add(replayInput);
 			}
 			
