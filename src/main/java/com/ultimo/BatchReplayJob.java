@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import org.bson.BSONObject;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
@@ -48,6 +49,7 @@ public class BatchReplayJob implements Job{
         BasicDBList queryList = new BasicDBList();
         queryList.add("processed");
         queryList.add("processing");
+        queryList.add("failed");
         BasicDBObject whereQuery = new BasicDBObject("status", new BasicDBObject("$nin", queryList));
         LOGGER.trace("the query's fields: "+whereQuery.toString());
 		DBCursor cursor= collection.find(whereQuery).sort((DBObject)JSON.parse("{ \"replaySavedTimestamp\": 1 }"));
@@ -82,8 +84,17 @@ public class BatchReplayJob implements Job{
 			}
 			LOGGER.info(failedAuditsMap.size()+" audits failed");
 			
+			//check if all the audits failed, if so change the stus of the current document to failed
+			JSONArray auditsArray = new JSONArray(document.get("auditID").toString());
+			if(failedAuditsMap.size()!= 0 && failedAuditsMap.size()==auditsArray.length()){
+				DBObject failedDocument = (DBObject)JSON.parse(document.toString());
+				failedDocument.removeField("status");
+				failedDocument.put("status", "failed");
+				collection.update(processingDocument,failedDocument);
+				continue;
+			}
 			//save all the failed Audits in a separate document to replay next time
-			if(failedAuditsMap.size()!=0){
+			else if(failedAuditsMap.size()!=0){
 				//create the document to have the same fields as the parent but with new field parentId, 
 				//and audit ID's change to  the ones that failed and status changed to failed
 				LOGGER.info("adding failed audits into seperate document");
