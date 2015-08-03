@@ -65,7 +65,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			}
 		}
 		
-		//JSONObject input = new JSONObject(payload);
+		JSONObject input = new JSONObject(payload);
+		/*
 		LOGGER.trace("Starting Insert into Database" );
 		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
 		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
@@ -74,7 +75,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
         DBCollection collection = database.getCollection(collectionName);
         BasicDBObject object =  (BasicDBObject) collection.findOne(new BasicDBObject("_id", new ObjectId("55bfa2b7231a0f3ac56c62c9")));
         batchHandleRequest(new JSONObject(object.toString()));
-		//handleBatchCalls(exchange, context, input.toString());
+        */
+		handleBatchCalls(exchange, context, input.toString());
 		
 		
 
