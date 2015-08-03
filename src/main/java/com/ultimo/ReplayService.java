@@ -309,6 +309,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		String username= input.getString("username");
 		String password= input.getString("password");
 		String location= input.getString("location");
+		int port = input.getInt("port");
 		if (!location.endsWith("/"))
 		{
 			location = location + "/";
@@ -370,7 +371,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		//connect to server
 		try {
 			LOGGER.info("connecting to server: "+hostname);
-			ftp.connect(hostname, 21);
+			ftp.connect(hostname, port);
 			LOGGER.info("successfully connected to server: "+hostname);
 			connected=true;
 		} catch (IOException e) {

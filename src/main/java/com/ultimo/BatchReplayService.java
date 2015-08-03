@@ -388,12 +388,13 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
 		String location = replayDestinationInfo.getString("location");
-		String hostname = replayDestinationInfo.getString("hostname");
+		String hostname = replayDestinationInfo.getString("host");
 		String username = replayDestinationInfo.getString("username");
 		String password = replayDestinationInfo.getString("password");
 		String fileType = replayDestinationInfo.getString("filetype");
 		String fileName = replayDestinationInfo.getString("filename");
 		String replayedBy = input.getString("replayedBy");
+		int port = replayDestinationInfo.getInt("port");
 
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
@@ -457,6 +458,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			replayInput.put("type", "FTP");
 			replayInput.put("replayedBy", replayedBy);
 			replayInput.put("auditID", auditID);
+			replayInput.put("port", port);
 
 			try {
 				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);				
