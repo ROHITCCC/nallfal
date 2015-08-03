@@ -10,17 +10,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.HttpStatus;
-import org.apache.http.ParseException;
 import org.bson.types.ObjectId;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
@@ -28,7 +23,6 @@ import org.restheart.handlers.RequestContext;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.ResponseHelper;
-
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -36,7 +30,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.WriteResult;
 import com.mongodb.util.JSON;
 import com.mongodb.util.JSONParseException;
 
@@ -110,15 +103,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("FTP"))
 		{
 			result = handleFTPBatch(input, objectIDs);
-		}
-		Iterator iterator = result.entrySet().iterator();
-		while(iterator.hasNext())
-		{
-	        Map.Entry pair = (Map.Entry)iterator.next();
-	        System.out.println("Key " + pair.getKey());
-	        System.out.println("Value " + pair.getValue());
-		}
-		
+		}		
 		return result;
 		
 	}
@@ -127,16 +112,6 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 	{
 		//Declare and Extract all Necessary Information
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
-		String restMethod = replayDestinationInfo.getString("method");
-		String restEndpoint = replayDestinationInfo.getString("endpoint");
-		String contentType = replayDestinationInfo.getString("contentType");
-		String restHeaders="";
-		
-		try{
-		restHeaders = "[" + input.get("headers").toString().replace(":", "=").replace("{", "").replace("}", "") + "]";
-		} catch(JSONException e){
-			//if header don't exist we move on
-		}
 		
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
@@ -177,7 +152,10 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		DBObject payloadQuery = new BasicDBObject("_id" , inClause);
 		DBCursor payloadQueryResult = payloadCollection.find(payloadQuery);
 		JSONObject replayInput = input.getJSONObject("replayDestinationInfo");
-		replayInput.put("restHeaders", input.getJSONArray("restHeaders"));
+		if (replayDestinationInfo.has("restHeaders"))
+		{
+		replayInput.put("restHeaders", replayDestinationInfo.getJSONArray("restHeaders"));
+		}
 		replayInput.put("replaySavedTimestamp", input.getString("replaySavedTimestamp"));
 		replayInput.put("replayedBy", input.getString("replayedBy"));
 		replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
@@ -360,7 +338,6 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			String id = payload.get("_id").toString();
 			System.out.println(payload.toString());
 			String convertedPayload = PayloadService.jsonToPayload(payload);
-			String [] fileInput = new String[3];
 			Calendar cal = Calendar.getInstance();
 			DateFormat dateFormat = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss_");
 			String sysDate = dateFormat.format(cal.getTime());
@@ -457,9 +434,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			String auditID = payloadAndAuditId.get(payloadID);
 
 			String id = payload.get("_id").toString();
-			System.out.println(payload.toString());
 			String convertedPayload = PayloadService.jsonToPayload(payload);
-			String [] FTPInput = new String[9];
 			Calendar cal = Calendar.getInstance();
 			DateFormat dateFormat = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss_");
 			String sysDate = dateFormat.format(cal.getTime());
@@ -509,7 +484,6 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 	
 	public static void handleBatchCalls(HttpServerExchange exchange,RequestContext context, String payload) throws java.text.ParseException{
 	      //if the thing is a JSON and query is batch, insert it
-      Map<?,?> queryParams=exchange.getQueryParameters();
       	try{
           	BasicDBObject batchObject=(BasicDBObject)JSON.parse(payload);
           	
@@ -540,7 +514,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
       DBCollection collection = database.getCollection(collectionName);
       LOGGER.trace("connected to db: "+dbname);
       LOGGER.info("connected to collection: "+collectionName);
-      WriteResult result = collection.insert(batchObject);
+      collection.insert(batchObject);
 	}
 
 

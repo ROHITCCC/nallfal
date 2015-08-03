@@ -16,14 +16,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
-
 import org.apache.commons.fileupload.MultipartStream;
 import org.apache.commons.net.ftp.FTPClient;
 import org.bson.types.ObjectId;
@@ -38,7 +36,6 @@ import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.ResponseHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -133,7 +130,6 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	public static String handleReplays(JSONObject input, String payload) throws Exception
 	{
 		 String result = "";
-		 String handleAble = "";
 			if (input.getString("type").equalsIgnoreCase("REST"))
 			{
 				result = handleRest(input, payload);
@@ -177,7 +173,6 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	        httpCon.setDoOutput(true);
 	        httpCon.setRequestMethod(restMethod);
 	        httpCon.setRequestProperty("Content-Type", contentType);
-	        System.out.println("VINAYYYYYY" + headers.toString());  
 	        if (!headers.toString().equals("[]"));
 	        {
 		        for (int iterator = 0; iterator < headers.length();iterator++)
