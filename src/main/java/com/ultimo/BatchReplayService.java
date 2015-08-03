@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.HttpStatus;
@@ -23,6 +24,7 @@ import org.restheart.handlers.RequestContext;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.ResponseHelper;
+
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -64,6 +66,16 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		}
 		
 		JSONObject input = new JSONObject(payload);
+		/*
+		LOGGER.trace("Starting Insert into Database" );
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
+		MongoClient db = MongoDBClientSingleton.getInstance().getClient();
+        DB database = db.getDB(dbname);
+        DBCollection collection = database.getCollection(collectionName);
+        BasicDBObject object =  (BasicDBObject) collection.findOne(new BasicDBObject("_id", new ObjectId("55bfa2b7231a0f3ac56c62c9")));
+        batchHandleRequest(new JSONObject(object.toString()));
+        */
 		handleBatchCalls(exchange, context, input.toString());
 		
 		
@@ -156,11 +168,10 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		{
 		replayInput.put("restHeaders", replayDestinationInfo.getJSONArray("restHeaders"));
 		}
-		replayInput.put("replaySavedTimestamp", input.getString("replaySavedTimestamp"));
+		replayInput.put("replaySavedTimestamp", input.get("replaySavedTimestamp"));
 		replayInput.put("replayedBy", input.getString("replayedBy"));
 		replayInput.put("batchProcessedTimestamp", input.getString("batchProcessedTimestamp"));
-		replayInput.put("content-type", replayDestinationInfo.getString("contentType"));
-		replayInput.remove("contentType");
+		replayInput.put("content-type", replayDestinationInfo.getString("content-type"));
 		replayInput.put("type", "REST");
 
 		while (payloadQueryResult.hasNext())
