@@ -144,19 +144,19 @@ public class ReportJob implements Job{
 			}
 			resultObject.put("From", previousFireTime.toString());
 			resultObject.put("Job Key", context.getJobDetail().getKey().getName());
-			if(inputObject.get("errorType")!=null){
+			if(inputObject.get("errorType")!=null && ((String)inputObject.get("errorType")).length()>0){
 				resultObject.put("Error Type", inputObject.get("errorType"));
-				errorType = " ErrorType="+inputObject.get("errorType");
+				errorType = ", ErrorType="+inputObject.get("errorType");
 			}
-			if(inputObject.get("interface1")!=null){
+			if(inputObject.get("interface1")!=null && ((String)inputObject.get("interface1")).length()>0){
 				resultObject.put("Interface", inputObject.get("interface1"));
-				interface1= " Interface="+inputObject.get("interface1");
+				interface1= ", Interface="+inputObject.get("interface1");
 			}
 			resultObject.put("Environment ID", inputObject.get("envid"));
 			resultObject.put("Application", inputObject.get("application"));
 			resultObject.put("row", result);
 			
-			String subject = "EnvironmentID="+inputObject.get("envid")+" Application="+inputObject.get("application")+interface1+errorType;
+			String subject = "Report: EnvironmentID="+inputObject.get("envid")+", Application="+inputObject.get("application")+interface1+errorType;
 			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),subject);
 			LOGGER.info("Executed report (" + jobName + ") output " + resultObject.toString());
 		} catch (Exception e) {

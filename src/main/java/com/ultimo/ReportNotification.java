@@ -67,7 +67,8 @@ public class ReportNotification implements NotificationTemplate{
 			for(String key : report.keySet()){
 				doc.select("body").first().prepend("<p><b>"+key+": </b>"+report.get(key)+"</p>");
 			}
-			
+			doc.select("th").remove();
+			doc.select("tr").first().append("<th>Interface</th> <th># of Failed Audits</th>");
 			LOGGER.trace(doc.toString());
 			return doc;
 		}
