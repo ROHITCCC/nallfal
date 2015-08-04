@@ -82,26 +82,26 @@ public class ErrorSpotSinglton implements IAuthToken{
         	DBObject setting = cursor.next();
         	DBObject settingObject = (DBObject)setting.get("setting");
         	DBObject notficationObject = (DBObject)settingObject.get("notification");
-        	DBObject immidateObject = (DBObject)notficationObject.get("immidate");
+        	DBObject immediateObject = (DBObject)notficationObject.get("immediate");
         	
         	
         	
-        	notifications = new JSONArray(((DBObject)immidateObject.get("notification")).toString());
-        	frequency = new JSONObject(((DBObject)immidateObject.get("frequency")).toString());
+        	notifications = new JSONArray(((DBObject)immediateObject.get("notification")).toString());
+        	frequency = new JSONObject(((DBObject)immediateObject.get("frequency")).toString());
         	LOGGER.debug("Frequency is " + frequency.toString());
         	
         	//convert JSONArray into map for faster access.
-        	boolean isImmidateNotificationExists = false;
+        	boolean isImmediateNotificationExists = false;
         	try{
         	String firstAppName = notifications.optJSONObject(0).optJSONObject("application").getString("name");
         	if(firstAppName.length() > 0)
-        		isImmidateNotificationExists = true;
+        		isImmediateNotificationExists = true;
         	
         	} catch (Exception e){
         		
         	}
         	
-        	if(notifications.length() >= 1 && isImmidateNotificationExists){
+        	if(notifications.length() >= 1 && isImmediateNotificationExists){
         		
 	        	
 	        	for (int i = 0; i < notifications.length(); i++) {
