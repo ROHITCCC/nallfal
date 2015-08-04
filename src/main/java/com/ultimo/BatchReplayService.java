@@ -594,7 +594,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
         {
 	       DBObject reprocessedDocument = (DBObject)JSON.parse(document.toString());
 	       reprocessedDocument.removeField("status");
-	       reprocessedDocument.put("status", "reprocessed");
+	       reprocessedDocument.put("status", "reprocess");
 	       collection.update(document,reprocessedDocument);
         }
 	}

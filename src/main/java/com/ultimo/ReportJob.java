@@ -40,6 +40,7 @@ public class ReportJob implements Job{
 		//since email and frequency are not needed for aggrigate query, remove frequency and email from the payloa.
 		BasicDBObject frequency = (BasicDBObject)payload.removeField("frequency");
 		payload.removeField("email");
+		payload.removeField("template");
 		
 		//BasicDBObject aggregateParam = ((BasicDBObject)payload.get("report"));
 		
