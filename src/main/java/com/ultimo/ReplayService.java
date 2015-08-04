@@ -152,6 +152,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	{
 		try 
 		{
+			
 			String endpoint = connectionDetails.getString("endpoint");
 			String restMethod = connectionDetails.getString("method");
 			String contentType = connectionDetails.getString("content-type");
@@ -160,14 +161,18 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			{
 			 headers = connectionDetails.getJSONArray("restHeaders");
 			}
-			LOGGER.trace("Replay Request Endpoint: " + endpoint);
-			LOGGER.trace("Replay Request Method: " + restMethod);
-			LOGGER.trace("Replay Request Content Type: " + contentType);
-			LOGGER.trace("Replay Request Headers: " + headers);
-			LOGGER.trace("Replay Request Payload: " + payload);
+			System.out.println(connectionDetails.toString());
+			String auditID = connectionDetails.getString("auditID");
+			
+			LOGGER.trace("Replay Request Endpoint for Audit " + auditID + ": " + endpoint);
+			LOGGER.trace("Replay Request Method for Audit "+auditID + ": " + restMethod);
+			LOGGER.trace("Replay Request Content Type for Audit " + auditID + ": " +  contentType);
+			LOGGER.trace("Replay Request Headers for Audit " + auditID + ": " +  headers);
+			LOGGER.trace("Replay Request Payload for Audit " + auditID + ": " +  payload);
 			
 	    	URL url;
 	    	url = new URL(endpoint);
+	    	LOGGER.info("Connecting to REST Endpoint");
 		    HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
 	        httpCon.setDoInput(true);
 	        httpCon.setDoOutput(true);
@@ -516,7 +521,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				if (status.equalsIgnoreCase("Success"))
 				{
 					status = "Success";
-					description = "Audit Inserted Successfully";
+					description = "Audit Replayed Successfully";
 				}
 				else 
 				{
@@ -535,7 +540,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		}
 		catch( Exception e)
 		{ 
-			LOGGER.error("Audit " + auditID + " was not updated with replay information. Update of the Audit failed.");
+			LOGGER.error("Audit " + auditID + " was not updated with replay information.");
 			LOGGER.error(e.getMessage());
 		}
 	}
