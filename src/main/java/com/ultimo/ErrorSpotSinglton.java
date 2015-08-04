@@ -54,6 +54,7 @@ public class ErrorSpotSinglton implements IAuthToken{
 
     private ErrorSpotSinglton() {
         if (!initialized) {
+        	LOGGER.error("ErrorSpotSinglton is not initialized");
             throw new IllegalStateException("not initialized");
         }
 
@@ -74,6 +75,7 @@ public class ErrorSpotSinglton implements IAuthToken{
         
         BasicDBObject query = new BasicDBObject();
         query.append("setting", new BasicDBObject("$ne", null));
+        LOGGER.debug("Searching in database 'u-mongodb-database' and collection 'u-setting-collection' for the settings document...");
         DBCursor cursor = settingColl.find(query);
     	
         if(cursor.size() == 1){
@@ -98,7 +100,7 @@ public class ErrorSpotSinglton implements IAuthToken{
         		isImmidateNotificationExists = true;
         	
         	} catch (Exception e){
-        		
+        		e.printStackTrace();
         	}
         	
         	if(notifications.length() >= 1 && isImmidateNotificationExists){
@@ -119,7 +121,12 @@ public class ErrorSpotSinglton implements IAuthToken{
 	        			
 	        			String key = envid.toUpperCase() + "." +application.toUpperCase() + "." + interfaceName.trim().toUpperCase() + "." + severity.toUpperCase();
 	        			
+	        			LOGGER.debug("Application name stored in settings document is " + application);
+	        			LOGGER.debug("Interface name stored in settings document is " + interfaceName);
+	        			LOGGER.debug("Severity stored in settings document is " + severity);
+	        			LOGGER.debug("Envid stored in settings document is " + envid);
 	        			
+	        			LOGGER.debug("Putting information from settings document into a map...");
 	        			
 	        			notificationsMap.put(key, currentNotification);
 	        			
@@ -148,7 +155,7 @@ public class ErrorSpotSinglton implements IAuthToken{
     	if (configuredNotification != null)
     	{
     		match = true;
-    		LOGGER.debug("Notification is configured.");
+    		LOGGER.debug("Notification has been configured.");
     	}
     	
     	return match;
@@ -249,8 +256,10 @@ public class ErrorSpotSinglton implements IAuthToken{
 		allowedMethods.add("POST");
 		allowedMethods.add("DELETE");
         exchange.getResponseHeaders().putAll(HttpString.tryFromString("Access-Control-Allow-Methods"), allowedMethods);
+		LOGGER.debug("Added methods to the exchange");
         //exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Methods"), "POST");
         exchange.getResponseHeaders().put(HttpString.tryFromString("Access-Control-Allow-Headers"), "Accept, Accept-Encoding, Authorization, Env-ID, Content-Length, Content-Type, Host, Origin, X-Requested-With, User-Agent, No-Auth-Challenge, " + AUTH_TOKEN_HEADER + ", " + AUTH_TOKEN_VALID_HEADER + ", " + AUTH_TOKEN_LOCATION_HEADER);
+        LOGGER.debug("Added headers to the exchange");
         exchange.setResponseCode(HttpStatus.SC_OK);
         exchange.endExchange();
     	
