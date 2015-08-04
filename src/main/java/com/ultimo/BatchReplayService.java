@@ -70,14 +70,8 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 				}
 			}
 			
-			//JSONObject input = new JSONObject(payload);
-			MongoClient db = MongoDBClientSingleton.getInstance().getClient();
-			DB database = db.getDB("ES");
-			DBCollection collection = database.getCollection("ErrorSpotBatchReplay");
-			DBObject object = collection.findOne(new ObjectId("55bff4dc231aeeba9a0bb395"));
-			JSONObject obj = new JSONObject(object.toString());
-			batchHandleRequest(obj);
-			//handleBatchCalls(exchange, context, obj.toString());
+			JSONObject input = new JSONObject(payload);
+			handleBatchCalls(exchange, context, input.toString());
 		
 		}
 		else if (context.getMethod() == METHOD.OPTIONS) {
