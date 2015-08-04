@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,10 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.HttpStatus;
 import org.bson.types.ObjectId;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
 import org.restheart.handlers.RequestContext;
+import org.restheart.handlers.RequestContext.METHOD;
 import org.restheart.handlers.applicationlogic.ApplicationLogicHandler;
 import org.restheart.security.handlers.IAuthToken;
 import org.restheart.utils.ResponseHelper;
@@ -37,48 +40,66 @@ import com.mongodb.util.JSONParseException;
 
 public class BatchReplayService extends ApplicationLogicHandler implements IAuthToken {
 
-	static MongoClient mongoClient= getMongoConnection();
+	private static MongoClient mongoClient= getMongoConnection();
+	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
+
 	public BatchReplayService(PipedHttpHandler next, Map<String, Object> args) 
 	{
 		super(next, args);
 	}
-	private static final Logger LOGGER = LoggerFactory.getLogger("org.restheart");
 
 	@Override
 	public void handleRequest(HttpServerExchange exchange, RequestContext context) throws Exception 
 	
 	{
-		
-		String payload= "";
-		InputStream inputS = exchange.getInputStream();
-		BufferedReader payloadReader = new BufferedReader(new InputStreamReader(inputS));
-		while(true)
+		if (context.getMethod() == METHOD.POST)
 		{
-			String input = payloadReader.readLine();
-			if (input != null)
+			String payload= "";
+			InputStream inputS = exchange.getInputStream();
+			BufferedReader payloadReader = new BufferedReader(new InputStreamReader(inputS));
+			while(true)
 			{
-				payload = payload + input;
+				String input = payloadReader.readLine();
+				if (input != null)
+				{
+					payload = payload + input;
+				}
+				else
+				{
+					break;//
+				}
 			}
-			else
-			{
-				break;//
-			}
+			
+			//JSONObject input = new JSONObject(payload);
+			MongoClient db = MongoDBClientSingleton.getInstance().getClient();
+			DB database = db.getDB("ES");
+			DBCollection collection = database.getCollection("ErrorSpotBatchReplay");
+			DBObject object = collection.findOne(new ObjectId("55bff4dc231aeeba9a0bb395"));
+			JSONObject obj = new JSONObject(object.toString());
+			batchHandleRequest(obj);
+			//handleBatchCalls(exchange, context, obj.toString());
+		
 		}
-		
-		JSONObject input = new JSONObject(payload);
-		/*
-		LOGGER.trace("Starting Insert into Database" );
-		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
-		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
-		MongoClient db = MongoDBClientSingleton.getInstance().getClient();
-        DB database = db.getDB(dbname);
-        DBCollection collection = database.getCollection(collectionName);
-        BasicDBObject object =  (BasicDBObject) collection.findOne(new BasicDBObject("_id", new ObjectId("55bfaebb231a6071ccdb43f9")));
-        batchHandleRequest(new JSONObject(object.toString()));
-        */
-		handleBatchCalls(exchange, context, input.toString());
-		
-		
+		else if (context.getMethod() == METHOD.OPTIONS) {
+			ErrorSpotSinglton.optionsMethod(exchange);
+        } 
+        else if (context.getMethod() == METHOD.GET){
+        	//connect to appropriate cdb and collection
+    		JSONArray batchArray = getAllBatches();
+    		exchange.getResponseSender().send(batchArray.toString());
+		}
+        else if (context.getMethod() == METHOD.PUT){
+        	//connect to appropriate cdb and collection
+        	Map<String,Deque<String>> queryParams = exchange.getQueryParameters();
+        	String id = queryParams.get("id").getFirst();
+        	updateBatchStatus(id);
+    		exchange.getResponseSender().send("sucessfully updated the status");
+    		
+		}
+        else 
+        {
+        	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
+        }
 
 	}
 	
@@ -88,21 +109,24 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		String auditID = input.get("auditID").toString();
 		auditID = auditID.replace("[", "").replace("]", "").replace("\"", "");
 		String[] objectIDStrings = auditID.split(",");
-
+		String idProcessing = "";
 		for (String id : objectIDStrings)
 		{
 			ObjectId object = new ObjectId(id);
 			objectIDs.add(object);
+			idProcessing = idProcessing + ", " + id;
 		}
-		
+		String batchID = input.get("_id").toString().split(":")[1].replace("\"","").replace("}", "");
+		//LOGGER.info("Started Batch Replay for Batch #: " + batchID.toString());
+		LOGGER.info("Started Batch Processing for Batch: " + batchID);
+
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
-		System.out.println(replayDestinationInfo.get("type").toString());
+		LOGGER.info("Batch " + batchID + " has the following Audit(s): " + idProcessing);
 		Map<String,String> result = null;
+		LOGGER.trace("Destination Information for batch " + batchID + " is : " + input.toString());
 		if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("REST"))
 		{
-			// Call Method Handling Rest Request
-			result = handleRestBatch(input, objectIDs);
-			
+		     result = handleRestBatch(input, objectIDs);
 		}
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("WS"))
 		{
@@ -134,7 +158,9 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		DB db = mongoClient.getDB(mongoDatabase);
 		DBCollection auditCollection = db.getCollection(auditCollectionName);
 		DBCollection payloadCollection = db.getCollection(payloadCollectionName);
-		
+		String batchID = input.get("_id").toString().split(":")[1].replace("\"","").replace("}", "");
+
+		LOGGER.info("Connected to MongoDB to find Payloads for Batch: " + batchID);
 		// Get DataLocations
 		BasicDBList objectIds = new BasicDBList();
 		objectIds.addAll(objectIDs);
@@ -142,10 +168,12 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		BasicDBObject auditSearchClause = new BasicDBObject("_id",auditSearchInClause); 
 
 		DBCursor auditsResult = auditCollection.find(auditSearchClause);
+		LOGGER.info("Retrieved all Payloads for Batch: " + batchID);
+
 		ArrayList<ObjectId> dataLocations = new ArrayList<ObjectId>();
 		ArrayList<DBObject> auditList = new ArrayList<DBObject>();
 		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
-
+		
 		while (auditsResult.hasNext())
 		{
 			DBObject audit = auditsResult.next();
@@ -182,7 +210,11 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 
 			try
 			{
+			LOGGER.trace("Started Replay for Audit: " + auditID);
 			String handleResult = ReplayService.handleReplays(replayInput , convertedPayload);
+			LOGGER.trace("Result of replay for Audit " + auditID + ": " + handleResult);
+			LOGGER.trace("Finished Replay for Audit: " + auditID);
+
 			if (handleResult !=null & !handleResult.equals("Success"))
 			{
 			output.put(auditID, handleResult);
@@ -190,11 +222,13 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			}
 			catch(Exception e)
 			{
+				LOGGER.error("Undefined ErrorSpot Error");
 				output.put(auditID, "Undefined ErrorSpot Error");
 				e.printStackTrace();
 			}
 		}
 			System.out.println(output.size());
+			LOGGER.info("Finished Batch Replay for Batch " + batchID);
 		return output;
 		
 	}
@@ -337,6 +371,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		DBObject inClause = new BasicDBObject("$in",payloadIds);
 		DBObject payloadQuery = new BasicDBObject("_id" , inClause);
 		DBCursor payloadQueryResult = payloadCollection.find(payloadQuery);
+		
 		while (payloadQueryResult.hasNext())
 		{
 			DBObject payload = payloadQueryResult.next();
@@ -388,12 +423,13 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		
 		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
 		String location = replayDestinationInfo.getString("location");
-		String hostname = replayDestinationInfo.getString("hostname");
+		String hostname = replayDestinationInfo.getString("host");
 		String username = replayDestinationInfo.getString("username");
 		String password = replayDestinationInfo.getString("password");
 		String fileType = replayDestinationInfo.getString("filetype");
 		String fileName = replayDestinationInfo.getString("filename");
 		String replayedBy = input.getString("replayedBy");
+		int port = replayDestinationInfo.getInt("port");
 
 		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
 		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
@@ -457,6 +493,7 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 			replayInput.put("type", "FTP");
 			replayInput.put("replayedBy", replayedBy);
 			replayInput.put("auditID", auditID);
+			replayInput.put("port", port);
 
 			try {
 				String handleResult = ReplayService.handleReplays(replayInput, convertedPayload);				
@@ -523,6 +560,44 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
       collection.insert(batchObject);
 	}
 
+	public static JSONArray getAllBatches(){
+		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
+        DB database = client.getDB(dbname);
+        DBCollection collection = database.getCollection(collectionName);
+        LOGGER.trace("connected to db: "+dbname);
+        LOGGER.info("connected to collection: "+collectionName);
+        
+        JSONArray batchArray = new JSONArray();
+        //query the documents the do not have status as processed or processing
+        LOGGER.info("querring all the documents");
+		DBCursor cursor= collection.find();
+		while(cursor.hasNext()){
+			DBObject batchDocument = cursor.next();
+			batchArray.put(new JSONObject(batchDocument.toString()));
+		}
+		return batchArray;
+	}
+	public static void updateBatchStatus(String id){
+		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
+        DB database = client.getDB(dbname);
+        DBCollection collection = database.getCollection(collectionName);
+        LOGGER.trace("connected to db: "+dbname);
+        LOGGER.info("connected to collection: "+collectionName);
+        
+        //change status of the document whose id is given
+        DBObject document = collection.findOne(new ObjectId(id));
+        if(document.get("status")!= null && document.get("status").equals("failed"))
+        {
+	       DBObject reprocessedDocument = (DBObject)JSON.parse(document.toString());
+	       reprocessedDocument.removeField("status");
+	       reprocessedDocument.put("status", "reprocess");
+	       collection.update(document,reprocessedDocument);
+        }
+	}
 
 
 

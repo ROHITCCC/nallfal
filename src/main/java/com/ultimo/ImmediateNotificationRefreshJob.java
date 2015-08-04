@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 
 @DisallowConcurrentExecution
-public class ImmidateNotificationRefreshJob implements Job{
+public class ImmediateNotificationRefreshJob implements Job{
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("com.ultimo");
 	

@@ -40,6 +40,7 @@ public class ReportJob implements Job{
 		//since email and frequency are not needed for aggrigate query, remove frequency and email from the payloa.
 		BasicDBObject frequency = (BasicDBObject)payload.removeField("frequency");
 		payload.removeField("email");
+		payload.removeField("template");
 		
 		//BasicDBObject aggregateParam = ((BasicDBObject)payload.get("report"));
 		
@@ -131,11 +132,9 @@ public class ReportJob implements Job{
 			
 			BasicDBObject resultObject = new BasicDBObject();
 			BasicDBObject inputObject= (BasicDBObject) ((BasicDBObject)JSON.parse(jobData.getString("report"))).get("report");
-			resultObject.put("Application", inputObject.get("application"));
-			resultObject.put("Environment ID", inputObject.get("envid"));
-			resultObject.put("Job Key", context.getJobDetail().getKey().toString());
-			resultObject.put("Job ID", context.getFireInstanceId());
-			resultObject.put("Time Ended", context.getFireTime().toString());
+			String errorType="";
+			String interface1= "";
+			resultObject.put("To", context.getFireTime().toString());
 			Date previousFireTime=context.getPreviousFireTime();
 			if(previousFireTime==null){
 				Calendar calender= Calendar.getInstance();
@@ -143,10 +142,22 @@ public class ReportJob implements Job{
 				calender.add(Calendar.MILLISECOND,(int)(context.getFireTime().getTime()-context.getNextFireTime().getTime()));
 				previousFireTime=calender.getTime();			
 			}
-			resultObject.put("Time Started", previousFireTime.toString());
+			resultObject.put("From", previousFireTime.toString());
+			resultObject.put("Job Key", context.getJobDetail().getKey().getName());
+			if(inputObject.get("errorType")!=null){
+				resultObject.put("Error Type", inputObject.get("errorType"));
+				errorType = " ErrorType="+inputObject.get("errorType");
+			}
+			if(inputObject.get("interface1")!=null){
+				resultObject.put("Interface", inputObject.get("interface1"));
+				interface1= " Interface="+inputObject.get("interface1");
+			}
+			resultObject.put("Environment ID", inputObject.get("envid"));
+			resultObject.put("Application", inputObject.get("application"));
 			resultObject.put("row", result);
 			
-			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),"Report: Job Name= "+ context.getJobDetail().getKey().toString()+", Execution Time= "+context.getFireTime());
+			String subject = "EnvironmentID="+inputObject.get("envid")+" Application="+inputObject.get("application")+interface1+errorType;
+			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),subject);
 			LOGGER.info("Executed report (" + jobName + ") output " + resultObject.toString());
 		} catch (Exception e) {
 			e.printStackTrace();

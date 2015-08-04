@@ -344,11 +344,11 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     }
 			     
 
-			     if(!ErrorSpotSinglton.isInitialized()){
+			     if(ErrorSpotSinglton.isInitialized()){
 			     LOGGER.debug("Retrieving information from config...");
 			     
 			     JSONObject config = null;
-			     config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
+				config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
 			     
 			     if (config != null)
 			     {

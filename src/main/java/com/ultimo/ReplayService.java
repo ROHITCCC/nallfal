@@ -152,6 +152,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	{
 		try 
 		{
+			
 			String endpoint = connectionDetails.getString("endpoint");
 			String restMethod = connectionDetails.getString("method");
 			String contentType = connectionDetails.getString("content-type");
@@ -160,14 +161,18 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			{
 			 headers = connectionDetails.getJSONArray("restHeaders");
 			}
-			LOGGER.trace("Replay Request Endpoint: " + endpoint);
-			LOGGER.trace("Replay Request Method: " + restMethod);
-			LOGGER.trace("Replay Request Content Type: " + contentType);
-			LOGGER.trace("Replay Request Headers: " + headers);
-			LOGGER.trace("Replay Request Payload: " + payload);
+			System.out.println(connectionDetails.toString());
+			String auditID = connectionDetails.getString("auditID");
+			
+			LOGGER.trace("Replay Request Endpoint for Audit " + auditID + ": " + endpoint);
+			LOGGER.trace("Replay Request Method for Audit "+auditID + ": " + restMethod);
+			LOGGER.trace("Replay Request Content Type for Audit " + auditID + ": " +  contentType);
+			LOGGER.trace("Replay Request Headers for Audit " + auditID + ": " +  headers);
+			LOGGER.trace("Replay Request Payload for Audit " + auditID + ": " +  payload);
 			
 	    	URL url;
 	    	url = new URL(endpoint);
+	    	LOGGER.info("Connecting to REST Endpoint");
 		    HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
 	        httpCon.setDoInput(true);
 	        httpCon.setDoOutput(true);
@@ -309,6 +314,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		String username= input.getString("username");
 		String password= input.getString("password");
 		String location= input.getString("location");
+		int port = input.getInt("port");
 		if (!location.endsWith("/"))
 		{
 			location = location + "/";
@@ -370,7 +376,7 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		//connect to server
 		try {
 			LOGGER.info("connecting to server: "+hostname);
-			ftp.connect(hostname, 21);
+			ftp.connect(hostname, port);
 			LOGGER.info("successfully connected to server: "+hostname);
 			connected=true;
 		} catch (IOException e) {
@@ -466,38 +472,45 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 	
 	public static void updateAudit(JSONObject input, String status) throws ParseException
 	{
+		ObjectId auditID = new ObjectId(input.getString("auditID"));
+
 		try
 		{
 			MongoClient client = MongoDBClientSingleton.getInstance().getClient();
 			DB database = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
 			DBCollection auditCollection = database.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
-			ObjectId auditID = new ObjectId(input.getString("auditID"));
 			DBObject audit = auditCollection.findOne(auditID);
-			System.out.println(audit.toString());
-			System.out.println("Jennifer" + input.toString());
-			
 			DBObject replayInput;
 			BasicDBList replayInformation;
 			
 			if (audit.containsField("replayInfo"))
 			{
 				replayInformation =  (BasicDBList) audit.get("replayInfo");	
-				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-				replayInfo.put("Status",status);
+				String description = "";
 				Calendar cal = Calendar.getInstance();
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String sysDate = dateFormat.format(cal.getTime());
 		        Date gtDate = dateFormat.parse(sysDate); 
 				replayInput = (DBObject) JSON.parse(input.toString());	
 				replayInput.put("replayTime",gtDate);				
-
+				if (status.equalsIgnoreCase("Success"))
+				{
+					status = "Success";
+					description = "Audit Inserted Successfully";
+				}
+				else 
+				{
+					description = status;
+					status = "Failed";
+				}
+				replayInput.put("status",status);
+				replayInput.put("description",description);
 				replayInformation.add(replayInput);
 			}
 			else
 			{
 				replayInformation =  new BasicDBList();
-				BasicDBObject replayInfo = new BasicDBObject("replayedBy",input.getString("replayedBy"));
-				replayInfo.put("status",status);
+				String description = "";				
 				Calendar cal = Calendar.getInstance();
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 				String sysDate = dateFormat.format(cal.getTime());
@@ -505,6 +518,18 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 				replayInput = (DBObject) JSON.parse(input.toString());
 				replayInput.put("replayTime",gtDate);				
 
+				if (status.equalsIgnoreCase("Success"))
+				{
+					status = "Success";
+					description = "Audit Replayed Successfully";
+				}
+				else 
+				{
+					description = status;
+					status = "Failed";
+				}
+				replayInput.put("status",status);
+				replayInput.put("description",description);
 				replayInformation.add(replayInput);
 			}
 			
@@ -514,7 +539,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			auditCollection.update(query, setCritera);
 		}
 		catch( Exception e)
-		{
+		{ 
+			LOGGER.error("Audit " + auditID + " was not updated with replay information.");
 			LOGGER.error(e.getMessage());
 		}
 	}
