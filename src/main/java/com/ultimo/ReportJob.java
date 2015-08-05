@@ -130,35 +130,40 @@ public class ReportJob implements Job{
 		try {
 			result = queryMongo(previousJobExecutionTime, jobData.getString("report"), jobName);
 			
-			BasicDBObject resultObject = new BasicDBObject();
-			BasicDBObject inputObject= (BasicDBObject) ((BasicDBObject)JSON.parse(jobData.getString("report"))).get("report");
-			String errorType="";
-			String interface1= "";
-			resultObject.put("To", context.getFireTime().toString());
-			Date previousFireTime=context.getPreviousFireTime();
-			if(previousFireTime==null){
-				Calendar calender= Calendar.getInstance();
-				calender.setTime(context.getFireTime());
-				calender.add(Calendar.MILLISECOND,(int)(context.getFireTime().getTime()-context.getNextFireTime().getTime()));
-				previousFireTime=calender.getTime();			
+			if(result.size()!=0){
+				BasicDBObject resultObject = new BasicDBObject();
+				BasicDBObject inputObject= (BasicDBObject) ((BasicDBObject)JSON.parse(jobData.getString("report"))).get("report");
+				String errorType="";
+				String interface1= "";
+				resultObject.put("To", context.getFireTime().toString());
+				Date previousFireTime=context.getPreviousFireTime();
+				if(previousFireTime==null){
+					Calendar calender= Calendar.getInstance();
+					calender.setTime(context.getFireTime());
+					calender.add(Calendar.MILLISECOND,(int)(context.getFireTime().getTime()-context.getNextFireTime().getTime()));
+					previousFireTime=calender.getTime();			
+				}
+				resultObject.put("From", previousFireTime.toString());
+				resultObject.put("Job Key", context.getJobDetail().getKey().getName());
+				if(inputObject.get("errorType")!=null && ((String)inputObject.get("errorType")).length()>0){
+					resultObject.put("Error Type", inputObject.get("errorType"));
+					errorType = ", ErrorType="+inputObject.get("errorType");
+				}
+				if(inputObject.get("interface1")!=null && ((String)inputObject.get("interface1")).length()>0){
+					resultObject.put("Interface", inputObject.get("interface1"));
+					interface1= ", Interface="+inputObject.get("interface1");
+				}
+				resultObject.put("Environment ID", inputObject.get("envid"));
+				resultObject.put("Application", inputObject.get("application"));
+				resultObject.put("row", result);
+				
+				String subject = "Report: EnvironmentID="+inputObject.get("envid")+", Application="+inputObject.get("application")+interface1+errorType;
+				NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),subject);
+				LOGGER.info("Executed report (" + jobName + ") output " + resultObject.toString());
 			}
-			resultObject.put("From", previousFireTime.toString());
-			resultObject.put("Job Key", context.getJobDetail().getKey().getName());
-			if(inputObject.get("errorType")!=null && ((String)inputObject.get("errorType")).length()>0){
-				resultObject.put("Error Type", inputObject.get("errorType"));
-				errorType = ", ErrorType="+inputObject.get("errorType");
+			else{
+				LOGGER.info("no results were fetched, hence not sending email notification");
 			}
-			if(inputObject.get("interface1")!=null && ((String)inputObject.get("interface1")).length()>0){
-				resultObject.put("Interface", inputObject.get("interface1"));
-				interface1= ", Interface="+inputObject.get("interface1");
-			}
-			resultObject.put("Environment ID", inputObject.get("envid"));
-			resultObject.put("Application", inputObject.get("application"));
-			resultObject.put("row", result);
-			
-			String subject = "Report: EnvironmentID="+inputObject.get("envid")+", Application="+inputObject.get("application")+interface1+errorType;
-			NotificationService.sendEmail(resultObject.toString(), inputObject.get("template").toString(), inputObject.getString("email"),subject);
-			LOGGER.info("Executed report (" + jobName + ") output " + resultObject.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}		
