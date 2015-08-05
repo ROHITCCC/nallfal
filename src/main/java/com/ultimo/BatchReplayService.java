@@ -90,6 +90,19 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
     		exchange.getResponseSender().send("sucessfully updated the status");
     		
 		}
+        else if (context.getMethod() == METHOD.DELETE){
+        	InputStream input = exchange.getInputStream();
+    		BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
+    		String line = null;
+    		String payload = "";
+    		while((line = inputReader.readLine())!=null){
+    			payload += line;
+    		}
+    		LOGGER.trace(payload);
+    		JSONArray idsToDelete = new JSONArray(payload);
+    		deleteBatches(idsToDelete);
+    		
+		}
         else 
         {
         	ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_METHOD_NOT_ALLOWED, "Method Not Allowed. Post Only ");
@@ -592,7 +605,20 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 	       collection.update(document,reprocessedDocument);
         }
 	}
-
+	public static void deleteBatches(JSONArray idsToDelete){
+		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
+		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
+        DB database = client.getDB(dbname);
+        DBCollection collection = database.getCollection(collectionName);
+        LOGGER.trace("connected to db: "+dbname);
+        LOGGER.info("connected to collection: "+collectionName);
+        
+        //delete the documents with the passed ids
+        for(int i=0;i<idsToDelete.length();i++){
+        	collection.remove(collection.findOne(new ObjectId(idsToDelete.getString(i))));
+        }
+	}
 
 
 }

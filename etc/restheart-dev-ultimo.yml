@@ -145,7 +145,12 @@ application-logic-mounts:
       where: /SchedulerService
       secured: false
       args:
-          url: /_logic/SchedulerService
+          url: /_logic/SchedulerServic
+    - what: com.ultimo.BatchReplayService
+      where: /BatchReplayService
+      secured: true
+      args:
+          url: /_logic/BatchReplayService
 
   
 ### metadata named singletons
