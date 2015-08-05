@@ -616,7 +616,13 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
         
         //delete the documents with the passed ids
         for(int i=0;i<idsToDelete.length();i++){
-        	collection.remove(collection.findOne(new ObjectId(idsToDelete.getString(i))));
+        	try{
+        		DBObject batchDocument = collection.findOne(new ObjectId(idsToDelete.getString(i)));
+        		collection.remove(batchDocument);
+        	}
+        	catch(IllegalArgumentException e){
+        		LOGGER.error("A document with the id: "+idsToDelete.getString(i)+" does not exists in the database");
+        	}
         }
 	}
 
