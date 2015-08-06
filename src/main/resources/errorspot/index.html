@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>Ultimo TLS</title> 
+        <script src="lib/js/jquery/jquery-1.11.3.js" type="text/javascript"></script>
+        <link rel="stylesheet" href="lib/css/bootstrap.min.css">
+        <link rel="icon" type="image/png" href="images/ultimosoft.png">
+        <link href="css/main.css" rel="stylesheet" type="text/css"/>
+        <script src="lib/js/jquery/datetimepicker.js" type="text/javascript"></script>
+        <script src="lib/js/angular/angular.js" type="text/javascript"></script>
+        <script src="lib/js/angular/angular-route.js" type="text/javascript"></script>
+        <script src="lib/js/angular/angular-base64.js" type="text/javascript"></script>
+        <script src="lib/js/angular/angular-ui-router.min.js" type="text/javascript"></script>
+        <script src="lib/js/angular/angular-local-storage.js" type="text/javascript"></script>
+        <script src="ultimotls/audit/auditController.js" type="text/javascript"></script>
+        <script src="lib/js/bootstrap/ui-bootstrap-tpls-0.13.0.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/treemapController.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/treemapDirectives.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/sidebar/severityPieChart/severitryPieChartController.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/sidebar/severityPieChart/severityPieChartDirective.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/sidebar/errorPieChart/errorPieChartDirective.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/sidebar/errorPieChart/errorPieChartController.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/sidebar/transactionTypeChart/transactionTypeBarChartController.js" type="text/javascript"></script>
+        <script src="ultimotls/dashboard/treemap/sidebar/transactionTypeChart/transactionTypeBarChartDirective.js" type="text/javascript"></script>
+        <script src="ultimotls/audit/auditDirectives.js" type="text/javascript"></script>
+        <script src="ultimotls/setting/settingController.js" type="text/javascript"></script>
+
+        <script src="ultimotls/ultimotls.js" type="text/javascript"></script>
+
+    </head>
+    <body ng-app="ultimotls" ng-controller="indexControllerModule"> 
+        <div id="bodyContainer" class="container-fluid" ng-show="treemapSaver.showNav">
+            <div id="landingPageBody" class="container-fluid">
+                <div id="landingPageHeader" class="container-fluid">
+                    <div class="navbar">
+
+                        <nav class="navbar navbar-default" role="navigation">
+                            <div class="navbar-header">
+                                <button type="button" class="navbar-toggle" data-toggle="collapse"
+                                        data-target=".navbar-ex1-collapse">
+                                    <span class="sr-only"></span>
+                                    <span class="icon-bar"></span>
+                                    <span class="icon-bar"></span>
+                                    <span class="icon-bar"></span>
+                                </button>
+                                <a class="navbar-brand" href="#"><img src="images/ultimosoft.png"></a>
+                            </div>
+
+                            <div class="collapse navbar-collapse navbar-ex1-collapse">
+                                <ul class="nav navbar-nav" id="mainmenu">
+                                    <tabs-panel></tabs-panel>
+                                </ul>
+                                <section>
+                                    <ul class="nav navbar-nav navbar-right">
+                                        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" style="min-width: 130px" ng-model="envSelected">{{envSelected.label}}<b class="caret"></b></a>
+                                            <ul class="dropdown-menu" ng-model="envOptions">
+                                                <li ng-repeat="env in envOptions">
+                                                    <a ng-click="setEnvironment(env)"><p><span class="glyphicon glyphicon-cog"></span> {{env.label}}</p></a>
+                                                </li>
+                                            </ul>
+                                        </li>
+
+
+                                        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Welcome, {{treemapSaver.nameSaver}}<b class="caret"></b></a>
+                                            <ul class="dropdown-menu">
+                                                <li><a href="#/setting"><span class="glyphicon glyphicon-list-alt"></span> Settings</a></li>
+                                                <li class="divider"></li>
+                                                <li><a ng-click="logout()"><span class="glyphicon glyphicon-off"></span> Logout</a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </section>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div> 
+        </div>
+    <div  class="margintop" ui-view></div>
+    <script src="lib/js/d3/d3.v3.min.js"></script>
+    <script src="lib/js/bootstrap/bootstrap.min.js"></script>
+    <script src="ultimotls/audit/audit.js" type="text/javascript"></script>
+    <script src="lib/js/jsonPath/jsonPath.js" type="text/javascript"></script>
+</body>   
+</html>

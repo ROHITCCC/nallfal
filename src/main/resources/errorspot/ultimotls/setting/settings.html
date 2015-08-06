@@ -1,0 +1,558 @@
+<div id="settingpage" ng-controller="SettingsController">
+    <div class="[ col-xs-12 col-sm-12 ]">
+        <div class="panel-group" id="accordion">
+<!--            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12 text-left collapsed" data-toggle="collapse" data-target="#api" data-parent="#accordion" aria-controls="immidate"><span class="caret"></span> REST API Setup</button>
+                    </h4>
+                </div>
+                <div id="api" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <form class="form-horizontal" name="Apiform" role="form" novalidate>
+                            <div class="form-group col-sm-12"> 
+                                <div class="col-sm-1">
+                                    <label class="control-label">Payload:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="payload" value="{{settings.setting.apisetup.collections.payload}}" ng-model="settings.setting.apisetup.collections.payload" placeholder="Payload Collection..." required>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Audits:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="audit" value="{{settings.setting.apisetup.collections.audits}}" ng-model="settings.setting.apisetup.collections.audits" placeholder="Audits Collection..." required>
+                                </div>
+                            </div>
+                            <div class="form-group col-sm-12">
+                                <div class="col-sm-1">
+                                    <label class="control-label">Database:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="database" value="{{settings.setting.apisetup.database}}" ng-model="settings.setting.apisetup.database" placeholder="Database..." required>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Hostname:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="hostname" value="{{settings.setting.apisetup.hostname}}" ng-model="settings.setting.apisetup.hostname" placeholder="Hostname..." required>
+                                </div>
+                                <div class="col-sm-1">
+                                    <label class="control-label">Port:</label>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" class="form-control" name="port" value="{{settings.setting.apisetup.port}}" ng-model="settings.setting.apisetup.port" placeholder="Port..." required>
+                                </div>
+                                <div class="col-sm-2">
+                                </div>
+                            </div>
+
+                            <div class="col-sm-12" style="color: red;">
+                                <button class="btn btn-success" ng-click="savesetting()" ng-disabled="Apiform.payload.$error.required || Apiform.audit.$error.required || Apiform.database.$error.required || Apiform.hostname.$error.required || Apiform.port.$error.required" disabled="disabled">Save API setup</button>
+                                <p ng-show="Apiform.payload.$touched || Apiform.audit.$touched || Apiform.database.touched || Apiform.hostname.$touched || Apiform.port.$touched"><span ng-show="Apiform.payload.$error.required || Apiform.audit.$error.required || Apiform.database.$error.required || Apiform.hostname.$error.required || Apiform.port.$error.required">Value for: </span>
+                                <span ng-show="Apiform.payload.$error.required">Payload, </span>
+                                <span ng-show="Apiform.audit.$error.required">Audit, </span>
+                                <span ng-show="Apiform.database.$error.required">Database, </span>
+                                <span ng-show="Apiform.hostname.$error.required">Hostname, </span>
+                                <span ng-show="Apiform.port.$error.required">Port, </span>
+                                <span ng-show="Apiform.payload.$error.required || Apiform.audit.$error.required || Apiform.database.$error.required || Apiform.hostname.$error.required || Apiform.port.$error.required"><strong>required</strong></span></p>
+                            </div>  
+                        </form>
+                    </div>
+                </div>
+            </div>-->
+            <!-- second accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12 text-left collapsed" data-toggle="collapse" data-target="#env" data-parent="#accordion" aria-controls="immidate"><span class="caret"></span>  Environment Setup</button>
+                    </h4>
+                </div>
+                <div id="env" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <form name="EnvForm" role="form" novalidate>
+                            <div class="form-group bordertab ng-scope col-sm-3" data-ng-repeat="environment in environments| pagination: curPage * pageSize | limitTo: pageSize">
+                                <div class="form-group col-sm-12"> 
+                                    <div class="col-sm-4">
+                                        <label class="control-label">Name</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" ng-model="environment.name" name="name" value="{{environment.name}}"  placeholder="Name..." required uppercased>
+                                    </div>
+                                </div>
+                                <div class="form-group col-sm-12"> 
+                                    <div class="col-sm-4">
+                                        <label class="control-label">Description</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" ng-model="environment.description" name="description" value="{{environment.description}}" placeholder="Description..." required>
+                                    </div>
+                                </div>
+                                <div class="form-group col-sm-12"> 
+                                    <div class="col-sm-4">
+                                        <label class="control-label">Label</label>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" ng-model="environment.label" name="label" value="{{environment.label}}" placeholder="Label..." required>
+                                    </div>
+                                </div>
+                                <div class="form-group col-sm-12"> 
+                                    <button class=" btn btn-danger" ng-click="removeEnv($index)">Remove Environment</button>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <button class="btn addfields" ng-click="addNewEnv()">New Environment</button>
+                                <button class="btn btn-success" ng-click="savesetting('reload')" ng-disabled="EnvForm.name.$error.required || EnvForm.description.$error.required || EnvForm.label.$error.required">Save Environments</button>
+
+                                <span style="color: red;" ng-show="EnvForm.name.$error.required || EnvForm.description.$error.required || EnvForm.label.$error.required"> Values for </span>
+
+                                <span style="color: red;" ng-show="EnvForm.name.$error.required">Name, </span>
+                                <span style="color: red;" ng-show="EnvForm.description.$error.required">Description, </span>
+                                <span style="color: red;" ng-show="EnvForm.label.$error.required">Label, </span>
+                                <span style="color: red;" ng-show="EnvForm.name.$error.required || EnvForm.description.$error.required || EnvForm.label.$error.required"> <strong>required</strong> </span>
+                                <div class="pagination pagination_env pagination-centered pull-right" ng-show="environments">
+                                    <ul class="pagination-controle pagination">
+                                        <li>
+                                            <button type="button" class="btn btn-primary" ng-disabled="curPage == 0"ng-click="curPage = curPage - 1"> &lt; PREV</button>
+                                        </li>
+                                        <li>
+                                            <span>Page {{curPage + 1}} of {{ numberOfPagesEnv()}}</span>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="btn btn-primary" ng-disabled="curPage >= environments.length / pageSize - 1" ng-click="curPage = curPage + 1">NEXT &gt;</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- third accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12 text-left collapsed" data-toggle="collapse" data-target="#immidate"  data-parent="#accordion" aria-controls="immidate"><span class="caret"></span>  Immediate Notification</button>
+                    </h4>
+                </div>
+                <div id="immidate" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form name="FreqForm" role="form" class="form-inline" novalidate>
+                                    <div class="form-group bordertab col-sm-1 immidiate_refresh">                                       
+                                        <div class="col-sm-12">
+                                            <label class="control-label">Items per page :</label>
+                                            <select class="form-control smaller" ng-model='selectedNumber'  ng-options='number for number in numbers'></select>
+                                            <span class="caret" style="margin-left: -18px;margin-top: 3px;"></span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group bordertab col-sm-7 immidiate_refresh">
+                                        <h4>Immediate Notification Refresh <span id="noticebatch" class="pull-right {{SchedulerStatus}}">Scheduler server must be running in order to start/stop batch services</span></h4>
+                                        <div class="col-sm-1">
+                                            <label class="control-label">Start Time</label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <input type="text" class="form-control datetimepicker" ng-model="immediatejob.frequency.starttime" value="{{immedatejob.frequency.starttime}}" placeholder="Start Time">
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <label class="control-label">Frequency:</label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <input type="text" class="form-control" name="immDuration" value="{{notifications.immediate.jobRefreshRate.duration}}" ng-model="notifications.immediate.jobRefreshRate.duration" placeholder="Frequency" required>
+                                        </div>
+                                        <div class="col-sm-1">
+                                            <label class="control-label">Unit:</label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <select class="form-control smaller"  name="immUnit" ng-options='unit for unit in units' ng-model="notifications.immediate.jobRefreshRate.unit" required>
+                                                <option value="" disabled selected style='display:none;'>{{notifications.immediate.jobRefreshRate.unit}}</option>
+                                            </select>
+                                            <span class="caret" style="margin-left: -18px;margin-top: 3px;"></span>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <button type="button" class="btn btn-primary" ng-click="inmidateStartjob()" ng-disabled="SchedulerStatus == 'stopped' || startserviceImmediate =='started'">Start</button>
+                                            <button type="button" class="btn btn-primary" ng-click="inmidateStopjob()" ng-disabled="SchedulerStatus == 'stopped' || startserviceImmediate =='stopped'">Stop</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group bordertab col-sm-4 immidiate_refresh"> 
+                                        <h4>Report Delivery</h4>
+                                        <div class="col-sm-3">
+                                            <label class="control-label">Frequency:</label>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <input type="text" class="form-control" name="immDuration" value="{{notifications.immediate.frequency.duration}}" ng-model="notifications.immediate.frequency.duration" placeholder="Frequency" required>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <label class="control-label">Unit:</label>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <select class="form-control"  name="immUnit" ng-options='unit for unit in units' ng-model="notifications.immediate.frequency.unit" required>
+                                                <option value="" disabled selected style='display:none;'>{{notifications.immediate.frequency.unit}}</option>
+                                            </select>
+                                            <span class="caret" style="margin-left: -18px;margin-top: 3px;"></span>
+                                        </div>
+                                    </div>
+
+                                </form>
+                            </div>
+                            <div class="row">
+                                <form name="ImmiForm" role="form" class="form-inline" novalidate>
+                                    <div id="tableContainer" class="container-fluid"> 
+                                        <table class="table table-striped table-bordered table-hover" id="table">
+                                            <thead id="tableHeader">
+                                                <tr>
+                                                    <th>Environment</th>
+                                                    <th>Severity</th>
+                                                    <th>Application</th>
+                                                    <th>Interfaces</th>
+                                                    <th>Email</th>
+                                                    <th>Template</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tdbody>
+                                                <tr data-toggle="collapse" class="immidateinfo" data-ng-repeat="notification in notifications.immediate.notification| pagination: curPageImmi * pageSizeImmi | limitTo: pageSizeImmi">
+                                                    <td>
+                                                        <select class="form-control inputable" name="envid" ng-options='name.name as name.name for name in envDropdown' ng-model="notification.envid" required>
+                                                            <option style='display:none;'>{{notification.envid}}</option>
+                                                        </select>
+                                                        <span class="caret" style="margin-left: -18px;margin-top: 3px; display: none;"></span>
+                                                    </td>    
+                                                    <td col-sm-1>
+                                                        <input type="text" class="form-control inputable" id="immi_severity"  name="severity" ng-model="notification.severity" value="{{notification.severity}}" placeholder="Severity" required lowercased>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control inputable" id="immi_application" name="name" ng-model="notification.application.name" value="{{notification.application.name}}" placeholder="Application" required lowercased>
+                                                    </td>
+                                                    <td style="white-space: nowrap; overflow:hidden;" class="hideinterfacebtn interfaceimmi">
+                                                        <div class="entry input-group" data-ng-repeat="interface in notification.application.interfaces track by $index">
+                                                            <input type="text" class="form-control inputable"  name="interface" ng-model="notification.application.interfaces[$index]" value="{{interface}}" placeholder="Interfaces" required>
+                                                            <span class="input-group-btn"><button class="btn btn-remove btn-danger" ng-click="removeImmidateInterface($parent.$index, $index)">-</button></span>
+                                                            <button class="btn btn-success btn-add col-sm-11" ng-show="$last" ng-click="addImmidateInterface($parent.$index, $index)">+</button>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control inputable" id="immi_email" name="email" ng-model="notification.email" value="{{notification.email}}" placeholder="Email" required> 
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="form-control inputable" name="template" ng-model="notification.template" value="{{notification.template}}" placeholder="Template" required> 
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-danger" ng-click="removeImmidate($index)">Remove</button>
+                                                    </td>
+                                                </tr>
+                                            </tdbody>
+                                        </table>
+                                    </div>
+                                </form>
+                            </div>
+                            <button class="btn addfields" ng-click="addNewImmidate()">New Notification</button>
+                            <button class="btn btn-success" ng-click="savesetting()" ng-disabled="ImmiForm.envid.$error.required || ImmiForm.template.$error.required || ImmiForm.interface.$error.required || ImmiForm.name.$error.required || ImmiForm.email.$error.required || ImmiForm.email.$error.email || ImmiForm.severity.$error.required || FreqForm.immDuration.$error.required || FreqForm.immUnit.$error.required">Save Notifications</button>
+                            <div class="pagination pagination-centered pull-right" ng-show="notifications.immediate.notification"><!-- Pagination -->
+                                <ul class="pagination-controle pagination">
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageImmi == 0"ng-click="curPageImmi = curPageImmi - 1"> &lt; PREV</button>
+                                    </li>
+                                    <li>
+                                        <span>Page {{curPageImmi + 1}} of {{ numberOfPagesImmi()}}</span>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageImmi >= notifications.immediate.notification.length / pageSizeImmi - 1" ng-click="curPageImmi = curPageImmi + 1">NEXT &gt;</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Forth accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12 text-left collapsed" data-toggle="collapse" data-target="#reports" data-parent="#accordion" aria-controls="immidate"><span class="caret"></span>  Reports</button>
+                    </h4>
+                </div>
+                <div id="reports" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form class="form-inline" novalidate>
+                                    <div class="form-group bordertab col-sm-3">                                       
+                                        <div class="col-sm-12">
+                                            <label class="control-label">Items per page :</label>
+                                            <select class="form-control" ng-model='selectedNumberAggri'  ng-options='number for number in numbers'></select>
+                                            <span class="caret" style="margin-left: -18px;margin-top: 3px;"></span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group  col-sm-8">
+                                        <div class="col-sm-9"></div>
+                                    </div> 
+                                </form>
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <div id="tableContainer" class="container-fluid"> 
+                                    <table class="table table-striped table-bordered table-hover" id="table">
+                                        <thead id="tableHeader">
+                                            <tr>
+                                                <th>Environment</th>
+                                                <th>Document ID</th>
+                                                <th>Application</th>
+                                                <th>Interface</th>
+                                                <th>Error Type</th>
+                                                <th>Start Time</th>
+                                                <th>Duration</th>
+                                                <th>Unit</th>
+                                                <th>Email Address</th>
+                                                <th>Template<th>
+                                            </tr>
+                                        </thead>
+                                        <tr data-toggle="collapse" class="immidateinfo" data-ng-repeat="(key, report) in reports| pagination: curPageAggri * pageSizeAggri | limitTo: pageSizeAggri">                               
+                                            <td class="col-md-1">
+                                                <select class="form-control inputable" name="envidrep" ng-options='name.name as name.name for name in envDropdown' ng-model="report.report.envid" style="display: inline-block; width: 76%;">
+                                                    <option style='display:none;'>{{report.report.envid}}</option>
+                                                </select>
+                                                <span class="caret" style="margin-left: -18px;margin-top: 3px; display: none;"></span>
+                                            </td>
+                                            <td class="small" style="width: 10%;">
+                                                {{reports[key]._id.$oid}}
+                                            </td>
+                                            <td class="col-md-1">
+                                                <input type="text" class="form-control inputable" ng-model="report.report.application" value="{{report.report.application}}" placeholder="App" required lowercased>
+                                            </td>
+                                            <td class="col-md-1">
+                                                <input type="text" class="form-control inputable" ng-model="report.report.interface1" value="{{report.report.interface1}}"  placeholder="Interface">
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable" ng-model="report.report.errorType" value="{{report.report.errorType}}" placeholder="ErrorType"lowercased>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable datetimepicker" ng-model="report.report.frequency.starttime" value="{{report.report.frequency.starttime}}" placeholder="Start Time">
+                                            </td>
+                                            <td class="col-md-1">
+                                                <input type="text" class="form-control inputable" value="{{report.report.frequency.duration}}" ng-model="report.report.frequency.duration" placeholder="Duration" required>
+                                            </td>
+                                            <td class="col-md-1">
+                                                <select class="form-control inputable"   ng-options='unit for unit in units' ng-model="report.report.frequency.unit" required style="display: inline-block; width: 76%;">
+                                                    <option value="" disabled selected style='display:none;'>{{report.report.frequency.unit}}</option>
+                                                </select>
+                                                <span class="caret" style="margin-left: -18px;margin-top: 3px; display: none;"></span>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable" value="{{report.report.email}}" ng-model="report.report.email" placeholder="Email" required>
+                                            </td>
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable" value="{{report.report.template}}" ng-model="report.report.template" placeholder="Template" required>
+                                            </td>
+                                            <td class="col-md-1">
+                                                <button type="submit" class="btn btn-success" ng-click="saveAggrigated($index)">Save</button>
+                                                <button class="btn btn-danger pull-right"  confirmation-needed="Sure you want to delete this report?" ng-click="removeAggrigated($index)">Remove</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <button class="btn addfields" ng-click="addNewAggrigated()">New Report</button>
+                            <div class="pagination pagination-centered pull-right" ng-show="reports"> <!-- Pagination Aggrigated -->
+                                <ul class="pagination-controle pagination">
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageAggri == 0"ng-click="curPageAggri = curPageAggri - 1"> &lt; PREV</button>
+                                    </li>
+                                    <li>
+                                        <span>Page {{curPageAggri + 1}} of {{ numberOfPagesAggri()}}</span>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="btn btn-primary" ng-disabled="curPageAggri >= reports.length / pageSizeAggri - 1" ng-click="curPageAggri = curPageAggri + 1">NEXT &gt;</button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- fifth accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12 text-left collapsed" data-toggle="collapse" data-target="#scheduler" data-parent="#accordion" aria-controls="immidate"><span class="caret"></span>  Scheduler</button>
+                    </h4>
+                </div>
+                <div id="scheduler" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form name="Scheduler" class="form-inline" novalidate>
+                                    <div class="form-group bordertab col-sm-4 inlinestyle">
+
+                                        <h4>Scheduler service  </h4>  <h4 class="pull-right">Server status</h4><div id="numberCircle" class='{{SchedulerStatus}} pull-right'></div>
+                                        <div class="row">
+                                            <div class="col-sm-2">
+                                                <label class="control-label">Properties File:</label>
+                                            </div>
+                                            <div class="col-sm-2 text-left">
+                                                <input type="text" class="form-control" name="sched_prop" value="" ng-model="schedulerObj.propertiesFile" placeholder="Properties file" required>
+                                            </div>
+                                            <div class="col-sm-4 pull-right">
+                                                <button type="button" class="btn btn-primary" ng-click="startscheduler()" ng-disabled="SchedulerStatus == 'started'">Start</button>
+                                                <button type="button" class="btn btn-primary" ng-click="stopscheduler()" ng-disabled="SchedulerStatus == 'stopped'">Stop</button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </form>
+                                <form name="batchScheduler" class="form-inline" novalidate>
+                                    <div class="form-group bordertab col-sm-8">
+                                        <h4>Batch replay job start/stop <span id="noticebatch" class="pull-right {{SchedulerStatus}}">Scheduler server must be running in order to start/stop batch services</span></h4>
+                                        <div class="row">
+                                            <div class="col-sm-1">
+                                                <label class="control-label">Start time:</label>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <input type="text" class="form-control datetimepicker" name="batchStartime" value="{{batch.frequency.starttime}}" style="width: 100%;" ng-model="batch.frequency.starttime" placeholder="Start Time">
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <label class="control-label">Frequency:</label>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <input type="text" class="form-control" name="batchFrequency" value="{{batch.frequency.duration}}" style="width: 100%;" ng-model="batch.frequency.duration" placeholder="Frequency" required>
+                                            </div>
+                                            <div class="col-sm-1">
+                                                <label class="control-label">Unit:</label>
+                                            </div>
+                                            <div class="col-sm-2">
+                                                <select class="form-control"  name="batchUnit" ng-options='unit for unit in units' ng-model="batch.frequency.unit" required>
+                                                    <option value="" disabled selected style='display:none;'>{{batch.frequency.unit}}</option>
+                                                </select>
+                                                <span class="caret" style="margin-left: -18px;margin-top: 3px;"></span>
+                                            </div>
+
+                                            <div class="col-sm-2 pull-right">
+                                                <button type="button" class="btn btn-primary" ng-click="batchstart()" ng-disabled="batchScheduler.$invalid || SchedulerStatus == 'stopped' || startserviceBatch =='started'">Start</button>
+                                                <button type="button" class="btn btn-primary" ng-click="batchstop()" ng-disabled="SchedulerStatus == 'stopped' || startserviceBatch =='stopped'">Stop</button>
+                                            </div>
+                                            <div class="col-sm-12" ng-show="batchScheduler.batchUnit.$invalid && batchScheduler.batchUnit.$touched || batchScheduler.batchFrequency.$invalid && batchScheduler.batchFrequency.$touched">
+                                                <span class="error">Frequency and Unit is required in order to start the batch scheduler</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="row">
+                                <form name="Schedulerreport" role="form" class="form-inline" novalidate>
+                                    <div id="tableContainer" class="container-fluid"> 
+                                        <table class="table table-striped table-bordered table-hover" id="table">
+                                            <thead id="tableHeader">
+                                                <tr>
+                                                    <th>Key</th>
+                                                    <th>Next Fire Time</th>
+                                                    <th>Status</th>
+                                                    <th class="pull-right"><button class="btn" ng-click="schedulerJob()">Refresh All</button></th>
+                                                </tr>
+                                            </thead>
+                                            <tdbody>
+                                                <tr data-toggle="collapse" id="{{$index}}" class="SchedulerJob" data-ng-repeat="scheduler in schedulers">
+                                                    <td class="col-md-3">{{scheduler.jobKey}}</td>
+                                                    <td class="col-md-3">{{scheduler.nextFireTime| date : 'medium'}}</td>
+                                                    <td class="col-md-3">{{scheduler.status}}</td>
+                                                    <td>
+                                                        <button type="submit" ng-click="resumeJob($index)" class="btn">Resume</button>
+                                                        <button type="submit" ng-click="pauseJob($index)" class="btn">Suspend</button>
+                                                    </td>
+                                                </tr>
+                                            </tdbody>
+                                        </table>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- sixth accordion -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <button type="button" class="tabselector col-sm-12 text-left collapsed" data-toggle="collapse" data-target="#batchjobs" data-parent="#accordion" aria-controls="immidate"><span class="caret"></span>  Batch Jobs</button>
+                    </h4>
+                </div>
+                <div id="batchjobs" class="panel-collapse collapse">
+                    <div class="panel-body" >
+                        <div class="col-sm-12">
+                            <div class="row">
+                                <form class="form-inline" novalidate>
+                                    <div class="form-group bordertab col-sm-3">                                       
+                                        <div class="col-sm-12">
+                                            <label class="control-label">Items per page :</label>
+                                            <select class="form-control" ng-model='selectedNumberBatchJobs'  ng-options='number for number in numbers'></select>
+                                            <span class="caret" style="margin-left: -18px;margin-top: 3px;"></span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group  col-sm-8">
+                                        <div class="col-sm-9"></div>
+                                    </div> 
+                                </form>
+                            </div>
+                            <div class="row">
+                                <form name="BatchJobreport" role="form" class="form-inline" novalidate>
+                                    <div id="tableContainer" class="container-fluid"> 
+                                        <table class="table table-striped table-bordered table-hover" id="table">
+                                            <thead id="tableHeader">
+                                                <tr>
+                                                    <th><label><input class="batchcheck" id="batchSelectAll" ng-click="checkAll(this)" type="checkbox"> Select All</label>
+                                                        <button type="submit" ng-click="DeleteSelectedBatch()" class="btn">Delete Selected</button>
+                                                    </th>
+                                                    <th>Replay Timestamp</th>
+                                                    <th>Replay by</th>
+                                                    <th>Batch Timestamp</th>
+                                                    <th>Type</th>
+                                                    <th>Status</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tdbody>
+                                                <tr data-toggle="collapse" id="{{$index}}" class="SchedulerJob" data-ng-repeat="batchjob in Batchjobs | pagination: curPageBatchjob * pageSizeBatchjob | limitTo: pageSizeBatchjob">
+                                                    <td style="width: 10%"  ng-click="$event.stopPropagation()">
+                                                    <input type="checkbox" name="auditCheckbox" class="batchcheckdata" ng-model="selectedBatch[batchjob._id.$oid]"></td>
+                                                    <td>{{batchjob.replaySavedTimestamp.$date| date : 'medium'}}</td>
+                                                    <td>{{batchjob.replayedBy}}</td>
+                                                    <td>{{batchjob.batchProcessedTimestamp.$date| date : 'medium'}}</td>
+                                                    <td>{{batchjob.replayDestinationInfo.type}}</td>
+                                                    <td>{{batchjob.status}}</td>
+                                                    <td>
+                                                        <button type="submit" ng-click="batchchooser($index)" ng-show="batchjob.status == 'failed'" class="btn">Reprocess</button>
+                                                        <!--<button type="submit" ng-click="pauseJob($index)" ng-show="batchjob.status == 'failed'" class="btn">Suspend</button>-->
+                                                    </td>
+                                                </tr>
+                                            </tdbody>
+                                        </table>
+                                    </div>
+                                </form>
+                                <div class="pagination pagination-centered pull-right" ng-show="notifications.immediate.notification"><!-- Pagination -->
+                                    <ul class="pagination-controle pagination">
+                                        <li>
+                                            <button type="button" class="btn btn-primary" ng-disabled="curPageBatchjob == 0"ng-click="curPageBatchjob = curPageBatchjob - 1"> &lt; PREV</button>
+                                        </li>
+                                        <li>
+                                            <span>Page {{curPageBatchjob + 1}} of {{ numberOfPagesBatch()}}</span>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="btn btn-primary" ng-disabled="curPageBatchjob >= Batchjobs.length / pageSizeBatchjob - 1" ng-click="curPageBatchjob = curPageBatchjob + 1">NEXT &gt;</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- accordion general  -->
+    </div> <!-- Panel group general -->  
+</div> <!-- col general -->
+</div> <!--Controller -->
