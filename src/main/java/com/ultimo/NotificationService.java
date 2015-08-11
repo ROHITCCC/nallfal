@@ -63,13 +63,7 @@ public class NotificationService extends ApplicationLogicHandler {
 				location=configMap.get("where").toString();
 			}
 		}
-		LOGGER.info("got the email erver, port, emailID, username, password, and the location of the template file");
-		LOGGER.trace("hostname: "+hostname);
-		LOGGER.trace("port: "+port);
-		LOGGER.trace("emailID: "+fromEmailId);
-		LOGGER.trace("username: "+username);
-		LOGGER.trace("password: "+password);
-		LOGGER.trace("location of template: "+location);
+		LOGGER.info("got the email erver, port, emailID, username, password, and the location of the template file. hostname: "+hostname+" port: "+port+" emailID: "+fromEmailId+" username: "+username+" password: "+password+" location of template: "+location);
 	}
 
 	public NotificationService(PipedHttpHandler next, Map<String, Object> args) {
@@ -85,11 +79,9 @@ public class NotificationService extends ApplicationLogicHandler {
 	}
 	
 	public static boolean validateTemplate(String template){
-		LOGGER.info("validating template");
-		LOGGER.info("checking to see if template: "+template+" exists");
-		LOGGER.info("getting the location to look for from the config file");
+		LOGGER.info("checking to see if template: "+template+" exists and has a class associated with it");
 		location=MongoDBClientSingleton.getErrorSpotConfig("u-template-location");
-		LOGGER.info("checking for the template in location:"+location);
+		LOGGER.info("getting the location to look for from the config file. checking for the template in location:"+location);
 		File file = new File(location+"/"+template);
 		
 		//checks if template exists
@@ -106,7 +98,7 @@ public class NotificationService extends ApplicationLogicHandler {
 				LOGGER.info("class is not in the given location, checking to see if it exists in the default package: com.ultimo");
 				Class.forName("com.ultimo."+template);
 			}
-			LOGGER.info("the template has  "+template+".class associated with it");
+			LOGGER.info("the template has  "+template+".class associated with it, and therefore is a valid template");
 			return true;
 		}
 		catch(ClassNotFoundException e){
