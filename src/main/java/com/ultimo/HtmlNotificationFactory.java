@@ -15,18 +15,17 @@ public class HtmlNotificationFactory {
 	ClassLoader cl;
 
 	//use getJob method to get object of type NotificationJob 
-	public NotificationTemplate getNotificationClass(String template){
+	public NotificationTemplate getNotificationClass(String template1){
 		LOGGER.info("Started HTMLNotificationFactory");
-		LOGGER.info("Getting the right class for template: "+template);
 		String location="";
-		template=template.replaceAll("\\.html", "");
-		LOGGER.info("Looking for class: "+template+".class");
+		String template=template1.replaceAll("\\.html", "");
+		LOGGER.info("Getting the corresponding class for template: "+template1+" Looking for class: "+template+".class");
 		try{
 			Class<?> cls=null;
 			if(template.equals("ImmediateNotification") || template.equals("ReportNotification")){
 				//if it is ImmediateNotification or ReportNotification, load the default classes form the com.ultimo package
 				location="com.ultimo.";
-				LOGGER.info("a default Notification is specified, therefore looking under com.ultimo");
+				LOGGER.info(template+" is a default class under com.ultimo");
 				cls=Class.forName(location+template);
 			}
 			else{
@@ -46,7 +45,7 @@ public class HtmlNotificationFactory {
 			    cls = cl.loadClass(template);
 			}
 			NotificationTemplate notificationClass= (NotificationTemplate)cls.newInstance();
-			LOGGER.info("found :"+notificationClass.getClass().toString());
+			LOGGER.info("found : "+notificationClass.getClass().toString());
 			return notificationClass;
       	}
 		catch (MalformedURLException e) {
