@@ -26,7 +26,7 @@ public class ImmediateNotification implements NotificationTemplate{
 			
 			//Retrieves template
 			Document doc = Jsoup.parse(file,null); 
-			LOGGER.debug("Template " + " has been retrieved.");
+			LOGGER.debug("Template has been retrieved.");
 			
 			boolean row = false;
 			//Store the fields and values together in rows of the template
