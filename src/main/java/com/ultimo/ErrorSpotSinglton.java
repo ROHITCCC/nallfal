@@ -54,7 +54,6 @@ public class ErrorSpotSinglton implements IAuthToken{
 
     private ErrorSpotSinglton() {
         if (!initialized) {
-        	LOGGER.error("ErrorSpotSinglton is not initialized");
             throw new IllegalStateException("not initialized");
         }
 
@@ -85,12 +84,11 @@ public class ErrorSpotSinglton implements IAuthToken{
         	DBObject settingObject = (DBObject)setting.get("setting");
         	DBObject notficationObject = (DBObject)settingObject.get("notification");
         	DBObject immediateObject = (DBObject)notficationObject.get("immediate");
-        	
+        	LOGGER.trace("Immediate Notification: " + immediateObject.toString());
         	
         	
         	notifications = new JSONArray(((DBObject)immediateObject.get("notification")).toString());
         	frequency = new JSONObject(((DBObject)immediateObject.get("frequency")).toString());
-        	LOGGER.debug("Frequency is " + frequency.toString());
         	
         	//convert JSONArray into map for faster access.
         	boolean isImmediateNotificationExists = false;
@@ -125,9 +123,7 @@ public class ErrorSpotSinglton implements IAuthToken{
 	        			LOGGER.debug("Interface name stored in settings document is " + interfaceName);
 	        			LOGGER.debug("Severity stored in settings document is " + severity);
 	        			LOGGER.debug("Envid stored in settings document is " + envid);
-	        			
-	        			LOGGER.debug("Putting information from settings document into a map...");
-	        			
+	        				        			
 	        			notificationsMap.put(key, currentNotification);
 	        			
 	        		}
@@ -156,6 +152,8 @@ public class ErrorSpotSinglton implements IAuthToken{
     	{
     		match = true;
     		LOGGER.debug("Notification has been configured.");
+    	} else {
+    		LOGGER.debug("No match found between the audit fields and settings document fields");
     	}
     	
     	return match;
@@ -192,7 +190,7 @@ public class ErrorSpotSinglton implements IAuthToken{
         		}
         		else
         		{
-        			LOGGER.debug("The previous notification has not yet expired.");
+        			LOGGER.debug("Duration of previous notification has not yet expired.");
         		}
     		    
     		} else {

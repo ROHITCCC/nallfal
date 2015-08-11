@@ -74,7 +74,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				InputStream input = exchange.getInputStream();
 				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
 				int i = 0;
-				LOGGER.debug("Reading input...");
+				LOGGER.debug("InsertService executing...");
 				readLoop : while(true)
 						{
 							
@@ -102,7 +102,6 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				/*
 				 * Read and Parse Multipart/Mixed Message.     
 				 */
-					LOGGER.debug("Parsing multiplart/mixed message...");
 				    byte[] boundary = delimiter.getBytes();
 				    byte[] contents = payload.getBytes();
 			        ByteArrayInputStream content = new ByteArrayInputStream(contents);
@@ -118,7 +117,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 					           auditHeaders = multipartStream.readHeaders();
 					            multipartStream.readBodyData(body);
 					             audit = new String(body.toByteArray());
-						        LOGGER.info("Audit Recieved");
+						        LOGGER.debug("Audit extracted");
 						        LOGGER.trace(("Audit Headers: "+ auditHeaders));
 						        LOGGER.trace("Audit Body: + " + audit);
 
@@ -132,7 +131,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 
 					            multipartStream.readBodyData(body);
 					            payload = new String(body.toByteArray());
-						        LOGGER.info("Payload Recieved");
+						        LOGGER.debug("Payload extracted");
 						        LOGGER.trace(("Payload Headers: "+ payloadHeaders));
 						        LOGGER.trace("Payload Body: + " + payload);
 
@@ -199,35 +198,29 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			       
 			       // Decide a ObjectID fro the payload. 
 			       
-			        LOGGER.trace("Payload: " + payload);
 			        ObjectId id = new ObjectId();
-			        LOGGER.trace("Payload Object ID: " + id.toString());
 			        
 			        //Insert the Payload in to the Payload Collection. 
 			        
-			        LOGGER.debug("Inserting payload...");
 					String status = payloadInsert(id, payloadInput, context, exchange);
-					LOGGER.debug("Payload Insert: " + status);
+					LOGGER.info("Payload Insert: " + status);
 					
 					if (status.equalsIgnoreCase("Success"))
 					{
-						
-						LOGGER.trace("Audit to be inserted" + audit);
-	
+							
 						DBObject inputDBObject = (DBObject) JSON.parse(audit);
 						
 						
 				     //If the payload insert is successful, then insert the audit. 
 	
-						LOGGER.debug("Inserting audit...");
 						String auditInsertStatus = auditInsert(id, inputDBObject, context, exchange);
 						if (auditInsertStatus == "Success")
 						{
-							LOGGER.debug("Audit Inserted Successfully");
+							LOGGER.info("Audit Inserted Successfully");
 						}
 						else 
 						{
-							LOGGER.debug("Audit Insert Failed");
+							LOGGER.info("Audit Insert Failed");
 						}
 					}
 					
@@ -304,23 +297,30 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
    		 		
 				 inputObject.removeField("dataLocation");
 			     inputObject.put("dataLocation", referenceID.toString());
-	    		 LOGGER.debug("Adding the reference ID to the audit");
+	    		 LOGGER.debug("Adding the datalocation " + referenceID.toString() + " to the audit");
 		         if (!inputObject.containsField("timestamp"))
 		         {
 		        	 LOGGER.debug("Audit does not contain timestamp");
 		         }
-	    		 LOGGER.debug("Reformatting audit's timestamp");
 		         String timestamp =  inputObject.get("timestamp").toString();
 		 	     Date gtDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(timestamp);
-		 	     LOGGER.trace("Reformatted timestamp for audit with Object ID " + referenceID.toString() + ": " + gtDate.toString());
 		         inputObject.removeField("timestamp");
 		         inputObject.put("timestamp",gtDate);
 			     context.setContent(inputObject);
 			     MongoClient client = getMongoConnection(exchange, context);
 				 DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
 				 DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
+				 LOGGER.trace("Audit to be inserted: " + inputObject);
 				 collection.insert(inputObject);
-				    
+				 DBObject query = new BasicDBObject("dataLocation", referenceID.toString());
+				 DBCursor cursor = collection.find(query);
+				 while (cursor.hasNext()) {
+					 
+					 BasicDBObject obj = (BasicDBObject) cursor.next();
+					 LOGGER.debug("Audit Object ID: " + obj.getString("_id"));
+					 
+				 }
+				 
 
 			     status = "Success";
 			     
@@ -354,34 +354,31 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			    	 LOGGER.debug("Audit interface: " + auditInterface);
 			     }
 			     
-
-			     if(ErrorSpotSinglton.isInitialized()){
-			    	 LOGGER.debug("Retrieving information from settings document...");
+			     if (!ErrorSpotSinglton.isInitialized()) 
+			     	ErrorSpotSinglton.init();
 			     
-			    	 JSONObject config = null;
-			    	 config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
+			     JSONObject config = null;
+			     config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
 			     
-			    	 if (config != null)
-			    	 {
-			    		 String toEmailId = config.getString("email");
-			    		 LOGGER.debug("Email retrieved from settings document: " + toEmailId);
+			     if (config != null)
+			     {
+			    	 String toEmailId = config.getString("email");
+			    	 LOGGER.debug("Email retrieved from settings document: " + toEmailId);
 			     
-			    		 String template = config.getString("template");
-			    		 LOGGER.debug("Template retrieved from settings document: " + template);
+			    	 String template = config.getString("template");
+			    	 LOGGER.debug("Template retrieved from settings document: " + template);
 			     
-			    		 //Call NotificationService
-			    		 auditContent = inputObject.toString();
-			    		 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
-			    		 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
-			    		 LOGGER.debug("NotificationService called.");
-			    		 LOGGER.debug("Notification sent to " + toEmailId); 
-			    	 }
-			    	 else
-			    	 {
-			    		 LOGGER.debug("Duration of previous notification has not yet expired. No notification sent.");
-			    	 }
-			     
+			    	 //Call NotificationService
+			    	 auditContent = inputObject.toString();
+			    	 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
+			    	 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
+			    	 LOGGER.debug("NotificationService called");
+			    	 LOGGER.debug("Notification sent to " + toEmailId); 
 			     }
+			     else
+			     {
+			    	 LOGGER.debug("No notification sent.");
+			     } 
 			     
 	    	}
 	    catch(	java.text.ParseException e) 
