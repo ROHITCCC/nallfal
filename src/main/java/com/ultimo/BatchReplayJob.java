@@ -34,18 +34,16 @@ public class BatchReplayJob implements Job{
 	
 	@Override
 	public void execute(JobExecutionContext context) throws JobExecutionException {
-		LOGGER.info("excecuting BatchReplayJob");
 		//connect to appropriate cdb and collection
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
 		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
 		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-batch-replay-collection");
         DB database = client.getDB(dbname);
         DBCollection collection = database.getCollection(collectionName);
-        LOGGER.trace("connected to db: "+dbname);
-        LOGGER.info("connected to collection: "+collectionName);
+        LOGGER.info("excecuting BatchReplayJob. connecting to db: "+ dbname+" and collection: "+collectionName);
         
         //query the documents the do not have status as processed or processing
-        LOGGER.info("querring the documents whose status field in not processed or processing");
+        LOGGER.info("querring the documents whose status field in not processed or processing or failed");
         BasicDBList queryList = new BasicDBList();
         queryList.add("processed");
         queryList.add("processing");
@@ -53,12 +51,12 @@ public class BatchReplayJob implements Job{
         BasicDBObject whereQuery = new BasicDBObject("status", new BasicDBObject("$nin", queryList));
         LOGGER.trace("the query's fields: "+whereQuery.toString());
 		DBCursor cursor= collection.find(whereQuery).sort((DBObject)JSON.parse("{ \"replaySavedTimestamp\": 1 }"));
-		LOGGER.info("found "+cursor.size()+" document in the database that match this criteria");
+		LOGGER.info("found "+cursor.size()+" document in the database whose status field in not processed or processing of failed");
 		
 		while(cursor.hasNext()){
 			//get the document
 			DBObject document = cursor.next();
-	        LOGGER.info("processing document: "+document.get("_id").toString());
+	        LOGGER.info("calling BatchReplayService's batchHandleRequest on document : "+document.get("_id").toString());
 	        LOGGER.trace("docuemnt: "+document.toString());
 	        
 	        //change status to processing
@@ -79,14 +77,16 @@ public class BatchReplayJob implements Job{
 				failedDocument.put("status", "failed");
 				collection.update(processingDocument,failedDocument);
 				LOGGER.error("unspecified error with BatchReplayService's BatchHandleRequest/handleBatch");
+				LOGGER.error("updating the status of document: "+ document.get("_id").toString()+ " to failed");
 				LOGGER.error("the error: ",e);
 				continue;
 			}
-			LOGGER.info(failedAuditsMap.size()+" audits failed");
+			LOGGER.info(failedAuditsMap.size()+" audits failed in the document: "+document.get("_id").toString());
 			
 			//check if all the audits failed, if so change the stus of the current document to failed
 			JSONArray auditsArray = new JSONArray(document.get("auditID").toString());
 			if(failedAuditsMap.size()!= 0 && failedAuditsMap.size()==auditsArray.length()){
+				LOGGER.warn("all the audits of document: "+document.get("_id").toString()+" failed, so updating the status of the entire document to failed");
 				DBObject failedDocument = (DBObject)JSON.parse(document.toString());
 				failedDocument.removeField("status");
 				failedDocument.put("status", "failed");
@@ -104,7 +104,6 @@ public class BatchReplayJob implements Job{
 	 			failedDocument.removeField("auditID");
 	 			failedDocument.put("status","failed");
 	 			failedDocument.put("parentID", document.get("_id").toString());
-	 			LOGGER.info("failed document's parnet's ID:"+document.get("_id").toString());
 	 			
 	 			//get the failed ID's in a list to pass as an array
 	 			BasicDBList failedAuditList = new BasicDBList();
@@ -118,18 +117,17 @@ public class BatchReplayJob implements Job{
 	 			
 	 			//insert the fialed docuemnt
 	 			collection.insert(failedDocument);
-	 			LOGGER.info("added a document with failed auditID's");
-	 			LOGGER.trace("the document's id: "+failedDocument.get("id"));
+	 			LOGGER.info("added a document with failed auditID's from document: "+document.get("_id").toString()+" into new document with ID: "+failedDocument.get("_id").toString());
 			}
 			//change the document to processed and update batchProcessedTimestamp
-			DBObject processedDocuemnt = (DBObject)JSON.parse(processingDocument.toString());
-			processedDocuemnt.removeField("status");
-			processedDocuemnt.put("status", "processed");
-			processedDocuemnt.removeField("batchProcessedTimestamp");
-			processedDocuemnt.put("batchProcessedTimestamp", new Date());
-			collection.update(processingDocument,processedDocuemnt);
-			LOGGER.info("the batchProcessedTimestamp: "+context.getFireTime());
-			LOGGER.trace("the processed doument: "+processedDocuemnt.toString());
+			DBObject processedDocument = (DBObject)JSON.parse(processingDocument.toString());
+			processedDocument.removeField("status");
+			processedDocument.put("status", "processed");
+			processedDocument.removeField("batchProcessedTimestamp");
+			processedDocument.put("batchProcessedTimestamp", new Date());
+			collection.update(processingDocument,processedDocument);
+			LOGGER.info("this batch document: "+processedDocument.get("_id").toString()+" has been processed at: "+context.getFireTime());
+			LOGGER.trace("the processed doument: "+processedDocument.toString());
 		}
 	}
 }
