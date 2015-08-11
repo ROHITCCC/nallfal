@@ -82,6 +82,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 			}
 			else
 			{
+				LOGGER.debug("Reformatting the result payload...");
 				String result = jsonToPayload(resultDocument);
 				LOGGER.trace("Query Result"+result);
 				int code = HttpStatus.SC_ACCEPTED;
@@ -135,18 +136,21 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		try{
 			if (contentType.equalsIgnoreCase("application/xml"))
 			{
+				LOGGER.debug("Content-type is application/xml, converting to JSON...");
 				JSONObject obj =  JSONML.toJSONObject(input);
 				output = (DBObject) JSON.parse(obj.toString());
 				output.put("errorSpotContentType","application/xml");
 			}
 			else if (contentType.equalsIgnoreCase("application/json"))
 			{
+				LOGGER.debug("Content-type is application/json, parsing input...");
 				output = (DBObject) JSON.parse(input);
 				output.put("errorSpotContentType","application/json");
 	
 			}
 			else if (contentType.equalsIgnoreCase("text/plain"))
 			{
+				LOGGER.debug("Content-type is text/plain, converting to JSON...");
 		        String intermediateJSON = "{\"payload\" : \""+ input.replace("\"", "&quot;") + "\"}";
 		        output = (DBObject) JSON.parse(intermediateJSON);
 				output.put("errorSpotContentType","text/plain");
@@ -175,6 +179,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 	protected static String jsonToPayload(DBObject inputObject)
 	{
 		
+		LOGGER.debug("Converting from JSON back to payload format...");
 		String contentType = inputObject.get("errorSpotContentType").toString();
 		String output = "";
 		if (contentType.equalsIgnoreCase("application/json"))

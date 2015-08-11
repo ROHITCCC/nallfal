@@ -74,6 +74,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				InputStream input = exchange.getInputStream();
 				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
 				int i = 0;
+				LOGGER.debug("Reading input...");
 				readLoop : while(true)
 						{
 							
@@ -101,6 +102,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				/*
 				 * Read and Parse Multipart/Mixed Message.     
 				 */
+					LOGGER.debug("Parsing multiplart/mixed message...");
 				    byte[] boundary = delimiter.getBytes();
 				    byte[] contents = payload.getBytes();
 			        ByteArrayInputStream content = new ByteArrayInputStream(contents);
@@ -126,7 +128,6 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			        	else if(m==1)
 			        	{
 				            payloadHeaders = multipartStream.readHeaders();
-				            System.out.println(payloadHeaders);
 					            ByteArrayOutputStream body = new ByteArrayOutputStream();
 
 					            multipartStream.readBodyData(body);
@@ -204,6 +205,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			        
 			        //Insert the Payload in to the Payload Collection. 
 			        
+			        LOGGER.debug("Inserting payload...");
 					String status = payloadInsert(id, payloadInput, context, exchange);
 					LOGGER.debug("Payload Insert: " + status);
 					
@@ -217,6 +219,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 						
 				     //If the payload insert is successful, then insert the audit. 
 	
+						LOGGER.debug("Inserting audit...");
 						String auditInsertStatus = auditInsert(id, inputDBObject, context, exchange);
 						if (auditInsertStatus == "Success")
 						{
@@ -268,40 +271,48 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		        */
 	     
 	    		 //Makes audit's envid field into uppercase
+	    		 LOGGER.debug("Converting audit's envid value to uppercase");
    		 		 String uppercaseEnvid = inputObject.get("envid").toString().toUpperCase();
    		 		 inputObject.removeField("envid");
    		 		 inputObject.put("envid", uppercaseEnvid);
    		 		 
    		 	     //Makes audit's application, transactionDomain, transactionType, severity, and errorType fields into lowercase
+	    		 LOGGER.debug("Converting audit's application value to lowercase");
    		 		 String lowercaseApplication = inputObject.get("application").toString().toLowerCase();
    		 		 inputObject.removeField("application");
   		 		 inputObject.put("application", lowercaseApplication);
   		 		 
+	    		 LOGGER.debug("Converting audit's transaction domain value to lowercase");
    		 		 String lowercaseTDomain = inputObject.get("transactionDomain").toString().toLowerCase();
    		 		 inputObject.removeField("transactionDomain");
  		 		 inputObject.put("transactionDomain", lowercaseTDomain);
  		 		 
+	    		 LOGGER.debug("Converting audit's transaction value to lowercase");
    		 		 String lowercaseTType = inputObject.get("transactionType").toString().toLowerCase();
    		 		 inputObject.removeField("transactionType");
  		 		 inputObject.put("transactionType", lowercaseTType);
  		 		 
+	    		 LOGGER.debug("Converting audit's severity value to lowercase");
    		 	     String lowercaseSeverity = inputObject.get("severity").toString().toLowerCase();
    		 	     inputObject.removeField("severity");
 		 		 inputObject.put("severity", lowercaseSeverity);
 		 		 
+	    		 LOGGER.debug("Converting audit's error type value to lowercase");
    		         String lowercaseEType = inputObject.get("errorType").toString().toLowerCase();
    		 		 inputObject.removeField("errorType");
    		 		 inputObject.put("errorType", lowercaseEType);
    		 		
 				 inputObject.removeField("dataLocation");
 			     inputObject.put("dataLocation", referenceID.toString());
+	    		 LOGGER.debug("Adding the reference ID to the audit");
 		         if (!inputObject.containsField("timestamp"))
 		         {
 		        	 LOGGER.debug("Audit does not contain timestamp");
 		         }
+	    		 LOGGER.debug("Reformatting audit's timestamp");
 		         String timestamp =  inputObject.get("timestamp").toString();
 		 	     Date gtDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(timestamp);
-		 	     System.out.println(gtDate.toString());
+		 	     LOGGER.trace("Reformatted timestamp for audit with Object ID " + referenceID.toString() + ": " + gtDate.toString());
 		         inputObject.removeField("timestamp");
 		         inputObject.put("timestamp",gtDate);
 			     context.setContent(inputObject);
@@ -345,30 +356,30 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     
 
 			     if(ErrorSpotSinglton.isInitialized()){
-			     LOGGER.debug("Retrieving information from config...");
+			    	 LOGGER.debug("Retrieving information from settings document...");
 			     
-			     JSONObject config = null;
-				config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
+			    	 JSONObject config = null;
+			    	 config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
 			     
-			     if (config != null)
-			     {
-			    	 String toEmailId = config.getString("email");
-			    	 LOGGER.debug("Email retrieved: " + toEmailId);
+			    	 if (config != null)
+			    	 {
+			    		 String toEmailId = config.getString("email");
+			    		 LOGGER.debug("Email retrieved from settings document: " + toEmailId);
 			     
-			    	 String template = config.getString("template");
-			    	 LOGGER.debug("Template retrieved: " + template);
+			    		 String template = config.getString("template");
+			    		 LOGGER.debug("Template retrieved from settings document: " + template);
 			     
-			    	 //Call NotificationService
-			    	 auditContent = inputObject.toString();
-			    	 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
-			    	 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
-			    	 LOGGER.debug("NotificationService called.");
-			    	 LOGGER.debug("Notification sent to " + toEmailId); 
-			     }
-			     else
-			     {
-			    	 LOGGER.debug("Duration of previous notification has not yet expired. No notification sent.");
-			     }
+			    		 //Call NotificationService
+			    		 auditContent = inputObject.toString();
+			    		 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
+			    		 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
+			    		 LOGGER.debug("NotificationService called.");
+			    		 LOGGER.debug("Notification sent to " + toEmailId); 
+			    	 }
+			    	 else
+			    	 {
+			    		 LOGGER.debug("Duration of previous notification has not yet expired. No notification sent.");
+			    	 }
 			     
 			     }
 			     
@@ -474,7 +485,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		 */
 		String status = "";
 		try {
-		    inputObject.put("_id", id);
+		    LOGGER.debug("Adding reference ID to payload: " + id.toString());
+			inputObject.put("_id", id);
 		    MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
 		    DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
