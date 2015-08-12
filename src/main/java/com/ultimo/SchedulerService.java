@@ -253,7 +253,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	
 	public static boolean deleteJob(JSONObject report) throws Exception{
 		LOGGER.info("deleting job associated with the passed report");
-		LOGGER.info("reprot: "+report);
 		if(scheduler==null || !scheduler.isStarted()){
 			//don't delete if scheduler is not started
 			LOGGER.info("The scheduler is not started, so there is no job to delete");

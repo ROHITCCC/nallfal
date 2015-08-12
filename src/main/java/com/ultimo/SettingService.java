@@ -138,7 +138,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				//gets the request value of object= and splits it at a period, and passes it to array filter condition
 				String filterConditions[]=queryParams.get("object").getFirst().split("\\.");
 				LOGGER.info("you are querying for a "+filterConditions[0]+" object");
-				LOGGER.trace(" filterConditions ="+ filterConditions.toString());
 				//uses switch case for the first elements of the filter condition
 				switch (filterConditions[0]){
 				case "setting" : handleSetting(exchange,context,collection,filterConditions); break;
@@ -214,14 +213,12 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	        else if(context.getMethod() == METHOD.DELETE){
 	        	LOGGER.info("Request has been recieved to DELETE a document from  the database: "+dbname+" and collection: "+collectionName);
 				DBObject document = convertPayloadToDocument(exchange);
-				LOGGER.trace("attampting to delete document: "+document);
 				if(document.get("_id")!=null){
-					LOGGER.trace("document's id: "+document.get("_id").toString());
+					LOGGER.trace("attempting to delete document based on document's id: "+document.get("_id").toString());
 					WriteResult result=collection.remove(document);
 					if(result.getN()==1){
 						LOGGER.info("The document is removed");
 						SchedulerService.deleteJob(new JSONObject(document.toString()));
-						LOGGER.info("The job associated with the document is deleted");
 						exchange.getResponseSender().send("scheduled job is deleted");
 					}
 					else{
@@ -296,13 +293,11 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 	
 	public void handleSetting(HttpServerExchange exchange, RequestContext context, DBCollection collection, String[] qList ) throws IllegalQueryParamenterException{
-		LOGGER.info("Starting setting service");
-		LOGGER.info("retrieving the one setting document");
 		BasicDBObject whereQuery = new BasicDBObject();
 		//this gets only the setting
 		whereQuery.put("setting", new BasicDBObject("$ne", null));
 		DBCursor cursor = collection.find(whereQuery);
-		LOGGER.info("cursor size: "+ cursor.size());
+		LOGGER.info("retrieving the setting document");
 		//makes sure only one document is being queried
 		if(cursor.size()!=1){
 			LOGGER.error("there can only be one Setting queried");
@@ -311,7 +306,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		}
 		DBObject document = (DBObject) cursor.next();
 		LOGGER.trace("the setting document:"+document);
-		LOGGER.trace("the setting document id:"+document.get("_id").toString());
 		String id = document.get("_id").toString(); // this is used later for HAL representation
 		boolean hasQuery=true; //checks to see if the given query is in Setting
 		for(String query: qList){
@@ -330,7 +324,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
     	}
     	if(hasQuery){
     		//if the match is found, the contents of the search only NOT THE ENTIRE DOCUMENT
-    		LOGGER.info("printing the sub-document");
     		List<DBObject> resultList=new ArrayList<>();
     		BasicDBObject result = new BasicDBObject();
     		result.put(qList[qList.length-1],document);
@@ -345,8 +338,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 	
 	public void handleReport(HttpServerExchange exchange, RequestContext context, DBCollection collection, Map<String,Deque<String>> queries ) throws IllegalQueryParamenterException{
-		LOGGER.info("Starting Report Service");
-		LOGGER.trace("report conditions: "+queries.toString());
 		queries.remove("object"); //removes the object key and value (Since document doesn't contain such field)
 		BasicDBObject whereQuery = new BasicDBObject(); //used to create a DBObject to search for in collection
 		Map<String,String> queryMap=new HashMap<String,String>(); //adds all the field to the DBObject
@@ -361,7 +352,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		if(whereQuery.isEmpty()){
 			whereQuery.put("report", new BasicDBObject("$ne", null));
 		}
-		LOGGER.trace("seraching document with the given fields and values: "+whereQuery.toString());
+		LOGGER.info("searching for report documents with the given fields and values: "+whereQuery.toString());
 		DBCursor cursor = collection.find(whereQuery);
 		List<DBObject> resultList= new ArrayList<>();
 	    while (cursor.hasNext()) {
@@ -375,17 +366,16 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	    }
 	    else{
 	    	//prints all the returned documents that matched the given conditions
-	    	LOGGER.info("displaying found reports");
+	    	LOGGER.info("found "+resultList.size()+" report documents that contain the passed key-value pairs");
 	    	displayCollection(exchange, context,resultList);
 	    }
 	}
 	
 	public void handleId(HttpServerExchange exchange, RequestContext context, DBCollection collection, String Id) throws IllegalQueryParamenterException{
-		LOGGER.trace("Looking for Id: "+Id);
 		if(collection.findOne(new ObjectId(Id))!=null){
 			List<DBObject> resultList= new ArrayList<>();
 		    resultList.add(collection.findOne(new ObjectId(Id)));
-		    LOGGER.info("displaying found document with given id: "+Id);
+		    LOGGER.info("document found with id: "+Id);
 	    	displayCollection(exchange, context,resultList);
 	    	return;
 		}
