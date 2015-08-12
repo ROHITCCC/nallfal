@@ -39,7 +39,6 @@ public class NotificationService extends ApplicationLogicHandler {
 	public static String location="";
 	
 	public static void setEmailConfigs(){
-		LOGGER.info("getting the configurations for the email");
 		List<Map<String, Object>> configList = MongoDBClientSingleton.getErrorSpotConfigs();
 		ListIterator<Map<String, Object>> iterator= configList.listIterator();
 		while(iterator.hasNext()){
@@ -63,7 +62,6 @@ public class NotificationService extends ApplicationLogicHandler {
 				location=configMap.get("where").toString();
 			}
 		}
-		LOGGER.info("got the email erver, port, emailID, username, password, and the location of the template file. hostname: "+hostname+" port: "+port+" emailID: "+fromEmailId+" username: "+username+" password: "+password+" location of template: "+location);
 	}
 
 	public NotificationService(PipedHttpHandler next, Map<String, Object> args) {
@@ -109,17 +107,14 @@ public class NotificationService extends ApplicationLogicHandler {
 	
 	public static void sendEmail(String content, String template, String toEmailID, String subject){
 		try{
-			LOGGER.info("Notification Service Started");
-			LOGGER.trace("content recieved: "+content);
-			LOGGER.trace("the template that is being used:"+ template);
-			LOGGER.info("getting email information form the configuration file");
-			LOGGER.trace("sending email to: "+toEmailID);
+			LOGGER.info("getting the email erver, port, emailID, username, password, and the location of the template file.");
 			setEmailConfigs();
+			LOGGER.trace("hostname: "+hostname+" port: "+port+" emailID: "+fromEmailId+" username: "+username+" password: "+password+" location of template: "+location);
+			LOGGER.info("creating the html content using template: "+template+" and content: "+content);
 			//get the specific job depending on the template
 			HtmlNotificationFactory emailFactory= new HtmlNotificationFactory();
 			NotificationTemplate emailNotification = emailFactory.getNotificationClass(template);
 			Document doc = emailNotification.createEmail(content, location, template);
-			
 			//send the email
 			HtmlEmail email = new HtmlEmail();
 			email.setHtmlMsg(doc.toString());

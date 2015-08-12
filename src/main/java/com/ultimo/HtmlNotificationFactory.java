@@ -16,7 +16,6 @@ public class HtmlNotificationFactory {
 
 	//use getJob method to get object of type NotificationJob 
 	public NotificationTemplate getNotificationClass(String template1){
-		LOGGER.info("Started HTMLNotificationFactory");
 		String location="";
 		String template=template1.replaceAll("\\.html", "");
 		LOGGER.info("Getting the corresponding class for template: "+template1+" Looking for class: "+template+".class");

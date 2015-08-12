@@ -240,7 +240,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		default:
 			
 		}
-		LOGGER.debug("the time interval is scheduled for "+seconds+" seconds");
 		return seconds;
 	} 
 
@@ -347,7 +346,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 					}
 				}
 				else{
-					LOGGER.info("no properties file detected, starting the scheduler with the default properties file");
+					LOGGER.debug("no properties file detected, starting the scheduler with the default properties file");
 					try{
 						startScheduler();
 						exchange.getResponseSender().send("Sheduler is started");

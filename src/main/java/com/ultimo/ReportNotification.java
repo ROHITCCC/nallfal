@@ -26,7 +26,6 @@ public class ReportNotification implements NotificationTemplate{
 	@Override
 	public Document createEmail(String content, String location, String template) {
 		try{
-			LOGGER.info(content.toString());
 			BasicDBObject report = (BasicDBObject)JSON.parse(content);
 			JSONArray jsonArray = new JSONArray(report.get("row").toString());
 			File file = new File(location+"/"+template);
@@ -69,7 +68,7 @@ public class ReportNotification implements NotificationTemplate{
 			}
 			doc.select("th").remove();
 			doc.select("tr").first().append("<th>Interface</th> <th># of Failed Audits</th>");
-			LOGGER.trace(doc.toString());
+			LOGGER.trace("the content being emailed: "+doc.toString());
 			return doc;
 		}
 		catch(IOException e){
