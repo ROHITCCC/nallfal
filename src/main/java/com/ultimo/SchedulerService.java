@@ -66,7 +66,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	
 	public static void startScheduler(String propertiesFile) throws SchedulerException{
 		try {
-			LOGGER.info("attempting to start scheduler");
 			//get scheduler
 			StdSchedulerFactory schedulerFactory = new StdSchedulerFactory();
 			if(propertiesFile.length()>0){
@@ -86,7 +85,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			scheduler.start();
 			
 			//get and schedule existing reports
-			LOGGER.info("Scheduler "+scheduler.getSchedulerName()+ "started, getting existing report and scheduling them");
+			LOGGER.info("Scheduler "+scheduler.getSchedulerName()+ " started, getting existing report and scheduling them");
 			DBCursor cursor=getReports();
 			LOGGER.info("Scheduling "+cursor.size()+" existing reports");
 			while(cursor.hasNext()){
@@ -273,7 +272,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	}
 
 	public static DBCursor getReports(){
-		LOGGER.info("getting exiting reports from the datbase");
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();
 		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
 		String collectionName = MongoDBClientSingleton.getErrorSpotConfig("u-setting-collection");
@@ -283,7 +281,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
         //this gets report documents only
         BasicDBObject whereQuery = new BasicDBObject();
 		whereQuery.put("report", new BasicDBObject("$ne", null));
-		LOGGER.trace("searching for document that match the fgiven qualification: "+whereQuery.toString());
 		DBCursor cursor = collection.find(whereQuery);
 		return cursor;
 	}
@@ -295,7 +292,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 			ErrorSpotSinglton.optionsMethod(exchange);
         }
 		else if(context.getMethod() == METHOD.POST){
-			LOGGER.info("Starting the post in SchedulerService");
 			//Map<String, Deque<String>> queryParams= exchange.getQueryParameters();
 			//LOGGER.trace("Query Parameters: "+queryParams.toString());
 			
@@ -307,7 +303,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
             while((line = inputReader.readLine())!=null){
             	payload += line;
             }
-            LOGGER.trace(payload);
+            LOGGER.trace("the payload: "+payload);
             JSONObject requestInfo=null; 
             try{
 				requestInfo= new JSONObject(payload);
@@ -330,7 +326,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 					propertiesFile=requestInfo.getString("propertiesFile");
 				}
 				catch(JSONException e){
-					LOGGER.warn("no properties file provided");
 				}
 				if(!propertiesFile.equals("")){
 					LOGGER.info("starting scheduler with properties file: "+propertiesFile);
@@ -364,20 +359,18 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 						return;
 					}
 				}
-				LOGGER.info("successfully started scheudler "+scheduler.getSchedulerName());
 				exchange.getResponseSender().send("Started scheduler: "+scheduler.getSchedulerName());
 				break;
 			
 			case "stopScheduler":
+				LOGGER.info("payload recieved was meant to stop scheduler");
 				if(scheduler==null || scheduler.isShutdown()){
 					LOGGER.info("the scheduler is already stopped");
 					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The scheduler is already shutdown");
 					return;
 				}
 				try{
-					LOGGER.info("stopping scheudler");
 					stopScheduler();
-					LOGGER.info("successfully stopped scheudler");
 					exchange.getResponseSender().send("Stopped scheduler");
 				}
 				catch(SchedulerException e){
@@ -387,6 +380,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				}
 				break;
 			case "startJob":
+				LOGGER.info("payload recieved was meant to start a given job");
 				Date jobStartDate=null;
 				try{
 					jobStartDate=startJob(requestInfo);
@@ -423,6 +417,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				exchange.getResponseSender().send("Started Job");
 				break;
 			case "stopJob":
+				LOGGER.info("payload recieved was meant to stop a given job");
 				if(scheduler ==null || scheduler.isShutdown()){
 					LOGGER.info("the scheduler is shutdown");
 					ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "The Scheduler is not started");
@@ -445,6 +440,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				exchange.getResponseSender().send("Stoped Job");
 				break;
 			case "getAllJobs":
+				LOGGER.info("payload recieved was meant to display all job");
 				JSONArray jobArray= null;
 				try{
 					jobArray = getAllJobs();
@@ -462,6 +458,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				exchange.getResponseSender().send(jobArray.toString());
 				break;
 			case "suspendJob":
+				LOGGER.info("payload recieved was meant to pause a job");
 				boolean suspended = false;
 				try{
 					suspended = suspendJob(requestInfo);
@@ -481,6 +478,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				}
 				break;
 			case "resumeJob":
+				LOGGER.info("payload recieved was meant to play a paused job");
 				boolean resumed = false;
 				try{
 					resumed = resumeJob(requestInfo);
@@ -500,6 +498,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				}
 				break;
 			case "getSchedulerStatus":
+				LOGGER.info("payload recieved was meant to display scheduler status");
 				if(scheduler==null || !scheduler.isStarted()){
 					LOGGER.info("scheduler is stopped");
 					exchange.getResponseSender().send("stopped");

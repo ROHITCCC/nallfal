@@ -103,7 +103,7 @@ public class ReportJob implements Job{
 		
 		
 		
-		LOGGER.info("Executing Job ("+ jobName + ") query " + query);
+		LOGGER.trace("Executing Job ("+ jobName + ") query " + query);
 		
 		//needs to get he colletion from config file
 		String dbname = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
@@ -112,7 +112,7 @@ public class ReportJob implements Job{
         DB database = client.getDB(dbname);
         DBCollection collection = database.getCollection(collectionName);
         List<DBObject> result = AggregateService.executeMongoAggregate(query, collection);
-        LOGGER.info("the result: "+result.toString());
+        LOGGER.trace("the result: "+result.toString());
 
 		return result;
 	}
