@@ -74,7 +74,6 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				InputStream input = exchange.getInputStream();
 				BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
 				int i = 0;
-				LOGGER.debug("InsertService executing...");
 				readLoop : while(true)
 						{
 							
@@ -97,6 +96,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 								break readLoop;
 							}
 						}
+				LOGGER.debug("InsertService executing...");
+				LOGGER.trace("Payload received: " + payload);
 				delimiter = delimiter.split("=")[1]; 
 				//=============================================================================================================================================
 				/*
@@ -117,10 +118,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 					           auditHeaders = multipartStream.readHeaders();
 					            multipartStream.readBodyData(body);
 					             audit = new String(body.toByteArray());
-						        LOGGER.debug("Audit extracted");
-						        LOGGER.trace(("Audit Headers: "+ auditHeaders));
-						        LOGGER.trace("Audit Body: + " + audit);
-
+						        LOGGER.debug("Audit extracted from multipart message: boundary info: " + delimiter);
 	
 		       
 			        	}
@@ -131,9 +129,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 
 					            multipartStream.readBodyData(body);
 					            payload = new String(body.toByteArray());
-						        LOGGER.debug("Payload extracted");
-						        LOGGER.trace(("Payload Headers: "+ payloadHeaders));
-						        LOGGER.trace("Payload Body: + " + payload);
+						        LOGGER.debug("Payload extracted from multipart message: boundary info: " + delimiter);
 
 	
 			        	}
@@ -354,32 +350,29 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			    	 LOGGER.debug("Audit interface: " + auditInterface);
 			     }
 			     
-			     if (!ErrorSpotSinglton.isInitialized()) 
-			     	ErrorSpotSinglton.init();
+			     if (ErrorSpotSinglton.isInitialized()) {
 			     
-			     JSONObject config = null;
-			     config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
+			    	 JSONObject config = null;
+			    	 config = ErrorSpotSinglton.getExpiredNotificationDetail(auditEnvid, auditName, auditInterface, auditSeverity);
 			     
-			     if (config != null)
-			     {
-			    	 String toEmailId = config.getString("email");
-			    	 LOGGER.debug("Email retrieved from settings document: " + toEmailId);
+			    	 if (config != null)
+			    	 {
+			    		 String toEmailId = config.getString("email");			     
+			    		 String template = config.getString("template");
 			     
-			    	 String template = config.getString("template");
-			    	 LOGGER.debug("Template retrieved from settings document: " + template);
-			     
-			    	 //Call NotificationService
-			    	 auditContent = inputObject.toString();
-			    	 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
-			    	 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
-			    	 LOGGER.debug("NotificationService called");
-			    	 LOGGER.debug("Notification sent to " + toEmailId); 
+			    		 //Call NotificationService
+			    		 auditContent = inputObject.toString();
+			    		 String subject = "Audit Notification: Conditions: Application = " + auditName + ", Interface = " + auditInterface + ", Severity = " + auditSeverity;
+			    		 LOGGER.debug("NotificationService called with template: " + template + ", email: " + toEmailId + ", subject: " + subject);
+			    		 NotificationService.sendEmail(auditContent, template, toEmailId, subject);
+			    		 LOGGER.debug("Notification sent to " + toEmailId); 
+			    	 }
+			    	 else
+			    	 {
+			    		 LOGGER.debug("No notification sent.");
+			    	 } 
+			
 			     }
-			     else
-			     {
-			    	 LOGGER.debug("No notification sent.");
-			     } 
-			     
 	    	}
 	    catch(	java.text.ParseException e) 
 		   {
