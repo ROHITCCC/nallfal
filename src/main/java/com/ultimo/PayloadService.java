@@ -51,7 +51,6 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 	        } 
 		 else if (context.getMethod() == METHOD.GET)
 	 	{
-			LOGGER.debug("PayloadService executing...");
 		 	getData(exchange,context);
 	 	}
 		else
@@ -72,6 +71,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 			DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
 			DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection"));
 			String objectID = exchange.getQueryString().replace("id=", "");
+			LOGGER.debug("PayloadService executing...");
 			LOGGER.trace("Requested Object ID: "+objectID);
 			ObjectId queryObjectId = new ObjectId(objectID);
 			DBObject resultDocument = collection.findOne(new BasicDBObject("_id",queryObjectId));

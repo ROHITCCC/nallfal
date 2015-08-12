@@ -199,7 +199,7 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			        //Insert the Payload in to the Payload Collection. 
 			        
 					String status = payloadInsert(id, payloadInput, context, exchange);
-					LOGGER.info("Payload Insert: " + status);
+					LOGGER.info("Payload Insert: " + status + ", with payload object ID: " + id);
 					
 					if (status.equalsIgnoreCase("Success"))
 					{
@@ -260,40 +260,36 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		        */
 	     
 	    		 //Makes audit's envid field into uppercase
-	    		 LOGGER.debug("Converting audit's envid value to uppercase");
    		 		 String uppercaseEnvid = inputObject.get("envid").toString().toUpperCase();
    		 		 inputObject.removeField("envid");
    		 		 inputObject.put("envid", uppercaseEnvid);
    		 		 
    		 	     //Makes audit's application, transactionDomain, transactionType, severity, and errorType fields into lowercase
-	    		 LOGGER.debug("Converting audit's application value to lowercase");
    		 		 String lowercaseApplication = inputObject.get("application").toString().toLowerCase();
    		 		 inputObject.removeField("application");
   		 		 inputObject.put("application", lowercaseApplication);
   		 		 
-	    		 LOGGER.debug("Converting audit's transaction domain value to lowercase");
    		 		 String lowercaseTDomain = inputObject.get("transactionDomain").toString().toLowerCase();
    		 		 inputObject.removeField("transactionDomain");
  		 		 inputObject.put("transactionDomain", lowercaseTDomain);
  		 		 
-	    		 LOGGER.debug("Converting audit's transaction value to lowercase");
    		 		 String lowercaseTType = inputObject.get("transactionType").toString().toLowerCase();
    		 		 inputObject.removeField("transactionType");
  		 		 inputObject.put("transactionType", lowercaseTType);
  		 		 
-	    		 LOGGER.debug("Converting audit's severity value to lowercase");
    		 	     String lowercaseSeverity = inputObject.get("severity").toString().toLowerCase();
    		 	     inputObject.removeField("severity");
 		 		 inputObject.put("severity", lowercaseSeverity);
 		 		 
-	    		 LOGGER.debug("Converting audit's error type value to lowercase");
    		         String lowercaseEType = inputObject.get("errorType").toString().toLowerCase();
    		 		 inputObject.removeField("errorType");
    		 		 inputObject.put("errorType", lowercaseEType);
+   		 		 
+   		 		 LOGGER.debug("Converting audit's envid value to uppercase and converting application, transaction domain, transaction type, severity, and error type values to lowercase");
    		 		
 				 inputObject.removeField("dataLocation");
 			     inputObject.put("dataLocation", referenceID.toString());
-	    		 LOGGER.debug("Adding the datalocation " + referenceID.toString() + " to the audit");
+	    		 LOGGER.debug("Updating the audit with new datalocation: " + referenceID.toString());
 		         if (!inputObject.containsField("timestamp"))
 		         {
 		        	 LOGGER.debug("Audit does not contain timestamp");
@@ -306,17 +302,19 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     MongoClient client = getMongoConnection(exchange, context);
 				 DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
 				 DBCollection collection = db.getCollection(MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection"));
-				 LOGGER.trace("Audit to be inserted: " + inputObject);
+				 LOGGER.trace("Updated audit to be inserted: " + inputObject);
 				 collection.insert(inputObject);
 				 DBObject query = new BasicDBObject("dataLocation", referenceID.toString());
 				 DBCursor cursor = collection.find(query);
+				 String auditID = "";
 				 while (cursor.hasNext()) {
 					 
 					 BasicDBObject obj = (BasicDBObject) cursor.next();
-					 LOGGER.debug("Audit Object ID: " + obj.getString("_id"));
+					 auditID =  obj.getString("_id");
 					 
 				 }
-				 
+				 if (!auditID.equals(""))
+					 LOGGER.debug("Audit successfully inserted with Object ID:" + auditID);
 
 			     status = "Success";
 			     
@@ -332,22 +330,22 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 			     //Obtain fields to be compared from audit if they exist
 				 if (inputObject.containsField("envid")) {
 			    	 auditEnvid = inputObject.get("envid").toString();
-			    	 LOGGER.debug("Audit envid: " + auditEnvid);
+			    	 LOGGER.debug("Audit envid: " + auditEnvid + ", to be compared for Immediate Notification");
 			     }
 				 
 			     if (inputObject.containsField("severity")) {
 			    	 auditSeverity = inputObject.get("severity").toString();
-			    	 LOGGER.debug("Audit severity: " + auditSeverity);
+			    	 LOGGER.debug("Audit severity: " + auditSeverity + ", to be compared for Immediate Notification");
 			     }
 			     
 			     if (inputObject.containsField("application")) {
 			    	 auditName = inputObject.get("application").toString(); 
-			    	 LOGGER.debug("Audit application name: " + auditName);
+			    	 LOGGER.debug("Audit application name: " + auditName + ", to be compared for Immediate Notification");
 			     }
 			     
 			     if (inputObject.containsField("interface1")) {
 			    	 auditInterface = inputObject.get("interface1").toString(); 
-			    	 LOGGER.debug("Audit interface: " + auditInterface);
+			    	 LOGGER.debug("Audit interface: " + auditInterface + ", to be compared for Immediate Notification");
 			     }
 			     
 			     if (ErrorSpotSinglton.isInitialized()) {
@@ -475,7 +473,6 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 		 */
 		String status = "";
 		try {
-		    LOGGER.debug("Adding reference ID to payload: " + id.toString());
 			inputObject.put("_id", id);
 		    MongoClient client = getMongoConnection(exchange, context);
 		    DB db = client.getDB(MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database"));
