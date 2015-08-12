@@ -85,13 +85,12 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 			client = MongoDBClientSingleton.getInstance().getClient();
 			DB database = client.getDB(dbname);
 			DBCollection collection = database.getCollection(collectionName);
-			LOGGER.info("successfully connected to the database: "+dbname+" and collection: "+collectionName);
 			
 			if (context.getMethod() == METHOD.OPTIONS) {
 				ErrorSpotSinglton.optionsMethod(exchange);
 	        } 
 	        else if (context.getMethod() == METHOD.GET){
-	        	LOGGER.info("Starting the GET service");
+	        	LOGGER.info("Request has been recieved to GET a document from  the database: "+dbname+" and collection: "+collectionName);
 				Map<String,Deque<String>> queryParams= exchange.getQueryParameters();
 				LOGGER.trace("the queries in the map:"+ queryParams.toString());
 				
@@ -151,7 +150,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				}
 			}
 	        else if(context.getMethod()==METHOD.POST){
-	        	LOGGER.info("Starting the POST service");
+	        	LOGGER.info("Request has been recieved to POST a document into  the database: "+dbname+" and collection: "+collectionName);
 				//insert payload/document into the mongodb--------------------------------------------------
 	        	DBObject document = convertPayloadToDocument(exchange);
 				// this is used for validations for duplicate insertions of setting and reports
@@ -178,24 +177,21 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 					LOGGER.trace("document: "+document.toString());
 				}
 				else if (document.get("report")!=null ){
-					LOGGER.info("document is a report");
+					LOGGER.info("document is determined to be a report");
 					//if id is passed in and if a document with a given id already exists, update it
-					LOGGER.info("validating template field");
+					LOGGER.debug("checking to see if the report has a template field");
 					if(!validateReport(document,exchange)){
 						return;
 					}
 					if(document.get("_id")!=null){
 						LOGGER.info("a report document is passed with Id: "+document.get("_id").toString());
-						LOGGER.info("checking to see if a document with given id exists");
 					}
 					if(document.get("_id")!=null && collection.findOne(document.get("_id"))!=null ){
 						LOGGER.info("The given document exists in the databse");
 						DBObject tempDocument=collection.findOne(document.get("_id"));
-						LOGGER.info("updating the document");
 						collection.update(tempDocument, document);
 						exchange.getResponseSender().send(document.get("_id").toString());
-						LOGGER.info("successfully updated the document");
-						LOGGER.info("scheduler will update the job");
+						LOGGER.info("successfully updated the new document. scheduler will update the job");
 					}
 					else{
 						LOGGER.info("The given document does not already exsist in the databse, adding a new one");
@@ -204,14 +200,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 						exchange.getResponseSender().send(document.get("_id").toString());
 						LOGGER.info("successfuly inserted document with the id: "+document.get("_id").toString());
 					}
-					//schedule a notification if the document is a report
-					//schedule the report in quartz
-					LOGGER.info("scheduling report");
-					//change this later
-					if(SchedulerService.scheduleReport(new JSONObject(document.toString()))!=null){;
-						LOGGER.info("successfully scheduled report");
-					}
-					else{
+					if(SchedulerService.scheduleReport(new JSONObject(document.toString()))==null){
 						LOGGER.error("couldn't schedule the document");
 					}
 				}
@@ -223,7 +212,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 				exchange.getResponseSender().send(document.get("_id").toString());
 			}
 	        else if(context.getMethod() == METHOD.DELETE){
-	        	LOGGER.info("Starting the Delete service");
+	        	LOGGER.info("Request has been recieved to DELETE a document from  the database: "+dbname+" and collection: "+collectionName);
 				DBObject document = convertPayloadToDocument(exchange);
 				LOGGER.trace("attampting to delete document: "+document);
 				if(document.get("_id")!=null){
@@ -423,19 +412,15 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 	
 	public boolean validateReport(DBObject document,HttpServerExchange exchange){
-		//get the template string
-		LOGGER.info("validating report");
-		LOGGER.trace(document.toString());
 		String template=((DBObject)document.get("report")).get("template").toString();
 		if(template==null){ 
 			LOGGER.error("The report document does not have a template field");
 			ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_NOT_FOUND, "The report document is missing a template field");
 			return false;
 		}
-		LOGGER.info("the document does have a template field: "+template);
+		LOGGER.debug("the document does have a template field: "+template);
 		boolean templateExists=NotificationService.validateTemplate(template);
 		if(templateExists){
-			LOGGER.info("the given report has a valid template field");
 			return true;
 		}
 		else{
@@ -446,7 +431,6 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 	}
 	
 	public static DBObject convertPayloadToDocument(HttpServerExchange exchange) throws IOException,JSONParseException{
-		LOGGER.info("Converting payload to a DBObject");
 		InputStream input = exchange.getInputStream();
 		BufferedReader inputReader = new BufferedReader(new InputStreamReader(input));
 		String line = null;
@@ -454,7 +438,7 @@ public class SettingService extends ApplicationLogicHandler implements IAuthToke
 		while((line = inputReader.readLine())!=null){
 			payload += line;
 		}
-		LOGGER.trace(payload);
+		LOGGER.trace("this is the passed document: " +payload);
 		DBObject document = (DBObject) JSON.parse(payload);
 		LOGGER.info("converted the payload to a DBObject");
 		return document;

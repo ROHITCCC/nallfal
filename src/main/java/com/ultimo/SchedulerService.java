@@ -124,7 +124,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		LOGGER.info("scheduling passed report");
 		LOGGER.trace("report: "+report.toString());
 		String jobKeyName = getJobName(report);
-		LOGGER.trace("jobKey= "+jobKeyName);
 		if(scheduler==null || !scheduler.isStarted()){
 			LOGGER.error("the scheduler is not started, so the job: "+jobKeyName+" will not be scheduled");
 			return null;
@@ -136,6 +135,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 				
 				//remove old job if exists
 				scheduler.deleteJob(jobKey);
+				LOGGER.info("removed old job and creating new job with job key: "+jobKeyName);
 				
 		} catch(SchedulerException e){
 			LOGGER.info("Job with JobKey " + jobKeyName + " does not exits. Createing new Job");
@@ -149,13 +149,13 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 		job.getJobDataMap().put("report", report.toString());
 		
-		LOGGER.info("created new job with job key: "+jobKeyName);
+		
 		
 		JSONObject frequency = report.getJSONObject("report").getJSONObject("frequency");
 		//Create Trigger
 		Trigger trigger = getScheduleTrigger(frequency, jobKeyName);
 		
-		LOGGER.info("created new trigger");
+		LOGGER.debug("created new trigger with same name as jobKeyName: "+jobKeyName);
 		Date startDateTime = scheduler.scheduleJob(job, trigger);
 		LOGGER.info("Report " + jobKeyName + " is scheduled to start at " + startDateTime.toString() + " and will run every " 
 		+ report.getJSONObject("report").getJSONObject("frequency").getString("duration") + " " 
@@ -166,7 +166,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	}
 
 	private static Trigger getScheduleTrigger(JSONObject frequency, String triggerName) throws JSONException, java.text.ParseException {
-		LOGGER.trace("trigger name: "+triggerName);
 		//JSONObject report = new JSONObject(payload);
 		
 		//JSONObject frequency; 
@@ -187,7 +186,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		
 
 		if (startDateTime != null && !startDateTime.isEmpty()) {
-			LOGGER.info("start time is given");
+			LOGGER.info("start time is: "+startDateTime);
 
 			SimpleDateFormat formatter = new SimpleDateFormat(
 					"MM/dd/yyyy'T'hh:mm:ss");
@@ -195,13 +194,12 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 
 		} else {
 			triggerStartTime = new Date();
-			LOGGER.info("no starttime is given, using current time as default stattime");
+			LOGGER.debug("no starttime is given, using current time as default stattime of job");
 		}
 
 		// default schedule is 1 hr
 		int seconds = calculateDurationInseconds(duration, unit);
 
-		LOGGER.trace("seconds: "+seconds);
 
 		SimpleScheduleBuilder scheduleBuilder = SimpleScheduleBuilder
 				.simpleSchedule().withIntervalInSeconds(seconds)
@@ -215,9 +213,6 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 	}
 	
 	public static int calculateDurationInseconds(int duration, String unit){
-		LOGGER.info("calculating duration in seconds");
-		LOGGER.trace("duration: "+duration);
-		LOGGER.trace("unit: "+ unit);
 		
 		//default is 1 hr
 		int seconds = 60 * 60;
@@ -246,7 +241,7 @@ public class SchedulerService extends ApplicationLogicHandler implements IAuthTo
 		default:
 			
 		}
-		LOGGER.info("the time interval is scheduled for "+seconds+" seconds");
+		LOGGER.debug("the time interval is scheduled for "+seconds+" seconds");
 		return seconds;
 	} 
 

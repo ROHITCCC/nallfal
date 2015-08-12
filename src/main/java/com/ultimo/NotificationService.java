@@ -79,9 +79,9 @@ public class NotificationService extends ApplicationLogicHandler {
 	}
 	
 	public static boolean validateTemplate(String template){
-		LOGGER.info("checking to see if template: "+template+" exists and has a class associated with it");
+		LOGGER.debug("checking to see if template: "+template+" exists and has a class associated with it");
 		location=MongoDBClientSingleton.getErrorSpotConfig("u-template-location");
-		LOGGER.info("getting the location to look for from the config file. checking for the template in location:"+location);
+		LOGGER.trace("getting the location to look for from the config file. checking for the template in location:"+location);
 		File file = new File(location+"/"+template);
 		
 		//checks if template exists
@@ -89,16 +89,16 @@ public class NotificationService extends ApplicationLogicHandler {
 			LOGGER.error("the given template: "+template+" is not found in location: "+location);
 			return false;
 		}
-		LOGGER.info("The given template: "+template+" exists");
+		LOGGER.debug("The given template: "+template+" exists");
 		try{
 			template=template.replaceAll("\\.html", "");
-			LOGGER.info("checking if "+template+".class exists in location: "+location);
+			LOGGER.debug("checking if "+template+".class exists in location: "+location);
 			File classFile= new File(location+"/"+template+".class");
 			if(!(classFile.exists())){
-				LOGGER.info("class is not in the given location, checking to see if it exists in the default package: com.ultimo");
+				LOGGER.debug("class is not in the given location, checking to see if it exists in the default package: com.ultimo");
 				Class.forName("com.ultimo."+template);
 			}
-			LOGGER.info("the template has  "+template+".class associated with it, and therefore is a valid template");
+			LOGGER.debug("the template has  "+template+".class associated with it, and therefore is a valid template");
 			return true;
 		}
 		catch(ClassNotFoundException e){
