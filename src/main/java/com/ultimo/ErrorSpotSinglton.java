@@ -119,10 +119,7 @@ public class ErrorSpotSinglton implements IAuthToken{
 	        			
 	        			String key = envid.toUpperCase() + "." +application.toUpperCase() + "." + interfaceName.trim().toUpperCase() + "." + severity.toUpperCase();
 	        			
-	        			LOGGER.debug("Application name stored in settings document is " + application);
-	        			LOGGER.debug("Interface name stored in settings document is " + interfaceName);
-	        			LOGGER.debug("Severity stored in settings document is " + severity);
-	        			LOGGER.debug("Envid stored in settings document is " + envid);
+	        			LOGGER.debug("Key field values found in settings document: Application name - " + application + ", Interface name - " + interfaceName + ", Severity - " + severity + ", Envid - " + envid);
 	        				        			
 	        			notificationsMap.put(key, currentNotification);
 	        			
