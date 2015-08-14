@@ -86,7 +86,8 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 									break readLoop;
 								}
 							}
-					LOGGER.debug("Payload Recieved");
+					
+					LOGGER.debug("AggregateService executing");
 					LOGGER.trace(payload);
 
 					
@@ -157,7 +158,7 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 			        
 			        CollectionRepresentationFactory data =  new CollectionRepresentationFactory();			        
 			        Representation response = data.getRepresentation(exchange, context, outputList, outputList.size());
-			        LOGGER.trace("Results Transformed into RestHeart Represenation");
+			        LOGGER.debug("Results Transformed into RestHeart Represenation");
 
 			        int code = HttpStatus.SC_ACCEPTED;
 			      //==========================================================================================================
@@ -167,7 +168,6 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 			        exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, Representation.HAL_JSON_MEDIA_TYPE);
 			        exchange.getResponseSender().send(response.toString());
 			        exchange.endExchange();
-			        LOGGER.debug("Response has been Sent and Exchange has been Closed");
 				}
 		        catch(JSONException e) 
 		        {
@@ -254,8 +254,7 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 		if (inputObject.has("$match"))
         {
         	dbInputObject = new BasicDBObject("$match",JSON.parse(inputObject.get("$match").toString()));
-        	System.out.println("Match" + dbInputObject.get("$match").toString());
-
+        	//System.out.println("Match" + dbInputObject.get("$match").toString());
         	query.add(dbInputObject); 	
         }
 		if (inputObject.has("$group"))
@@ -270,13 +269,11 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
 		 }
 		}
 		LOGGER.trace(query.toString());
-		LOGGER.debug("Query List Made");
 				        
      //==========================================================================================================
      // Send Query to DB
-
+        LOGGER.debug("Query Executed: " + query.toString());
         AggregationOutput output = collection.aggregate( query );	
-        LOGGER.debug("Query Executed");
        /// System.out.println(output.)
      //==========================================================================================================
      // Process Results
@@ -295,7 +292,6 @@ public class AggregateService extends ApplicationLogicHandler implements IAuthTo
         }
         for(DBObject b : outputList)
         {
-        	//System.out.println(b);
         	LOGGER.trace(b.toString());
         }
         
