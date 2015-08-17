@@ -141,6 +141,10 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 			else if (input.getString("type").equalsIgnoreCase("FTP"))
 			{
 				result = handleFTP(input, payload);
+			} 
+			else if (input.getString("type").equalsIgnoreCase("JMS"))
+			{
+				result = ReplayJMSHandler.handleJMS(input, payload);
 			}
 			System.out.println(result);
 			
@@ -468,6 +472,8 @@ public class ReplayService extends ApplicationLogicHandler implements IAuthToken
 		return "Success";
 		
 	}
+	
+
 	
 	
 	public static void updateAudit(JSONObject input, String status) throws ParseException
