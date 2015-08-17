@@ -51,13 +51,13 @@ public class ReplayJMSHandler {
 public static String handleJMS(JSONObject connectionDetails, String payload){
 	String result ="";
 	
-	String destinationName = connectionDetails.getString("jmsServerType");
-	String destinationType = connectionDetails.getString("jmsServerType");
-	String connectionFactory  = connectionDetails.getString("jmsServerType");
-    String host = connectionDetails.getString("jmsServerType");
-    int port = Integer.parseInt(connectionDetails.getString("jmsServerType"));
-    String username = connectionDetails.getString("jmsServerType");
-    String password = connectionDetails.getString("jmsServerType");
+	String destinationName = connectionDetails.getString("destinationName");
+	String destinationType = connectionDetails.getString("destinationType");
+	String connectionFactory  = connectionDetails.getString("connectionFactory");
+    String host = connectionDetails.getString("host");
+    int port = Integer.parseInt(connectionDetails.getString("port"));
+    String username = connectionDetails.getString("username");
+    String password = connectionDetails.getString("password");
     String deliveryMode = connectionDetails.getString("deliveryMode");
 	
 	if(connectionDetails.getString("jmsServerType").equalsIgnoreCase("tibco")){

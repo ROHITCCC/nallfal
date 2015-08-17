@@ -168,11 +168,29 @@ treemapDirectiveModule.directive('treemapZoom', ['$location', function($location
                 .attr("class", "legendDDL replayDropDown");
             var parDropDown = legendDDL.selectAll("#legendSelect").data(parNodes);
             d3.selectAll("#legendSelect").data(parNodes).on("change", function(d) {
-                for(var change=0; change < d.parent.children.length; change++){
-                    if(d3.event.target.value === d.parent.children[change].name){
-                        return zoom((node === d.parent.children[change] ? root : d.parent.children[change]),"0","0");
-                    }
-                };
+                
+                if(document.getElementById("newSvg") === null){
+                    for(var change=0; change < d.parent.children.length; change++){
+                        if(d3.event.target.value === d.parent.children[change].name){
+                            return zoom((node === d.parent.children[change] ? root : d.parent.children[change]),"0","0");
+                        }
+                    };
+                }else{
+                    var selectedVal = d3.event.target.value;
+                    setTimeout(function () {
+                        zoomOutBrushed();
+                    }, 10);
+                    
+                    setTimeout(function () {
+                        for(var change=0; change < d.parent.children.length; change++){
+                            if(selectedVal === d.parent.children[change].name){
+                                return zoom((node === d.parent.children[change] ? root : d.parent.children[change]),"0","0");
+                            }
+                        };
+                    }, 110);
+                    
+                }
+                
             });           
             parDropDown.enter().append("option")
                 .attr("id",function(d){return d.name;})

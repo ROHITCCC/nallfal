@@ -317,19 +317,19 @@
                                                 </select>
                                                 <span class="caret" style="margin-left: -18px;margin-top: 3px; display: none;"></span>
                                             </td>
-                                            <td class="small" style="width: 10%;">
-                                                {{reports[key]._id.$oid}}
+                                            <td class="col-md-2">
+                                                <input type="text" class="form-control inputable"  value="{{reports[key]._id.$oid}}" placeholder="Document ID" disabled>
                                             </td>
                                             <td class="col-md-1">
                                                 <input type="text" class="form-control inputable" ng-model="report.report.application" value="{{report.report.application}}" placeholder="App" required lowercased>
                                             </td>
-                                            <td class="col-md-1">
+                                            <td class="col-md-2">
                                                 <input type="text" class="form-control inputable" ng-model="report.report.interface1" value="{{report.report.interface1}}"  placeholder="Interface">
                                             </td>
-                                            <td class="col-md-2">
+                                            <td class="col-md-1">
                                                 <input type="text" class="form-control inputable" ng-model="report.report.errorType" value="{{report.report.errorType}}" placeholder="ErrorType"lowercased>
                                             </td>
-                                            <td class="col-md-2">
+                                            <td class="col-md-1">
                                                 <input type="text" class="form-control inputable datetimepicker" ng-model="report.report.frequency.starttime" value="{{report.report.frequency.starttime}}" placeholder="Start Time">
                                             </td>
                                             <td class="col-md-1">
@@ -451,7 +451,7 @@
                                                     <th>Key</th>
                                                     <th>Next Fire Time</th>
                                                     <th>Status</th>
-                                                    <th class="pull-right"><button class="btn" ng-click="schedulerJob()">Refresh All</button></th>
+                                                    <th class="pull-right"><button id="refreshbatch" class="btn" ng-click="schedulerJob()">Refresh</button></th>
                                                 </tr>
                                             </thead>
                                             <tdbody>

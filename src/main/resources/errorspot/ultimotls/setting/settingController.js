@@ -209,7 +209,7 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
         $scope.reportPromise().finally(function () {
             //Env dropdown
             $scope.envDropdown = angular.copy($scope.environments);
-            
+
             $scope.addNewAggrigated = function () {
                 newson = {report: {envid: null, application: null, email: null, template: 'ReportNotification.html', interface1: null, errorType: null, frequency: {duration: null, starttime: null, unit: null}}};
                 $scope.reports.push(newson);
@@ -272,12 +272,10 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
                 //find BatchReplayJob in the array
                 Batchlenght = null;
                 Tlength = $scope.schedulers.length;
-                if (Tlength >= 1){
-                    $scope.startserviceBatch ='started';
-                }
                 for (i = 0; i < Tlength; i++) {
                     if ($scope.schedulers[i].jobKey === "BatchReplayJob") {
                         Batchlenght = $scope.schedulers[i].frequency;
+                        $scope.startserviceBatch = 'started';
                     }
                 }
 
@@ -377,7 +375,7 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
                 $scope.batchupdelete(temporal);
             };
             $scope.checkAll = function (source) {
-                        $('.batchcheckdata, .batchcheck').click();
+                $('.batchcheckdata, .batchcheck').click();
 
             };
         });
@@ -405,7 +403,7 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
             var conAjax = $http.delete(settingURL, {data: insert});
             conAjax.success(function (response) {
                 $scope.reports.splice(remove, 1);
-                alertify.sucess("Information has been deleted correctly");
+                alertify.success("Information has been deleted correctly");
             });
             conAjax.error(function (response) {
                 alertify.error("Information was not deleted, please try again");
@@ -419,11 +417,15 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
                 $scope.batch.frequency.starttime = "";
             }
             $scope.scheduler($scope.batch, 1);
-            $scope.startserviceBatch = 'started'
+            $scope.startserviceBatch = 'started';
         };
         $scope.batchstop = function () {
             $scope.batch.requestType = "stopJob";
             delete $scope.batch.frequency;
+            $scope.batchScheduler.batchFrequency.$touched = false;
+            $scope.batchScheduler.batchFrequency.$invalid = false;
+            $scope.batchScheduler.batchUnit.$touched = false;
+            $scope.batchScheduler.batchUnit.$invalid = false;
             $scope.scheduler($scope.batch, 2);
             $scope.startserviceBatch = 'stopped';
         };
@@ -433,12 +435,11 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
                 var auth_token_valid_until = header()['auth-token-valid-until'];
                 resetTimerService.set(auth_token_valid_until);
                 $scope.schedulerstatus = opt;
+                if (opt == "1") {
+                    $scope.schedulerJob();
+                }
                 if (opt == "2") {
-                    $scope.batchScheduler.batchFrequency.$touched = false;
-                    $scope.batchScheduler.batchFrequency.$invalid = false;
-                    $scope.batchScheduler.batchUnit.$touched = false;
-                    $scope.batchScheduler.batchUnit.$invalid = false;
-                    $('.SchedulerJob').remove();
+                    $scope.schedulerJob();
                 }
                 if (opt == 'resume' || opt == 'suspend') {
                     $scope.schedulerJob();
@@ -487,8 +488,8 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
             conAjax.success(function (response, status, header, config) {
                 var auth_token_valid_until = header()['auth-token-valid-until'];
                 resetTimerService.set(auth_token_valid_until);
-                alertify.sucess("Information has been deleted correctly");
-                $scope.BatchjobPromise();   
+                alertify.success("Information has been deleted correctly");
+                $scope.BatchjobPromise();
             });
             conAjax.error(function (response) {
                 alertify.error("Batch Delete Error");
