@@ -70,8 +70,18 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 				}
 			}
 			
+			
+			
 			JSONObject input = new JSONObject(payload);
 			handleBatchCalls(exchange, context, input.toString());
+			/*
+			MongoClient db = MongoDBClientSingleton.getInstance().getClient();
+			DB database = db.getDB("ES");
+			DBCollection collection = database.getCollection("ErrorSpotBatchReplay");
+			DBObject object = collection.findOne(new ObjectId("55d38140231ac74e34f0be05"));
+			JSONObject obj = new JSONObject(object.toString());
+			batchHandleRequest(obj);
+	*/
 		
 		}
 		else if (context.getMethod() == METHOD.OPTIONS) {
@@ -146,7 +156,11 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("FTP"))
 		{
 			result = handleFTPBatch(input, objectIDs);
-		}		
+		}
+		else if (replayDestinationInfo.get("type").toString().equalsIgnoreCase("JMS"))
+		{
+			result = handleJMSBatch(input, objectIDs);
+		}	
 		return result;
 		
 	}
@@ -531,6 +545,102 @@ public class BatchReplayService extends ApplicationLogicHandler implements IAuth
 		MongoClient client = MongoDBClientSingleton.getInstance().getClient();   
 		return client;
 			}
+	
+	public static Map<String,String> handleJMSBatch(JSONObject input,ArrayList<ObjectId> objectIDs)
+	{
+		//Declare and Extract all Necessary Information
+		JSONObject replayDestinationInfo = input.getJSONObject("replayDestinationInfo");
+		
+		String auditCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-audit-collection");
+		String payloadCollectionName = MongoDBClientSingleton.getErrorSpotConfig("u-payload-collection");
+		String mongoDatabase = MongoDBClientSingleton.getErrorSpotConfig("u-mongodb-database");
+		Map<String,String> output = new HashMap<String,String>();
+		
+		//Create MongoDB Connection
+		DB db = mongoClient.getDB(mongoDatabase);
+		DBCollection auditCollection = db.getCollection(auditCollectionName);
+		DBCollection payloadCollection = db.getCollection(payloadCollectionName);
+		String batchID = input.get("_id").toString().split(":")[1].replace("\"","").replace("}", "");
+
+		LOGGER.info("Connected to MongoDB to find Payloads for Batch: " + batchID);
+		// Get DataLocations
+		BasicDBList objectIds = new BasicDBList();
+		objectIds.addAll(objectIDs);
+		BasicDBObject auditSearchInClause = new BasicDBObject("$in",objectIds); 
+		BasicDBObject auditSearchClause = new BasicDBObject("_id",auditSearchInClause); 
+
+		DBCursor auditsResult = auditCollection.find(auditSearchClause);
+		LOGGER.info("Retrieved all Payloads for Batch: " + batchID);
+
+		ArrayList<ObjectId> dataLocations = new ArrayList<ObjectId>();
+		ArrayList<DBObject> auditList = new ArrayList<DBObject>();
+		Map<String,String> payloadAndAuditId = new HashMap<String,String>();
+		
+		while (auditsResult.hasNext())
+		{
+			DBObject audit = auditsResult.next();
+			if (audit.containsField("dataLocation"))
+			{
+				auditList.add(audit);
+				String ObjectID = audit.get("dataLocation").toString();
+				dataLocations.add(new ObjectId(ObjectID));
+				payloadAndAuditId.put(ObjectID,audit.get("_id").toString());
+			}
+		}
+		BasicDBList payloadIds = new BasicDBList();
+		payloadIds.addAll(dataLocations);
+		DBObject inClause = new BasicDBObject("$in",payloadIds);
+		DBObject payloadQuery = new BasicDBObject("_id" , inClause);
+		DBCursor payloadQueryResult = payloadCollection.find(payloadQuery);
+		JSONObject replayInput = input.getJSONObject("replayDestinationInfo");
+
+		replayInput.put("jmsServerType", replayDestinationInfo.getString("jmsServerType"));
+		replayInput.put("destinationName", replayDestinationInfo.getString("destinationName"));
+		replayInput.put("destinationType", replayDestinationInfo.getString("destinationType"));
+		replayInput.put("type", "JMS");
+		replayInput.put("connectionFactory", replayDestinationInfo.getString("connectionFactory"));
+		replayInput.put("host", replayDestinationInfo.getString("host"));
+		replayInput.put("port", replayDestinationInfo.getString("port"));
+		replayInput.put("username", replayDestinationInfo.getString("username"));
+		replayInput.put("password", replayDestinationInfo.getString("password"));
+		replayInput.put("deliveryMode", replayDestinationInfo.getString("deliveryMode"));
+		while (payloadQueryResult.hasNext())
+		{
+			DBObject payload = payloadQueryResult.next();
+			String payloadID = payload.get("_id").toString();
+			String convertedPayload = PayloadService.jsonToPayload(payload);
+			String auditID = payloadAndAuditId.get(payloadID);
+			replayInput.put("auditID", auditID);
+
+			try
+			{
+			LOGGER.trace("Started Replay for Audit: " + auditID);
+			System.out.println(replayInput.toString());
+			System.out.println(convertedPayload);
+			String handleResult = ReplayService.handleReplays(replayInput , convertedPayload);
+			LOGGER.trace("Result of replay for Audit " + auditID + ": " + handleResult);
+			LOGGER.trace("Finished Replay for Audit: " + auditID);
+
+			if (handleResult !=null & !handleResult.equals("Success"))
+			{
+			output.put(auditID, handleResult);
+			}
+			}
+			catch(Exception e)
+			{
+				LOGGER.error("Undefined ErrorSpot Error");
+				output.put(auditID, "Undefined ErrorSpot Error");
+				e.printStackTrace();
+			}
+		}
+			System.out.println(output.size());
+			LOGGER.info("Finished Batch Replay for Batch " + batchID);
+
+		
+		return null;
+		
+	}
+	
 	
 	public static void handleBatchCalls(HttpServerExchange exchange,RequestContext context, String payload) throws java.text.ParseException{
 	      //if the thing is a JSON and query is batch, insert it
