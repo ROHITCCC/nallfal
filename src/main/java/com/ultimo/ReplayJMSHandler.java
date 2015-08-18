@@ -96,7 +96,8 @@ public static String handleTibcoJMS(String destinationName, String destinationTy
 			Vector<Object> data = new Vector<Object>();
 			data.add(payload);
  
-			LOGGER.debug("Connecting to Tibco EMS server: " + serverUrl);
+			LOGGER.info("Connecting to Tibco EMS server: " + serverUrl+" with destination type: "+destinationType);
+			LOGGER.trace("destination Name: "+destinationName+" destinationType: "+destinationType+" Tibco JMS Connection Factory: "+connectionFactory+" host: "+host+" port: "+port+" username: "+username+" password: "+password+" delivery mode: "+deliveryMode+" paylload: "+payload);
 			
 
             Class<?> tibJmsConnFactory = Class.forName(connectionFactory);
@@ -128,10 +129,11 @@ public static String handleTibcoJMS(String destinationName, String destinationTy
 					String text = (String) data.elementAt(i);
 					jmsMessage.setText(text);
 					producer.send(jmsMessage);
-					LOGGER.debug("JMS Message sent to queue: " + destinationName);
+					LOGGER.info("JMS Message sent to queue: " + destinationName);
 				}
 	 
 				connection.close();
+				LOGGER.info("closing connection to server: "+serverUrl);
 				output = "Success";
 				
 			} else if (destinationType.equalsIgnoreCase("topic")){
@@ -160,11 +162,12 @@ public static String handleTibcoJMS(String destinationName, String destinationTy
 					jmsMessage.setText(text);
 					publisher.publish(jmsMessage);
 					
-					LOGGER.debug("JMS Message sent to topic: " + destinationName);
+					LOGGER.info("JMS Message sent to topic: " + destinationName);
 
 				}
 	 
 				connection.close();
+				LOGGER.info("closing connection to server: "+serverUrl);
 				output = "Success";
 				
 			} else {
@@ -175,37 +178,30 @@ public static String handleTibcoJMS(String destinationName, String destinationTy
 			}
  
 	} catch (JMSException e) {
-			e.printStackTrace();
+			LOGGER.error("",e);
 		    output = e.getMessage();
 		    
 		}
 		catch (ClassNotFoundException e){
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		} catch (InvocationTargetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("",e);
 			output = e.getMessage();
 		}
 
@@ -233,7 +229,8 @@ public static String hanldeWeblogicJMS(String destinationName, String destinatio
 	Topic topic;
 	TextMessage msg;
 	String url = "t3://" + host + ":" + Integer.toString(port);
-	LOGGER.debug("Connecting to Weblogic JMS server url: " + url);
+	LOGGER.info("Connecting to Weblogic JMS server url: " + url+" with destination type: "+destinationType);
+	LOGGER.trace("destination Name: "+destinationName+" destinationType: "+destinationType+" Tibco JMS Connection Factory: "+connectionFactory+" host: "+host+" port: "+port+" username: "+username+" password: "+password+" delivery mode: "+deliveryMode+" paylload: "+payload);
 	
 	Hashtable<String,String> env = new Hashtable<String,String>();
 	env.put(Context.INITIAL_CONTEXT_FACTORY, JNDI_FACTORY);
@@ -255,7 +252,7 @@ public static String hanldeWeblogicJMS(String destinationName, String destinatio
 
 		msg.setText(message);
 		qsender.send(msg);
-		LOGGER.debug("JMS Message sent to queue: " + destinationName);
+		LOGGER.info("JMS Message sent to queue: " + destinationName);
 
 		qsender.close();
 		qsession.close();
@@ -277,7 +274,7 @@ public static String hanldeWeblogicJMS(String destinationName, String destinatio
 
 		msg.setText(message);
 		tsender.send(msg);
-		LOGGER.debug("JMS Message sent to topic: " + destinationName);
+		LOGGER.info("JMS Message sent to topic: " + destinationName);
 		
 		tsender.close();
 		tsession.close();
@@ -290,13 +287,13 @@ public static String hanldeWeblogicJMS(String destinationName, String destinatio
 		
 	}
 	
+	LOGGER.info("closing connection to server: "+url);
 	}catch (JMSException e){
-		
+		LOGGER.error("",e);
 		output = e.getMessage();
 		
 	} catch (NamingException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+		LOGGER.error("",e);
 		output = e.getMessage();
 	}
 	
