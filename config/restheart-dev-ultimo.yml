@@ -288,5 +288,5 @@ error-spot-configs:
     - what: u-email-password
       where: Ultimo2860!
     - what: u-template-location
-      where: C:\mongodb\RestHeart\emailTemplates
+      where: emailTemplates
  
