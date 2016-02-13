@@ -10,6 +10,7 @@ treemapControllerModule.controller('treemapController', ['$scope', 'mongoAggrega
     function($scope, mongoAggregateService, treemapSaver, auditQuery, queryEnv, timeService, queryFilter){
     $scope.toDate = null;
     $scope.fromDate = null;
+    $scope.valid = "";
     $scope.timeOptions = [{"time":.25, "description":"15 minutes"},{"time":.5, "description":"30 minutes"},
                           {"time":1,"description":"1 hour"},{"time":24, "description":"24 hours"},
                           {"time":48,"description":"48 hours"}, {"time":"Calender", "description":"Custom"}];
@@ -75,10 +76,17 @@ treemapControllerModule.controller('treemapController', ['$scope', 'mongoAggrega
         var customDateQuery = "[ { '$match': { '$and': [ { 'timestamp': { '$gte': " +
                     "{'$date':'"+$scope.fromDate+"'},'$lt':{'$date':'"+ $scope.toDate +"'}}},{'$and':[{'severity':{'$ne':null}},{'severity':{'$exists':true,'$ne':''}},{'envid':'"+$scope.env.name+"'}]}]}},{'$group':{'_id':{'interface1':'$interface1','application':'$application'},'count':{'$sum':1}}},{'$group':{'_id':{'application':'$_id.application'},'data':{'$addToSet':{'name':'$_id.interface1','size':'$count'}}}},{'$project':{'_id':1,'name':'$_id.application','children':'$data'}}]";         
         $scope.treemapSaver.dropdownClicked = true;
-        $scope.treemapPromise = mongoAggregateService.callHttp(customDateQuery);
-        var displayFromDate = new Date(fromDate).toDateString().substr(4);
-        var displayToDate = new Date(toDate).toDateString().substr(4);
-        document.getElementById("customDateTimes").innerHTML = displayFromDate+" - "+displayToDate;
+        if($scope.fromDate < $scope.toDate){
+            $scope.valid = "";
+            $scope.treemapPromise = mongoAggregateService.callHttp(customDateQuery);
+            var displayFromDate = new Date(fromDate).toDateString().substr(4);
+            var displayToDate = new Date(toDate).toDateString().substr(4);
+            document.getElementById("customDateTimes").innerHTML = displayFromDate+" - "+displayToDate;
+            $( "#closeModal" ).click();
+        }else{
+            $scope.valid = "'To' must be a date before 'From'";
+        }
+        
     };
     $scope.fromDateChange = function(time){
         $scope.timeSelected = time;
@@ -86,6 +94,7 @@ treemapControllerModule.controller('treemapController', ['$scope', 'mongoAggrega
             $(document).ready(function(){
                 $("#calendarPage").modal();
             });
+            $scope.valid = "";
             return;
         };
         var timeCalulated = calculateTime(time.time);

@@ -215,7 +215,7 @@ and open the template in the editor.
             </div>
             <div id="paginationDropDown" class="col-sm-3 col-xs-6">
                 <label class="control-label">Rows:</label>
-                <select class="replayDropDown" ng-model="rowNumber" id="rowsOptions" class="form-control input-sm"
+                <select class="replayDropDown form-control input-sm" ng-model="rowNumber" id="rowsOptions"
                         data-ng-options="p as p.rows for p in rowsOptions"
                         ng-change="rowSelected(calender.to, calender.from)">
                 </select>
@@ -920,7 +920,7 @@ and open the template in the editor.
                                     </form>
                                 </div>
                             </li>
-                            <li class="list-group-item" ng-if="replayType.type == 'WS'">
+<!--                            <li class="list-group-item" ng-if="replayType.type == 'WS'">
                                 <div class="container-fluid">
                                     <form class="form-horizontal" role="form">
                                         <div class="form-group">
@@ -957,7 +957,7 @@ and open the template in the editor.
                                         </div><span id="replayResponseWs">{{replayResponseWs}}</span>
                                     </form>
                                 </div>
-                            </li>
+                            </li>-->
                             <li class="list-group-item" ng-if="replayType.type == 'FTP'">
                                 <div class="container-fluid">
                                     <form class="form-horizontal" role="form">
@@ -1007,6 +1007,96 @@ and open the template in the editor.
                                             <button ng-click="runFTPService()" class="btn btn-default pull-right">Submit</button>
                                             <button type="button" class="btn btn-default pull-right" ng-click="changeReplayBack()" data-dismiss="modal">Close</button>
                                         </div><span id="replayResponseFTP">{{replayResponseFTP}}</span>
+                                    </form>
+                                </div>
+                            </li>
+                            <li class="list-group-item" ng-if="replayType.type === 'JMS'">
+                                <div class="container-fluid">
+                                    <form class="form-horizontal" role="form">
+                                            <div class="form-inline row">
+                                                    <label for="jmsServerType" class="control-label col-sm-2"><b>Server: </b></label>
+                                                    <select class="replayDropDown" ng-click="checkSelectedJMS()" id="jmsServerType" style="width: 135px" required>
+                                                        <option ng-click="checkSelectedJMS()" value="" style="display: none">Select...</option>
+                                                        <option ng-click="checkSelectedJMS()" value="Weblogic">Weblogic</option>
+                                                        <option ng-click="checkSelectedJMS()" value="Tibco">Tibco</option>
+                                                    </select>
+                                                    <span class="caret" style="margin-left: -18px;"></span>
+                                                    
+                                            </div>
+                                        <br />
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsDestinationName" class="control-label col-sm-2"><b>Destination Name: </b></label>
+                                                <input ng-model="jmsReplay.destinationName" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsDestinationName" placeholder="Destination Name" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsDestinationType" class="control-label col-sm-2"><b>Destination Type: </b></label>
+                                                <input ng-model="jmsReplay.destinationType" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsDestinationType" placeholder="Destination Type" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsConnectionFactory" class="control-label col-sm-2"><b>Connection Factory: </b></label>
+                                                <input ng-model="jmsReplay.connectionFactory" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsConnectionFactory" placeholder="Connection Factory" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsHost" class="control-label col-sm-2"><b>Host: </b></label>
+                                                <input ng-model="jmsReplay.host" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsHost" placeholder="Host" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsPort" class="control-label col-sm-2"><b>Port: </b></label>
+                                                <input ng-model="jmsReplay.port" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsPort" placeholder="Port" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsUsername" class="control-label col-sm-2"><b>Username: </b></label>
+                                                <input ng-model="jmsReplay.username" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsUsername" placeholder="Username" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsPassword" class="control-label col-sm-2"><b>Password: </b></label>
+                                                <input ng-model="jmsReplay.password" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsPassword" placeholder="Password">
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <div class="form-inline">
+                                                <label for="jmsDeliveryMode" class="control-label col-sm-2"><b>Delivery Mode: </b></label>
+                                                <select class="replayDropDown" id="jmsDeliveryMode" style="width: 135px" required>
+                                                    <option value="" style="display: none">Select...</option>
+                                                    <option value="persistent">Persistent</option>
+                                                    <option value="non_persistent">Non-Persistent</option>
+                                                </select>
+                                                <span class="caret" style="margin-left: -18px;"></span>
+                                                
+                                            </div>
+                                        </div>
+                                        <div class="form-group" id="jmsInitialContextFactoryDiv" style="visibility: hidden">
+                                            <div class="form-inline">
+                                                <label for="jmsInitalContextFactory" class="control-label col-sm-2"><b>Initial Context Factory: </b></label>
+                                                <input ng-model="jmsReplay.initalContextFactory" type="text" class="form-control col-sm-10 replayInputBox" 
+                                                       id="jmsInitalContextFactory" placeholder="Initial Context Factory" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group replayButtons">
+                                            <button ng-click="runJMSService()" class="btn btn-default pull-right">Submit</button>
+                                            <button type="button" class="btn btn-default pull-right" ng-click="changeReplayBack()" data-dismiss="modal">Close</button>
+                                        </div><span id="replayResponseJMS">{{replayResponseJMS}}</span>
                                     </form>
                                 </div>
                             </li>

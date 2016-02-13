@@ -26,7 +26,7 @@ public class ImmediateNotificationRefreshJob implements Job{
 		}
 		catch (Exception e){
 			LOGGER.error("Error initilizing Immediate Notification from database. ");
-			LOGGER.error(e.getStackTrace().toString());
+			e.printStackTrace();
 			
 		}
 //		MongoClient client = MongoDBClientSingleton.getInstance().getClient();

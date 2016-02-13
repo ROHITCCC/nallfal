@@ -49,7 +49,7 @@ and open the template in the editor.
             <div id="errorTypePieChartDiv" class="col-lg-12 col-md-4">
                 <error-pie-chart id="errorTypePieChart"></error-pie-chart>
             </div>
-            <div id="transactionTypeBarChartDiv" class="col-lg-12 col-md-4 scrollableBarChart">
+            <div id="transactionTypeBarChartDiv" class="col-lg-12 col-md-4">
                 <transaction-type-bar-chart id="transactionTypeBarChart"></transaction-type-bar-chart>
             </div>
         </div>
@@ -60,7 +60,7 @@ and open the template in the editor.
       <!-- Modal content-->
         <div class="modal-content" >
             <div class="modal-header">
-                <button style="float: right" type="button" class="close" data-dismiss="modal">&times;</button>  
+                <button style="float: right" id="closeModal" type="button" class="close" data-dismiss="modal">&times;</button>  
                 <h4 class="modal-title"><b>Calendar</b></h4>
             </div>
             <div class="modal-body">
@@ -71,7 +71,7 @@ and open the template in the editor.
                                 From
                             </label>
                             <div class="col-sm-2" id="optionField">
-                                <input ng-model="calender.from" type="text" name="fromdate" class="datetimepicker2" Placeholder="mm/dd/yyyy">
+                                <input ng-model="calender.from" type="text" name="fromdate" class="datetimepicker1" Placeholder="mm/dd/yyyy">
                             </div>
                             <label class="control-label col-sm-offset-1 col-sm-1">
                                 To 
@@ -86,7 +86,8 @@ and open the template in the editor.
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal" id="customTimeSubmit" ng-click="customDate(calender.from, calender.to)">Submit</button>
+                <span ng-model="calender.valid">{{valid}}</span>
+                <button type="button" class="btn btn-default" id="customTimeSubmit" ng-click="customDate(calender.from, calender.to)">Submit</button>
             </div>
       </div>
     </div>

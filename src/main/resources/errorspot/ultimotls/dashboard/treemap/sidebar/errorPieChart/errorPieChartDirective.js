@@ -3,7 +3,7 @@ var errorPieChartDirectiveModule = angular.module('errorPieChartDirectiveModule'
 errorPieChartDirectiveModule.directive('errorPieChart',['queryFilter', function(queryFilter){
     var initialHeight = document.getElementById("row2").offsetHeight;
     function updateSize(data){
-        var width = document.getElementById('errorTypePieChartDiv').offsetWidth, height = (window.innerHeight*.28);
+        var width = document.getElementById('errorTypePieChartDiv').offsetWidth, height = (window.innerHeight*.29);
         if (data === 0){ //Will append a Message for no data and return out of the function
             d3.select("#errorTypePieChart").select("svg").remove();
             var svg = d3.select("#errorTypePieChart").append("svg")
@@ -25,6 +25,10 @@ errorPieChartDirectiveModule.directive('errorPieChart',['queryFilter', function(
         d3.select("#severity").selectAll("path").style("opacity", 1);
         d3.select("#error").selectAll("path").style("opacity", 1);
         d3.select("#transactionType").selectAll("rect").style("opacity",1);
+        d3.selectAll(".transactionTypeText").style("opacity", 1);
+        d3.selectAll(".transactionTypeText").selectAll("text").style("opacity", 1);
+        d3.select("#errorPathText").selectAll("text").style("opacity",1);
+        d3.select("#severityPathText").selectAll("text").style("opacity",1);
         queryFilter.appendQuery("","");
         queryFilter.broadcast();
     }
@@ -34,22 +38,39 @@ errorPieChartDirectiveModule.directive('errorPieChart',['queryFilter', function(
         d3.select("#error").selectAll("path").style("opacity", 0.3);
         d3.select("#severity").selectAll("path").style("opacity", 0.3);
         d3.select("#transactionType").selectAll("rect").style("opacity", 0.3);
+        d3.selectAll(".transactionTypeText").style("opacity", 0.3);
+        d3.selectAll(".transactionTypeText").selectAll("text").style("opacity", 0.3);
+        d3.select("#severityPathText").selectAll("text").style("opacity",0.3);
+        d3.select("#errorPathText").selectAll("text").style("opacity",0.3);
+        if(d.data !== undefined){
+            d3.select("#errorInnerSlice"+d.data._id).style("opacity",1);
+            d3.select("#errorTopSlice"+d.data._id).style("opacity",1);
+            d3.select("#errorOuterSlice"+d.data._id).style("opacity",1);
+            d3.select("#errorPieChartTextBox-"+d.data._id).style("opacity",1);
+        }else{
+            d3.select("#errorInnerSlice"+d._id).style("opacity",1);
+            d3.select("#errorTopSlice"+d._id).style("opacity",1);
+            d3.select("#errorOuterSlice"+d._id).style("opacity",1);
+            d3.select("#errorPieChartTextBox-"+d._id).style("opacity",1);
+        }
         
-        d3.select("#errorInnerSlice"+i).style("opacity",1);
-        d3.select("#errorTopSlice"+i).style("opacity",1);
-        d3.select("#errorOuterSlice"+i).style("opacity",1);
         
         d3.select("#errorTypePieChart").select("svg")
             .append("g").attr("transform", "translate("+width*.7+",15)")
             .attr("id","reset").on("click", function(d){onReset();})
             .append("text").text("Reset");
-    }
+    };
     function pieChart(data, status){
         var Donut3D = {};
         var color = d3.scale.category10();
-        var width = document.getElementById('errorTypePieChartDiv').offsetWidth, height = (window.innerHeight*.28);
-        var centerX = width*.5, centerY = height*.45, radiusX = centerX*.7, radiusY = centerY*.66, pieHeight = centerY*.2, innerRadius = .3;
+        var width = document.getElementById('errorTypePieChartDiv').offsetWidth, height = (window.innerHeight*.29);
+        var centerX = width*.45, centerY = height*.5, radiusX = Math.min(centerX,centerY)*.7, radiusY = Math.min(centerY,centerX)*.7, pieHeight = centerY*0, innerRadius = 0;
         function upDateTreemap(filterCriteria){
+            if(typeof filterCriteria  === "string"){
+                queryFilter.appendQuery("errorType",filterCriteria);
+                queryFilter.broadcast();
+                return;
+            }
             queryFilter.appendQuery("errorType",filterCriteria.data._id);
             queryFilter.broadcast();
         };
@@ -107,25 +128,24 @@ errorPieChartDirectiveModule.directive('errorPieChart',['queryFilter', function(
                ((document.getElementById("row2").offsetHeight - initialHeight)*.8)+"px")
                .style("left", (d3.event.pageX + 15)+"px");
             };
-
             var _data = d3.layout.pie().sort(function(a,b){return b.count - a.count}).value(function(d) {return d.count;})(data);
             //d3.select("html").selectAll("*:not(svg)").on("mouseover",mouseOutSlice);//helps remove tooltip
             var slices = d3.select("#"+id).append("g").attr("transform", "translate(" + x + "," + y + ")")
                 .attr("class", "slices");
             var tooltip = d3.select("#errorTypePieChart").append("div").attr("id", "tooltip")
                 .style("position", "fixed").style("opacity", 0).style("z-index", 1000);	
-            slices.selectAll(".innerSlice").data(_data).enter().append("path").attr("class","innerSlice")
-                .attr("id", function(d,i){return "errorInnerSlice"+i})
-                .style("fill", function(d,i){return color(i);})
-                .style("stroke", "rgb(87, 87, 87)")
-                .attr("d",function(d){ return pieInner(d, rx+0.5,ry+0.5, h, ir);})
-                .on("mouseover", mouseOverSlice)
-                .on("mousemove", mouseMoveSlice)
-                .on("mouseout", mouseOutSlice)
-                .on("click", function(d,i){upDateTreemap(d);onSelection(d,i);})
-                .each(function(d){this._current=d;});
+//            slices.selectAll(".innerSlice").data(_data).enter().append("path").attr("class","innerSlice")
+//                .attr("id", function(d,i){return "errorInnerSlice"+i})
+//                .style("fill", function(d,i){return color(i);})
+//                .style("stroke", "rgb(87, 87, 87)")
+//                .attr("d",function(d){ return pieInner(d, rx+0.5,ry+0.5, h, ir);})
+//                .on("mouseover", mouseOverSlice)
+//                .on("mousemove", mouseMoveSlice)
+//                .on("mouseout", mouseOutSlice)
+//                .on("click", function(d,i){upDateTreemap(d);onSelection(d,i);})
+//                .each(function(d){this._current=d;});
             slices.selectAll(".topSlice").data(_data).enter().append("path").attr("class", "topSlice")
-                .attr("id", function(d,i){return "errorTopSlice"+i})
+                .attr("id", function(d,i){return "errorTopSlice"+d.data._id})
                 .style("fill", function(d,i){return color(i);})
                 .style("stroke", "rgb(87, 87, 87)")
                 .attr("d",function(d){ return pieTop(d, rx, ry, ir);})
@@ -134,16 +154,16 @@ errorPieChartDirectiveModule.directive('errorPieChart',['queryFilter', function(
                 .on("mouseout", mouseOutSlice)
                 .on("click", function(d,i){upDateTreemap(d);onSelection(d,i);})
                 .each(function(d){this._current=d;});
-            slices.selectAll(".outerSlice").data(_data).enter().append("path").attr("class", "outerSlice")
-                .attr("id", function(d,i){return "errorOuterSlice"+i})
-                .style("fill", function(d,i){return color(i);})
-                .style("stroke", "rgb(87, 87, 87)")
-                .attr("d",function(d){ return pieOuter(d, rx-.5,ry-.5, h);})
-                .on("mouseover", mouseOverSlice)
-                .on("mousemove", mouseMoveSlice)
-                .on("mouseout", mouseOutSlice)
-                .on("click", function(d,i){upDateTreemap(d);onSelection(d,i);})
-                .each(function(d){this._current=d;});
+//            slices.selectAll(".outerSlice").data(_data).enter().append("path").attr("class", "outerSlice")
+//                .attr("id", function(d,i){return "errorOuterSlice"+i})
+//                .style("fill", function(d,i){return color(i);})
+//                .style("stroke", "rgb(87, 87, 87)")
+//                .attr("d",function(d){ return pieOuter(d, rx-.5,ry-.5, h);})
+//                .on("mouseover", mouseOverSlice)
+//                .on("mousemove", mouseMoveSlice)
+//                .on("mouseout", mouseOutSlice)
+//                .on("click", function(d,i){upDateTreemap(d);onSelection(d,i);})
+//                .each(function(d){this._current=d;});
             slices.selectAll(".label").data(_data).enter().append("text").attr("class", "label")
                 .attr("x",function(d){ return .7*rx*Math.cos(0.5*(d.startAngle+d.endAngle));})
                 .attr("y",function(d){ return 0.6*ry*Math.sin(0.5*(d.startAngle+d.endAngle));})
@@ -155,7 +175,26 @@ errorPieChartDirectiveModule.directive('errorPieChart',['queryFilter', function(
                 .style("fill", "black")
                 .style("font-size", "11px")
                 .text(function(d){return fittedText(d)<.4?"":d.data._id})
-                .each(function(d){this._current=d;});				
+                .each(function(d){this._current=d;});	
+            
+            var pathText = d3.select("#errorTypePieChart").select("svg").append("g").attr("id","errorPathText");
+            var xAdjust = 0, yAdjust = 0;
+            var sortedData = data.sort(function(a,b){return b.count-a.count;});
+            pathText.selectAll(".pathLabel").data(sortedData).enter().append("text").attr("class","pathLabel")
+                .attr("transform","translate("+width*.05+","+height*.90+")")
+                .attr("id",function(d,i){return "errorPieChartTextBox-"+d._id;})
+                .attr("x",function(d,i){
+                    if(i >0){
+                        return xAdjust = xAdjust+ (sortedData[i-1]._id.length*6.5) +15;
+                        if(xAdjust+75>width){
+                            yAdjust = 20;
+                        }
+                    }
+                    return xAdjust;
+                })
+                .attr("y",yAdjust)
+                .on("click", function(d,i){upDateTreemap(d._id);onSelection(d,i);})
+                .text(function(d,i){return d._id;}).style("fill",function(d,i){return color(i);}); 
 	};
         this.Donut3D = Donut3D;
         if (status === "no_data"){ //Will append a Message for no data and return out of the function

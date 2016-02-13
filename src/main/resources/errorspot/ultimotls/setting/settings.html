@@ -504,15 +504,15 @@
                                         <table class="table table-striped table-bordered table-hover" id="table">
                                             <thead id="tableHeader">
                                                 <tr>
-                                                    <th><label><input class="batchcheck" id="batchSelectAll" ng-click="checkAll(this)" type="checkbox"> Select All</label>
+                                                    <th class="col-sm-1"><label><input class="batchcheck" id="batchSelectAll" ng-click="checkAll(this)" type="checkbox"> Select All</label>
                                                         <button type="submit" ng-click="DeleteSelectedBatch()" class="btn">Delete Selected</button>
                                                     </th>
-                                                    <th>Replay Timestamp</th>
-                                                    <th>Replay by</th>
-                                                    <th>Batch Timestamp</th>
-                                                    <th>Type</th>
-                                                    <th>Status</th>
-                                                    <th></th>
+                                                    <th class="col-sm-1">Replay Timestamp</th>
+                                                    <th class="col-sm-1">Replay by</th>
+                                                    <th class="col-sm-1">Batch Timestamp</th>
+                                                    <th class="col-sm-1">Type</th>
+                                                    <th class="col-sm-1">Status</th>
+                                                    <th class="col-sm-1"><button id="refreshbatch" class="btn" ng-click="BatchjobPromise()">Refresh</button></th>
                                                 </tr>
                                             </thead>
                                             <tdbody>

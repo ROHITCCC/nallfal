@@ -25,7 +25,7 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
         $scope.predicate = 'timestamp.$date';
         $scope.replayQueryHolder = "";
         //Replay Page Options
-        $scope.replayOptions = [{type: "REST"}, {type: "FILE"}, {type: "WS"}, {type: "FTP"}];
+        $scope.replayOptions = [{type: "REST"}, {type: "FILE"}, /*{type: "WS"},*/ {type: "FTP"}, {type: "JMS"}];
         $scope.replayType = $scope.replayOptions[0];
         //For Replay Data Page
         $scope.pageSize = 20;
@@ -501,8 +501,13 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
                             headerHolder += ', {"type":"'+tempType+'", "value":"'+tempVal+'"}';
                         }
                     }
-                    restPayload = '"type":"REST", "endpoint":"'+$scope.restReplay.endpointUrl+'", "method":"'+
-                        methodVal+'", "content-type":"'+contentVal+'", "restHeaders":['+headerHolder+'], "auditID":"'+auditID+'", "replayedBy":"'+batchVals[1]+'"';
+                    restPayload = '"type":"REST", '+
+                            '"endpoint":"'+$scope.restReplay.endpointUrl+'", '+
+                            '"method":"'+ methodVal + '", '+
+                            '"content-type":"'+contentVal+'", '+
+                            '"restHeaders":['+headerHolder+'], '+
+                            '"auditID":"'+auditID+'", '+
+                            '"replayedBy":"'+batchVals[1]+'"';
                 }
                 
                 var multipartPayload = "Content-Type: multipart/mixed; boundary=boundaryREST\n"+
@@ -561,8 +566,11 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
                             headerHolder += ', {"type":"'+tempType+'", "value":"'+tempVal+'"}';
                         }
                     }
-                    restPayload = '"type":"REST", "endpoint":"'+$scope.restReplay.endpointUrl+'", "method":"'+
-                        methodVal+'", "content-type":"'+contentVal+'", "restHeaders":['+headerHolder+']';
+                    restPayload = '"type":"REST", '+
+                    '"endpoint":"'+$scope.restReplay.endpointUrl+'", '+
+                    '"method":"'+ methodVal+'", '+
+                    '"content-type":"'+contentVal+'", '+
+                    '"restHeaders":['+headerHolder+']';
                 }
                 
                 var batchPayload = '{  "replaySavedTimestamp":"'+batchVals[0]+'",  "replayedBy":"'+batchVals[1]+'", '+
@@ -647,8 +655,7 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
                     }
                 }
                 
-                var filePayloadBatch = null;'"type":"FILE", "fileLocation":"'+$scope.fileReplay.location+'", "fileName":"'+fileName+'", '+
-                        '"fileType":"'+fileExt+'"';
+                var filePayloadBatch = null;
                 
                 if(fileName === ""){
                     filePayloadBatch = '"type":"FILE", "fileLocation":"'+$scope.fileReplay.location+'", '+
@@ -684,8 +691,13 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
             if($scope.batchChecker === false){
                 var auditID = $scope.rowID;
                 var batchVals = $scope.batchValues();
-                var webServicePayload = '"type":"WS", "wsdl":"'+$scope.webServiceReplay.wsdl+'", "operation":"'+$scope.webServiceReplay.operation+'",'+
-                        '"soapaction":"'+$scope.webServiceReplay.soapAction+'", "binding":"'+$scope.webServiceReplay.binding+'", "auditID":"'+auditID+'", "replayedBy":"'+batchVals[1]+'"';
+                var webServicePayload = '"type":"WS", '+
+                        '"wsdl":"'+$scope.webServiceReplay.wsdl+'", '+
+                        '"operation":"'+$scope.webServiceReplay.operation+'",'+
+                        '"soapaction":"'+$scope.webServiceReplay.soapAction+'", '+
+                        '"binding":"'+$scope.webServiceReplay.binding+'", '+
+                        '"auditID":"'+auditID+'", '+
+                        '"replayedBy":"'+batchVals[1]+'"';
                 var multipartPayload = "Content-Type: multipart/mixed; boundary=boundaryWS\n"+
                     "--boundaryWS\n" +
                     "Content-Type: application/json;\n\n" +
@@ -713,8 +725,11 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
             else{
                 var batchVals = $scope.batchValues();
                 var auditIDs = $scope.pullAuditIDs(batchVals[2]);
-                var webServicePayloadBatch = '"type":"WS", "wsdl":"'+$scope.webServiceReplay.wsdl+'", "operation":"'+$scope.webServiceReplay.operation+'",' + 
-                    '"soapaction":"'+$scope.webServiceReplay.soapAction+'", "binding":"'+$scope.webServiceReplay.binding+'"';
+                var webServicePayloadBatch = '"type":"WS", '+
+                        '"wsdl":"'+$scope.webServiceReplay.wsdl+'", '+
+                        '"operation":"'+$scope.webServiceReplay.operation+'",' + 
+                        '"soapaction":"'+$scope.webServiceReplay.soapAction+'", '+
+                        '"binding":"'+$scope.webServiceReplay.binding+'"';
                 
                 var batchPayload = '{  "replaySavedTimestamp":"'+batchVals[0]+'", "replayedBy":"'+batchVals[1]+'", '+
                         '"batchProcessedTimestamp":"", "status":"new", "replayDestinationInfo": { '+webServicePayloadBatch+' },'+
@@ -742,10 +757,15 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
             if($scope.batchChecker === false){
                 var auditID = $scope.rowID;
                 var batchVals = $scope.batchValues();
-                var ftpPayload = '"type":"FTP", "host":"'+$scope.ftpServiceReplay.host+'", '+
-                        '"port":"'+$scope.ftpServiceReplay.port+'", "username":"'+$scope.ftpServiceReplay.username+'", '+
-                        '"password":"'+$scope.ftpServiceReplay.password+'", "location":"'+$scope.ftpServiceReplay.location+'", '+
-                        '"fileType":"'+$scope.ftpServiceReplay.fileType+'", "auditID":"'+auditID+'", "replayedBy":"'+batchVals[1]+'"';
+                var ftpPayload = '"type":"FTP", '+
+                        '"host":"'+$scope.ftpServiceReplay.host+'", '+
+                        '"port":"'+$scope.ftpServiceReplay.port+'", '+
+                        '"username":"'+$scope.ftpServiceReplay.username+'", '+
+                        '"password":"'+$scope.ftpServiceReplay.password+'", '+
+                        '"location":"'+$scope.ftpServiceReplay.location+'", '+
+                        '"fileType":"'+$scope.ftpServiceReplay.fileType+'", '+
+                        '"auditID":"'+auditID+'", '+
+                        '"replayedBy":"'+batchVals[1]+'"';
                 var multipartPayload = "Content-Type: multipart/mixed; boundary=boundaryFTP\n"+
                     "--boundaryFTP\n" +
                     "Content-Type: application/json;\n\n" +
@@ -773,9 +793,12 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
             else{
                 var batchVals = $scope.batchValues();
                 var auditIDs = $scope.pullAuditIDs(batchVals[2]);
-                var ftpPayloadBatch = '"type":"FTP", "host":"'+$scope.ftpServiceReplay.host+'", '+
-                        '"port":"'+$scope.ftpServiceReplay.port+'", "username":"'+$scope.ftpServiceReplay.username+'", '+
-                        '"password":"'+$scope.ftpServiceReplay.password+'","location":"'+$scope.ftpServiceReplay.location+'", '+
+                var ftpPayloadBatch = '"type":"FTP", '+
+                        '"host":"'+$scope.ftpServiceReplay.host+'", '+
+                        '"port":"'+$scope.ftpServiceReplay.port+'", '+
+                        '"username":"'+$scope.ftpServiceReplay.username+'", '+
+                        '"password":"'+$scope.ftpServiceReplay.password+'", '+
+                        '"location":"'+$scope.ftpServiceReplay.location+'", '+
                         '"fileType":"'+$scope.ftpServiceReplay.fileType+'"';
                 var batchPayload = '{  "replaySavedTimestamp":"'+batchVals[0]+'",  "replayedBy":"'+batchVals[1]+'", '+
                         '"batchProcessedTimestamp":"", "status":"new", "replayDestinationInfo": { '+ftpPayloadBatch+' },'+
@@ -798,6 +821,111 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
                 }
             }
         };
+        $scope.jmsReplay = {};
+        $scope.runJMSService = function(){
+            $scope.replayResponseJMS = " ";
+            if($scope.batchChecker === false){
+                var auditID = $scope.rowID;
+                var batchVals = $scope.batchValues();
+                var serverType = document.getElementById("jmsServerType").value;
+                var deliveryMode = $scope.jmsReplay.deliveryMode;
+                var jmsPayload = '"type":"JMS", '+
+                        '"jmsServerType":"' + serverType + '", '+
+                        '"destinationName":"' + $scope.jmsReplay.destinationName + '",' +
+                        '"destinationType":"' + $scope.jmsReplay.destinationType + '", '+
+                        '"connectionFactory":"' + $scope.jmsReplay.connectionFactory + '", ' + 
+                        '"host":"' + $scope.jmsReplay.host + '", ' +
+                        '"port":"' + $scope.jmsReplay.port + '", ' +
+                        '"username":"' + $scope.jmsReplay.username + '", ' + 
+                        '"password":"' + $scope.jmsReplay.password + '", ' + 
+                        '"deliveryMode":"' + deliveryMode + '"';
+                
+                if(serverType === "Weblogic"){
+                    jmsPayload += ', "initalContextFactory":"' + $scope.jmsReplay.initalContextFactory + '" ';
+                }
+                
+                jmsPayload += ', "auditID":"'+auditID+'", '+
+                        '"replayedBy":"'+batchVals[1]+'"';
+                
+                var multipartPayload = "Content-Type: multipart/mixed; boundary=boundaryJMS\n"+
+                    "--boundaryJMS\n" +
+                    "Content-Type: application/json;\n\n" +
+                    "{"+jmsPayload+"}\n\n" + 
+                    "--boundaryJMS\n" +
+                    "Content-Type: text/plain; charset: utf-8;\n\n" + 
+                    $scope.payloadPageData+
+                    "\n\n--boundaryJMS--";   
+            console.log(multipartPayload);
+                if(serverType !== undefined && 
+                        $scope.jmsReplay.destinationName !== undefined && 
+                        $scope.jmsReplay.destinationType !== undefined && 
+                        $scope.jmsReplay.connectionFactory !== undefined &&
+                        $scope.jmsReplay.host !== undefined && 
+                        $scope.jmsReplay.port !== undefined && 
+                        $scope.jmsReplay.username !== undefined && 
+                        //$scope.jmsReplay.password !== undefined && 
+                        deliveryMode !== ""){
+                    $http.post(replayPostUrl, multipartPayload, {timeout:TLS_SERVER_TIMEOUT})
+                        .success(function(d,status, header, config){
+                            var auth_token_valid_until = header()['auth-token-valid-until'];
+                            resetTimerService.set(auth_token_valid_until);
+                            $scope.replayResponseJMS = "JMS Replay Success";
+                        }).error(function(d,status, header, config){
+                            var auth_token_valid_until = header()['auth-token-valid-until'];
+                            resetTimerService.set(auth_token_valid_until);
+                            $scope.replayResponseJMS = "Error: Could Not Connect";
+//                            $scope.replayResponseFTP = "Error: " + d["http status code"] + ": " + d["message"];
+                        });
+                }
+            }
+            else{
+                var batchVals = $scope.batchValues();
+                var auditIDs = $scope.pullAuditIDs(batchVals[2]);
+                var serverType = document.getElementById("jmsServerType").value;
+                var deliveryMode = $scope.jmsReplay.deliveryMode;
+                var jmsPayloadBatch = '"type":"JMS", '+
+                        '"jmsServerType":"' + serverType + '", '+
+                        '"destinationName":"' + $scope.jmsReplay.destinationName + '",' +
+                        '"destinationType":"' + $scope.jmsReplay.destinationType + '", '+
+                        '"connectionFactory":"' + $scope.jmsReplay.connectionFactory + '", ' + 
+                        '"host":"' + $scope.jmsReplay.host + '", ' +
+                        '"port":"' + $scope.jmsReplay.port + '", ' +
+                        '"username":"' + $scope.jmsReplay.username + '", ' + 
+                        '"password":"' + $scope.jmsReplay.password + '", ' + 
+                        '"deliveryMode":"' + deliveryMode + '"';
+                
+                if(serverType === "Weblogic"){
+                    jmsPayloadBatch += ', "initalContextFactory":"' + $scope.jmsReplay.initalContextFactory + '"';
+                }
+                
+                var batchPayload = '{  "replaySavedTimestamp":"'+batchVals[0]+'",  "replayedBy":"'+batchVals[1]+'", '+
+                        '"batchProcessedTimestamp":"", "status":"new", "replayDestinationInfo": { '+jmsPayloadBatch+' },'+
+                        '"auditID": ['+auditIDs+']}';
+                console.log(batchPayload);
+                if(serverType !== undefined && 
+                        $scope.jmsReplay.destinationName !== undefined && 
+                        $scope.jmsReplay.destinationType !== undefined && 
+                        $scope.jmsReplay.connectionFactory !== undefined &&
+                        $scope.jmsReplay.host !== undefined && 
+                        $scope.jmsReplay.port !== undefined && 
+                        $scope.jmsReplay.username !== undefined && 
+                        //$scope.jmsReplay.password !== undefined && 
+                        deliveryMode !== ""){
+                    $http.post(replayPostUrlBatch, batchPayload, {timeout:TLS_SERVER_TIMEOUT})
+                        .success(function(d,status, header, config){
+                            var auth_token_valid_until = header()['auth-token-valid-until'];
+                            resetTimerService.set(auth_token_valid_until);
+                            $scope.replayResponseJMS = "Success: " + d;
+                        })
+                        .error(function(d,status, header, config){
+                            var auth_token_valid_until = header()['auth-token-valid-until'];
+                            resetTimerService.set(auth_token_valid_until);
+                            $scope.replayResponseJMS = "Error: Could Not Connect";
+//                            $scope.replayResponseFTP = "Error: " + d["http status code"] + ": " + d["message"];
+                        });
+                }
+            }
+        };
         $scope.changeReplay = function(){
             $scope.batchChecker = true;
             if($scope.treemapSaver.checkboxChecked !== undefined){
@@ -806,6 +934,7 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
                 $scope.replayResponseFile = " ";
                 $scope.replayResponseWs = " ";
                 $scope.replayResponseFTP = " ";
+                $scope.replayResponseJMS = " ";
             };
         };
         $scope.replayRowClicked = function(d){
@@ -816,7 +945,7 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
                 }
             }
             $scope.singleSelectedReplayData = d;
-        }
+        };
         $scope.replayedData = function(d){
             $scope.replaySelected = d.replayInfo;
             $scope.replaySelectedLength = $scope.replaySelected.length;
@@ -879,6 +1008,17 @@ auditControllerModule.controller('DataRetrieve', ['$scope', '$log', '$http', 'au
             }
             else{
                 extValText.style.display = "none";
+            }
+        };
+        $scope.checkSelectedJMS = function(){
+            var extVal = document.getElementById("jmsServerType");
+            var factoryDiv = document.getElementById("jmsInitialContextFactoryDiv");
+            
+            if(extVal.value === "Weblogic"){
+                factoryDiv.style.visibility = "visible";
+            }
+            else{
+                factoryDiv.style.visibility = "hidden";
             }
         };
         $scope.batchValues = function(){

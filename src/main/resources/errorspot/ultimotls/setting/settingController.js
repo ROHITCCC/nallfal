@@ -371,11 +371,18 @@ settingModule.controller('SettingsController', ['$scope', '$http', 'localStorage
                 return Math.ceil($scope.Batchjobs.length / $scope.pageSizeBatchjob);
             };
             $scope.DeleteSelectedBatch = function () {
-                temporal = Object.keys($scope.selectedBatch);
+                $scope.todelete=[];
+                for (x in $scope.selectedBatch){
+                    if ($scope.selectedBatch[x] === true){
+                        $scope.todelete[x]=true ;
+                    }
+                };
+                temporal = Object.keys($scope.todelete);
                 $scope.batchupdelete(temporal);
             };
             $scope.checkAll = function (source) {
                 $('.batchcheckdata, .batchcheck').click();
+                
 
             };
         });

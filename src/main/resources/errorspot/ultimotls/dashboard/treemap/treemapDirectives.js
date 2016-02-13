@@ -8,7 +8,7 @@ var treemapDirectiveModule = angular.module('treemapDirectiveModule', ['treemapC
 
 treemapDirectiveModule.directive('treemapZoom', ['$location', function($location){
     var w = document.getElementById('treemapDiv').offsetWidth, w2=w*.8,
-        h = window.innerHeight*.83,
+        h = window.innerHeight*.885,
         x = d3.scale.linear().range([0, w]),
         y = d3.scale.linear().range([0, h]),
         x2 = d3.scale.linear().range([0, w]),
@@ -57,7 +57,7 @@ treemapDirectiveModule.directive('treemapZoom', ['$location', function($location
         }
         w = document.getElementById('treemapDiv').offsetWidth;
         w2 = w*.8;
-        h=window.innerHeight*.83;
+        h=window.innerHeight*.885;
         x = d3.scale.linear().range([0, w]);
         y = d3.scale.linear().range([0, h]);
 
