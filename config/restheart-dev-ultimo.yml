@@ -74,7 +74,7 @@ static-resources-mounts:
       secured: false
       embedded: true
     - what: errorspot
-      where: /errorspot
+      where: /errorspot/public_html
       welcome-file: index.html
       secured: false
       embedded: true
