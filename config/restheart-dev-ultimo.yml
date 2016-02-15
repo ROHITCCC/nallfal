@@ -45,7 +45,7 @@ use-embedded-keystore: true
 # Secify the ip and port of mongodb with mongo-servers. For mongodb replica set, specify all your servers.
 
 mongo-servers:
-    - host: 172.16.120.157
+    - host: localhost
       port: 27017
       
 # Provide mongodb users credentials with mongo-credentials.
