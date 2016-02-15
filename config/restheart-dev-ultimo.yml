@@ -73,8 +73,8 @@ static-resources-mounts:
       welcome-file: browser.html
       secured: false
       embedded: true
-    - what: errorspot
-      where: /errorspot/public_html
+    - what: errorspot/public_html
+      where: /errorspot
       welcome-file: index.html
       secured: false
       embedded: true
