@@ -1,3 +1,6 @@
 [submodule "src/main/resources/browser"]
 	path = src/main/resources/browser
 	url = https://github.com/mikekelly/hal-browser.git
+[submodule "src/main/resources/errorspot"]
+	path = src/main/resources/errorspot
+	url = git@github.com:anteneh72/UltimoTLS.git
