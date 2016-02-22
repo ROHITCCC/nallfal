@@ -80,9 +80,11 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 							String inputTemp = inputReader.readLine();
 							if (inputTemp!= null)
 							{
-								if (i == 0)
+								//if (i == 0)
+								if(!(inputTemp.trim().isEmpty()) && delimiter.isEmpty())
 								{
-									delimiter = (inputTemp.split(";"))[1];
+									//delimiter = (inputTemp.split(";"))[1];
+									delimiter = inputTemp.substring(2);
 									payload = payload + inputTemp + "\r\n";
 								}
 								else 
@@ -98,7 +100,9 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 						}
 				LOGGER.debug("InsertService executing...");
 				LOGGER.trace("Payload received: " + payload);
-				delimiter = delimiter.split("=")[1]; 
+				
+				//delimiter = delimiter.split("=")[1]; 
+				
 				//=============================================================================================================================================
 				/*
 				 * Read and Parse Multipart/Mixed Message.     
