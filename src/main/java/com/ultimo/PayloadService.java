@@ -169,6 +169,8 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		}
 		
 		
+		//Convert DBObject (output) to string and encrypt and then create DB object using encrypted string
+		
 		
 		return output;
 		
@@ -176,6 +178,8 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 
 	protected static String jsonToPayload(DBObject inputObject)
 	{
+		
+		//Insert Decrypt logic here 
 		
 		String contentType = inputObject.get("errorSpotContentType").toString();
 		String output = "";
@@ -201,5 +205,18 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		return output;
 		
 	}
+	
+	
+	//Create Encrypt and Decrypt logic 
+	public static String encryptPayload(String payload){
+		
+		return "";
+	}
+	
+	public static String decryptPayload(String encryptedPayload){
+		
+		return "";
+	}
+	
 	
 }

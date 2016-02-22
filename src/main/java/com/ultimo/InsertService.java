@@ -110,36 +110,123 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				    byte[] boundary = delimiter.getBytes();
 				    byte[] contents = payload.getBytes();
 			        ByteArrayInputStream content = new ByteArrayInputStream(contents);
-			        MultipartStream multipartStream = new MultipartStream(content, boundary,1000, null);	        
+			        MultipartStream multipartStream = new MultipartStream(content, boundary,1000, null);
+			        
 			        boolean nextPart = multipartStream.skipPreamble();
 			        int m = 0;
 			        while (nextPart)
 			        {
 			        	
-			        	if (m==0)
+			        	//Logic to determine Audit or payload from stream
+			        	String partHeaders = multipartStream.readHeaders();
+			        	String[] partHeadersArray = partHeaders.split("\n");
+			        	String partContentType = "";
+			        	String partType = "";
+				       
+			        	
+			        	for (String headerPart : partHeadersArray)
+				        {
+				        	
+				        	
+				        		if (headerPart.toLowerCase().contains("content-type"))
+					        	{
+					        		String[] contentType = headerPart.split(":");
+					        		partContentType = contentType[1].trim().replace(";", "");
+					        	}
+				        		
+				        		//look for content-dispostion to get the type of data sent in this part (either payload or audit)
+				        		if (headerPart.toLowerCase().contains("content-disposition"))
+					        	{
+					        		String[] contentDispostion = headerPart.split(";");
+					        		for(String disposition: contentDispostion){
+					        			if(disposition.toLowerCase().replaceAll("\\s+","").contains("type=\"payload\"") || disposition.toLowerCase().replaceAll("\\s+","").contains("type=\"audit\""))
+					        			partType = disposition.substring(disposition.indexOf("=") + 1).replace("\"", "").trim();
+					        		}
+					        		
+					        	}	
+				        	
+				        }
+			        	
+			        	//If content-type is missing in part then return 400 and exit.
+			        	if (partContentType.length() == 0){
+					    	LOGGER.error("Incorrect Payload: Content-Type is missing in one of MIME messages");
+					        ResponseHelper.endExchangeWithMessage(exchange, HttpStatus.SC_BAD_REQUEST, "Incorrect Payload: Content-Type is missing in one of MIME messages");
+					        
+					        return;
+
+			        	}
+			        	
+			        	//If part type (audit or payload) could not be determined from content-dispostion then check  
+			        	//the data for required fields for audit and determine the type
+			        	ByteArrayOutputStream body = new ByteArrayOutputStream();
+	
+					    multipartStream.readBodyData(body);
+					    String temp = new String(body.toByteArray());
+					    
+			        	try{
+				        	if((partType.length() == 0 
+				        			|| !(partType.contentEquals("audit") || partType.contentEquals("payload"))) 
+				        			&& partContentType.contentEquals("application/json")){
+					            
+					            
+					            temp = temp.replace("\r\n", "");
+					            DBObject tempDBObject = PayloadService.payloadtoJSON(temp, "application/json", exchange, context);
+					            
+					            if (tempDBObject.containsField("envid") && tempDBObject.containsField("application") &&
+					            	tempDBObject.containsField("interface1") &&tempDBObject.containsField("timestamp")&&
+					            	tempDBObject.containsField("exceptionFlag")){
+					            	
+					            	partType = "audit";
+					            	
+					            } else {
+					            	partType = "payload";
+					            	
+					            }
+					            
+	 			        	} 
+			        	
+			        	}
+			        	 /*
+					        * If there is an error in conversion, then the payload will be saved as a text/plain payload. Conversion will happen in the PayloadService
+					        */
+					       catch(PayloadConversionException e)
+					       {
+					    	   partType = "payload";	
+					       }
+			        	
+			        	
+			        	if (partType.contentEquals("audit"))
 			        	{ 	
-					            ByteArrayOutputStream body = new ByteArrayOutputStream();
-					           auditHeaders = multipartStream.readHeaders();
-					            multipartStream.readBodyData(body);
-					             audit = new String(body.toByteArray());
+					            //ByteArrayOutputStream body = new ByteArrayOutputStream();
+					           //auditHeaders = multipartStream.readHeaders();
+			        			auditHeaders = partHeaders;
+					            //multipartStream.readBodyData(body);
+					            // audit = new String(body.toByteArray());
+			        			audit = temp;
 						        LOGGER.debug("Audit extracted from multipart message: boundary info: " + delimiter);
 	
 		       
 			        	}
-			        	else if(m==1)
+			        	if (partType.contentEquals("payload"))
 			        	{
-				            payloadHeaders = multipartStream.readHeaders();
-					            ByteArrayOutputStream body = new ByteArrayOutputStream();
+				                //payloadHeaders = multipartStream.readHeaders();
+			        			payloadHeaders = partHeaders;
+					            //ByteArrayOutputStream body = new ByteArrayOutputStream();
 
-					            multipartStream.readBodyData(body);
-					            payload = new String(body.toByteArray());
+					            //multipartStream.readBodyData(body);
+					            //payload = new String(body.toByteArray());
+				                payload = temp;
 						        LOGGER.debug("Payload extracted from multipart message: boundary info: " + delimiter);
 
 	
 			        	}
+			        	
+			        	
 			           nextPart = multipartStream.readBoundary();
 			           m++;
 			        }
+			        
+			        
 			        audit = audit.replace("\r\n", "");
 			        payload = payload.replace("\r\n", "");
 			        String[] pHeaders = payloadHeaders.split("\n");
@@ -159,7 +246,8 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 				        	{
 				        		String[] contentType = linePart.split(":");
 				        		payloadContentType = contentType[1].trim().replace(";", "");
-				        	}			        	}
+				        	}			        	
+			        	}
 			        }
 					//=============================================================================================================================================
 					/*
