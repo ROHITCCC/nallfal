@@ -143,7 +143,10 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 			}
 			else if (contentType.equalsIgnoreCase("application/json"))
 			{
-				output = (DBObject) JSON.parse(input);
+				DBObject temp = (DBObject) JSON.parse(input);
+				
+				output = new BasicDBObject();
+				output.put("payload", temp);
 				output.put("errorSpotContentType","application/json");
 	
 			}
@@ -187,7 +190,7 @@ public class PayloadService extends ApplicationLogicHandler implements IAuthToke
 		{
 			inputObject.removeField("errorSpotContentType");
 			inputObject.removeField("_id");
-			output = inputObject.toString();
+			output = inputObject.get("payload").toString();
 		}
 		else if (contentType.equalsIgnoreCase("application/xml"))
 		{
