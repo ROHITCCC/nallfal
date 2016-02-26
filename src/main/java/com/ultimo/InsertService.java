@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.Map;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
+import org.json.JSONML;
 import org.json.JSONObject;
 import org.restheart.db.MongoDBClientSingleton;
 import org.restheart.handlers.PipedHttpHandler;
@@ -170,8 +171,12 @@ public class InsertService extends ApplicationLogicHandler implements IAuthToken
 					            
 					            
 					            temp = temp.replace("\r\n", "");
-					            DBObject tempDBObject = PayloadService.payloadtoJSON(temp, "application/json", exchange, context);
+					       
+					            DBObject tempDBObject = (DBObject) JSON.parse(temp);
 					            
+					           // DBObject tempDBObject = (DBObject)PayloadService.payloadtoJSON(temp, "application/json", exchange, context).get("payload");
+					            
+					      
 					            if (tempDBObject.containsField("envid") && tempDBObject.containsField("application") &&
 					            	tempDBObject.containsField("interface1") &&tempDBObject.containsField("timestamp")&&
 					            	tempDBObject.containsField("exceptionFlag")){
